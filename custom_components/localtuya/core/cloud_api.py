@@ -11,7 +11,6 @@ import time
 import requests
 from requests.adapters import HTTPAdapter, Retry
 
-_LOGGER = logging.getLogger(__name__)
 
 DEVICES_UPDATE_INTERVAL = 300
 DEVICES_UPDATE_INTERVAL_FORCED = 10
@@ -42,11 +41,22 @@ def calc_sign(msg, key):
     return sign
 
 
+class CustomAdapter(logging.LoggerAdapter):
+    """Adapter logger for cloud api."""
+
+    def process(self, msg, kwargs):
+        return f"[{self.extra.get('prefix', '')}] {msg}", kwargs
+
+
 class TuyaCloudApi:
     """Class to send API calls."""
 
     def __init__(self, hass, region_code, client_id, secret, user_id):
         """Initialize the class."""
+        self._logger = CustomAdapter(
+            logging.getLogger(__name__), {"prefix": user_id[:3] + "..." + user_id[-3:]}
+        )
+
         self._hass = hass
         self._client_id = client_id
         self._secret = secret
@@ -85,7 +95,7 @@ class TuyaCloudApi:
             + "\n/"
             + url.split("//", 1)[-1].split("/", 1)[-1]  # Url
         )
-        # _LOGGER.debug("PAYLOAD: %s", payload)
+        # self._logger.debug("PAYLOAD: %s", payload)
         return payload
 
     async def async_make_request(self, method, url, body=None, headers={}):
@@ -93,7 +103,7 @@ class TuyaCloudApi:
         # obtain new token if expired.
         if not self.token_validate and self._token_expire_time != -1:
             if (res := await self.async_get_access_token()) and res != "ok":
-                return _LOGGER.debug(f"Refresh Token failed due to: {res}")
+                return self._logger.debug(f"Refresh Token failed due to: {res}")
 
         timestamp = str(int(time.time() * 1000))
         payload = self.generate_payload(method, timestamp, url, headers, body)
@@ -128,7 +138,7 @@ class TuyaCloudApi:
                 data=json.dumps(body),
                 timeout=request_timeout,
             )
-            # _LOGGER.debug("BODY: [%s]", body)
+            # self._logger.debug("BODY: [%s]", body)
         elif method == "PUT":
             func = functools.partial(
                 request_session.put,
@@ -141,7 +151,7 @@ class TuyaCloudApi:
         try:
             resp = await self._hass.async_add_executor_job(func)
         except requests.exceptions.ReadTimeout as ex:
-            _LOGGER.debug(f"Requests read timeout: {ex}")
+            self._logger.debug(f"Requests read timeout: {ex}")
             return
         # r = json.dumps(r.json(), indent=2, ensure_ascii=False) # Beautify the format
         return resp
@@ -177,14 +187,16 @@ class TuyaCloudApi:
 
     async def async_get_devices_list(self, force_update=False) -> str | None:
         """Obtain the list of devices associated to a user. - force_update will ignore last update check."""
-
         interval = (
             DEVICES_UPDATE_INTERVAL
             if not force_update
             else DEVICES_UPDATE_INTERVAL_FORCED
         )
-        if int(time.time()) - (self._last_devices_update + interval) < 0:
-            return _LOGGER.debug(f"Devices has been updated a minutes ago.")
+        if (
+            self.device_list
+            and int(time.time()) - (self._last_devices_update + interval) < 0
+        ):
+            return self._logger.debug(f"Devices has been updated a minutes ago.")
 
         resp = await self.async_make_request(
             "GET", url=f"/v1.0/users/{self._user_id}/devices"
@@ -197,7 +209,7 @@ class TuyaCloudApi:
 
         r_json = resp.json()
         if not r_json["success"]:
-            # _LOGGER.debug(
+            # self._logger.debug(
             #     "Request failed, reply is %s",
             #     json.dumps(r_json, indent=2, ensure_ascii=False)
             # )
@@ -284,7 +296,7 @@ class TuyaCloudApi:
         try:
             specs, query_props, query_model = await asyncio.gather(*get_data)
         except requests.exceptions.ConnectionError as ex:
-            _LOGGER.debug(f"Failed to get DPS functions for {device_id} - {ex}")
+            self._logger.debug(f"Failed to get DPS functions for {device_id} - {ex}")
             return
 
         if query_props[1] == "ok":
@@ -326,13 +338,13 @@ class TuyaCloudApi:
     async def async_connect(self):
         """Connect to cloudAPI"""
         if (res := await self.async_get_access_token()) and res != "ok":
-            _LOGGER.error("Cloud API connection failed: %s", res)
+            self._logger.error("Cloud API connection failed: %s", res)
             return "authentication_failed", res
         if res and (res := await self.async_get_devices_list()) and res != "ok":
-            _LOGGER.error("Cloud API connection failed: %s", res)
+            self._logger.error("Cloud API connection failed: %s", res)
             return "device_list_failed", res
         if res:
-            _LOGGER.info("Cloud API connection succeeded.")
+            self._logger.info("Cloud API connection succeeded.")
         return True, res
 
     @property

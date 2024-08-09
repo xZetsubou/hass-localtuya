@@ -935,12 +935,15 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.transport = transport
         self.on_connected.set_result(True)
 
-    def start_heartbeat(self, is_gateway: bool):
-        """Start the heartbeat transmissions with the device."""
+    def keep_alive(self, is_gateway: bool = False):
+        """
+        Start the heartbeat transmissions with the device.
+            is_gateway: will use subdevices_query as heartbeat.
+        """
 
-        async def heartbeat_loop(action):
+        async def keep_alive_loop(action):
             """Continuously send heart beat updates."""
-            self.debug("Started heartbeat loop")
+            self.debug("Started keep alive loop.")
             while True:
                 try:
                     await asyncio.sleep(HEARTBEAT_INTERVAL)
@@ -960,22 +963,14 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
             self.debug("Stopped heartbeat loop")
 
-        async def hb():
-            await self.heartbeat()
-
-        async def sq():
-            # Reset the state before every request.
-            self.sub_devices_states = {"online": [], "offline": []}
-            await self.subdevices_query()
-
         if self.heartbeater is None:
             # Prevent duplicates heartbeat task
             self.heartbeater = self.loop.create_task(
-                heartbeat_loop(
+                keep_alive_loop(
                     # Ver. 3.3 gateways don't respond to subdevice query
-                    sq
+                    self.subdevices_query
                     if is_gateway and self.version >= 3.4
-                    else hb
+                    else self.heartbeat
                 )
             )
 
@@ -1199,6 +1194,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         """Request a list of sub-devices and their status."""
         # Return payload: {"online": [cid1, ...], "offline": [cid2, ...]}
         # "nearby": [cids, ...] can come in payload.
+        self.sub_devices_states = {"online": [], "offline": []}
         payload = self._generate_payload(
             LAN_EXT_STREAM, rawData={"cids": []}, reqType="subdev_online_stat_query"
         )

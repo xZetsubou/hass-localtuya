@@ -67,7 +67,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         super().__init__()
         self._hass = hass
         self._entry = entry
-        self._hass_entry: HassLocalTuyaData = None
+        self._hass_entry: HassLocalTuyaData = hass.data[DOMAIN][entry.entry_id]
         self._device_config = DeviceConfig(device_config.copy())
 
         self._interface = None
@@ -75,7 +75,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         # For SubDevices
         self._node_id: str = self._device_config.node_id
         self._fake_gateway = fake_gateway
-        self._gateway: TuyaDevice = None
+        self.gateway: TuyaDevice = None
         self.sub_devices: dict[str, TuyaDevice] = {}
 
         self._status = {}
@@ -140,16 +140,8 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
         return device_sleep > 0 and is_sleep
 
-    def _remove_from_gateway(self):
-        """Delete itself from the gateway's list of sub-devices."""
-        if self._gateway and self._node_id in self._gateway.sub_devices:
-            self._gateway.sub_devices.pop(self._node_id)
-
     async def async_connect(self, _now=None) -> None:
         """Connect to device if not already connected."""
-        if not self._hass_entry:
-            self._hass_entry = self._hass.data[DOMAIN][self._entry.entry_id]
-
         if self._is_closing or self.is_connecting:
             return
 
@@ -158,26 +150,8 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
         self._connect_task = asyncio.create_task(self._make_connection())
 
-        if not self.is_sleep and not self.is_subdevice:
+        if not self.is_sleep:
             await self._connect_task
-
-    def _get_gateway(self):
-        """Return the gateway device of this sub device."""
-        if not self._node_id:
-            return None  # Should never happen
-        if (gateway := self._gateway) is None:
-            return None  # Should never happen
-
-        # Ensure that sub-device still on the same gateway device.
-        if gateway._local_key != self._local_key:
-            if not self._subdevice_absent:
-                self.warning("Sub-device localkey doesn't match the gateway localkey")
-                # This will become False after successful connect
-                self._subdevice_absent = True
-            self._remove_from_gateway()
-            return None
-        else:
-            return gateway
 
     async def _connect_subdevices(self):
         """Connect to sub-devices one by one."""
@@ -189,8 +163,6 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         subdevices = list(self.sub_devices.values())
         for subdevice in subdevices:
             await subdevice.async_connect()
-            if subdevice._connect_task:
-                await subdevice._connect_task
             if not self.connected:
                 break
 
@@ -309,8 +281,8 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             self._connect_task = None
             # Ensure the connected sub-device is in its gateway's sub_devices
             # and reset offline/absent counters
-            if self._gateway:
-                self._gateway.sub_devices[self._node_id] = self
+            if self.gateway:
+                self.gateway.sub_devices[self._node_id] = self
             # It does not hurt to reset the values even not for sub-devices
             self._subdevice_absent = False
             self._subdevice_off_count = 0
@@ -326,7 +298,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             if self.sub_devices:
                 asyncio.create_task(self._connect_subdevices())
 
-            self._interface.start_heartbeat(self.sub_devices)
+            self._interface.keep_alive(len(self.sub_devices) > 0)
 
         # If not connected try to handle the errors.
         if not self.connected:
@@ -354,8 +326,8 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         """Ensure that the device is not still connecting; if it is, wait for it."""
         if not self.connected and self._connect_task:
             await self._connect_task
-        if not self.connected and self._gateway and self._gateway._connect_task:
-            await self._gateway._connect_task
+        if not self.connected and self.gateway and self.gateway._connect_task:
+            await self.gateway._connect_task
         if not self.connected:
             self.error(f"Not connected to device {self._device_config.name}")
 
@@ -456,6 +428,46 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             except TimeoutError:
                 pass
 
+    async def _async_reconnect(self):
+        """Task: continuously attempt to reconnect to the device."""
+        if self._reconnect_task:
+            return
+
+        self._reconnect_task = True
+        attempts = 0
+        while True and not self._is_closing:
+            # for sub-devices, if it is reported as offline then no need for reconnect.
+            if self.is_subdevice and self._subdevice_off_count >= MIN_OFFLINE_EVENTS:
+                await asyncio.sleep(1)
+                continue
+
+            # for sub-devices, if the gateway isn't connected then no need for reconnect.
+            if self.gateway and (
+                not self.gateway.connected or self.gateway.is_connecting
+            ):
+                await asyncio.sleep(3)
+                continue
+
+            try:
+                if not self._connect_task:
+                    await self.async_connect()
+                if self._connect_task:
+                    await self._connect_task
+            except asyncio.CancelledError as e:
+                self.debug(f"Reconnect task has been canceled: {e}", force=True)
+                break
+
+            if self.connected:
+                if not self.is_sleep and attempts > 0:
+                    self.info(f"Reconnect succeeded on attempt: {attempts}")
+                break
+
+            attempts += 1
+            scale = 1 if not self._subdevice_absent else 2
+            await asyncio.sleep(scale * RECONNECT_INTERVAL.total_seconds())
+
+        self._reconnect_task = False
+
     def _dispatch_status(self):
         signal = f"localtuya_{self._device_config.id}"
         dispatcher_send(self._hass, signal, self._status)
@@ -552,46 +564,6 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         fun = partial(self._shutdown_entities, exc=exc)
         self._call_on_close.append(async_call_later(self._hass, 3 + sleep_time, fun))
 
-    async def _async_reconnect(self):
-        """Task: continuously attempt to reconnect to the device."""
-        if self._reconnect_task:
-            return
-
-        self._reconnect_task = True
-        attempts = 0
-        while True and not self._is_closing:
-            # for sub-devices, if it is reported as offline then no need for reconnect.
-            if self.is_subdevice and self._subdevice_off_count >= MIN_OFFLINE_EVENTS:
-                await asyncio.sleep(1)
-                continue
-
-            # for sub-devices, if the gateway isn't connected then no need for reconnect.
-            if self._gateway and (
-                not self._gateway.connected or self._gateway.is_connecting
-            ):
-                await asyncio.sleep(3)
-                continue
-
-            try:
-                if not self._connect_task:
-                    await self.async_connect()
-                if self._connect_task:
-                    await self._connect_task
-            except asyncio.CancelledError as e:
-                self.debug(f"Reconnect task has been canceled: {e}", force=True)
-                break
-
-            if self.connected:
-                if not self.is_sleep and attempts > 0:
-                    self.info(f"Reconnect succeeded on attempt: {attempts}")
-                break
-
-            attempts += 1
-            scale = 1 if not self._subdevice_absent else 2
-            await asyncio.sleep(scale * RECONNECT_INTERVAL.total_seconds())
-
-        self._reconnect_task = False
-
     @callback
     def subdevice_state(self, state):
         """Sub-Device is offline or online."""
@@ -627,3 +599,26 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 self.warning(f"Sub-device is offline {self._node_id}")
             elif off_count >= MIN_OFFLINE_EVENTS:
                 self.disconnected("Device is offline")
+
+    def _remove_from_gateway(self):
+        """Delete itself from the gateway's list of sub-devices."""
+        if self.gateway and self._node_id in self.gateway.sub_devices:
+            self.gateway.sub_devices.pop(self._node_id)
+
+    def _get_gateway(self):
+        """Return the gateway device of this sub device."""
+        if not self._node_id:
+            return None  # Should never happen
+        if (gateway := self.gateway) is None:
+            return None  # Should never happen
+
+        # Ensure that sub-device still on the same gateway device.
+        if gateway._local_key != self._local_key:
+            if not self._subdevice_absent:
+                self.warning("Sub-device localkey doesn't match the gateway localkey")
+                # This will become False after successful connect
+                self._subdevice_absent = True
+            self._remove_from_gateway()
+            return None
+        else:
+            return gateway
