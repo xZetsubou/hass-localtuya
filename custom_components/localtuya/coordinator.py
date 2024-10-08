@@ -51,7 +51,6 @@ class HassLocalTuyaData(NamedTuple):
 
     cloud_data: TuyaCloudApi
     devices: dict[str, TuyaDevice]
-    unsub_listeners: list[CALLBACK_TYPE,]
 
 
 class TuyaDevice(TuyaListener, ContextualLogger):
@@ -332,8 +331,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
     async def close(self):
         """Close connection and stop re-connect loop."""
+        if self._is_closing:
+            return
+
         self._is_closing = True
-        self._shutdown_entities()
+        await self._shutdown_entities()
 
         for cb in self._call_on_close:
             cb()
@@ -342,9 +344,14 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             self._connect_task.cancel()
             await self._connect_task
             self._connect_task = None
-        if self._interface is not None:
-            await self._interface.close()
-            self._interface = None
+
+        # Close subdevices first, to prevent them try to reconnect
+        # after gateway disconnected.
+        subdevices = list(self.sub_devices.values())
+        for subdevice in subdevices:
+            await subdevice.close()
+
+        await self.abort_connect()
         self.debug(f"Closed connection", force=True)
 
     async def update_local_key(self):
