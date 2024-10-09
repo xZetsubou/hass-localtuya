@@ -1,6 +1,7 @@
 """Platform to locally control Tuya-based light devices."""
 
 import logging
+from typing import Any
 import textwrap
 from functools import partial
 from .config_flow import _col_to_select
@@ -145,7 +146,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     ):
         """Initialize the Tuya light."""
         super().__init__(device, config_entry, lightid, _LOGGER, **kwargs)
-        self._state = False
+        # Light is an active device (mains powered). It should be able
+        # to respond at any time. But (some?) BLE bulbs are write-only.
+        # With 0 in Manual DP's, presume it does not respond on requests
+        self._write_only = "0" in self._device_config.manual_dps.split(",")
+
+        self._state = False if not self._write_only else None
         self._brightness = None
         self._color_temp = None
         self._lower_brightness = int(
@@ -184,8 +190,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
             if not custom_scenes:
                 self._scenes = {**EFFECTS_MODES, **self._scenes}
+        elif self._write_only and self._config.get(CONF_COLOR_MODE):
+            self._scenes = EFFECTS_MODES
 
-            self._effect_list = list(self._scenes.keys())
+        self._effect_list = list(self._scenes.keys())
+
         if self._config.get(CONF_MUSIC_MODE):
             self._effect_list.append(SCENE_MUSIC)
 
@@ -464,8 +473,19 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         """Turn Tuya light off."""
         await self._device.set_dp(False, self._dp_id)
 
+    def dp_value(self, key, default=None) -> Any | None:
+        if self._write_only:
+            # Consider any DP value as not trusted
+            return None
+        else:
+            return super().dp_value(key, default)
+
     def status_updated(self):
         """Device status was updated."""
+        if self._write_only:
+            # Consider any DP value as not trusted
+            return
+
         self._state = self.dp_value(self._dp_id)
         supported = self.supported_features
         self._effect = None
