@@ -965,6 +965,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                     self.exception("Heartbeat failed (%s), disconnecting", ex)
                     break
 
+            self.heartbeater = None
             if self.transport is not None:
                 self.clean_up_session()
 
@@ -1016,6 +1017,12 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.debug("Closing connection")
         self.clean_up_session()
 
+        if self.heartbeater:
+            await self.heartbeater
+
+        if self._sub_devs_query_task:
+            await self._sub_devs_query_task
+
     def clean_up_session(self):
         """Clean up session."""
         self.debug(f"Cleaning up session.")
@@ -1027,11 +1034,11 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         if self._sub_devs_query_task:
             self._sub_devs_query_task.cancel()
 
-        if self.dispatcher:
-            self.dispatcher.abort()
-
         if self.is_connected:
             self.transport.close()
+
+        if self.dispatcher:
+            self.dispatcher.abort()
 
     async def exchange_quick(self, payload, recv_retries):
         """Similar to exchange() but never retries sending and does not decode the response."""
@@ -1048,8 +1055,8 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         try:
             await self.transport_write(enc_payload)
         except Exception:  # pylint: disable=broad-except
-            await self.close()
-            return None
+            return self.clean_up_session()
+
         while recv_retries:
             try:
                 seqno = MessageDispatcher.SESS_KEY_SEQNO
@@ -1602,7 +1609,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
     @property
     def is_connected(self):
-        return not self.transport or not self.transport.is_closing()
+        return self.transport is not None and not self.transport.is_closing()
 
     @property
     def last_command_sent(self):

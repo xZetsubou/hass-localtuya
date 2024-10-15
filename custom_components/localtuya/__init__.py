@@ -47,8 +47,6 @@ from .discovery import TuyaDiscovery
 
 _LOGGER = logging.getLogger(__name__)
 
-UNSUB_LISTENER = "unsub_listener"
-
 CONF_DP = "dp"
 CONF_VALUE = "value"
 
@@ -318,7 +316,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             hass, tuya_api.async_connect(), "localtuya-cloudAPI"
         )
 
-    hass_localtuya = HassLocalTuyaData(tuya_api, {}, [])
+    hass_localtuya = HassLocalTuyaData(tuya_api, {})
     hass.data[DOMAIN][entry.entry_id] = hass_localtuya
 
     def _setup_devices(entry_devices: dict):
@@ -362,29 +360,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await async_remove_orphan_entities(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS.values())
 
-    hass_localtuya.unsub_listeners.append(entry.add_update_listener(update_listener))
+    # Note: entry.async_on_unload items are called in LIFO order!
 
     for dev in connect_to_devices:
         asyncio.create_task(dev.async_connect())
+        entry.async_on_unload(dev.close)
 
+    entry.async_on_unload(entry.add_update_listener(update_listener))
+
+    async def _shutdown(event):
+        """Clean up resources when shutting down."""
+        for dev in connect_to_devices:
+            await dev.close()
+        _LOGGER.info("Shutdown completed")
+
+    entry.async_on_unload(
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _shutdown)
+    )
+
+    _LOGGER.info("Setup completed")
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unloading the Tuya platforms."""
-    hass_data: HassLocalTuyaData = hass.data[DOMAIN][entry.entry_id]
-
-    # Unsub listeners.
-    [unsub() for unsub in hass_data.unsub_listeners]
-
-    for dev in hass_data.devices.values():
-        asyncio.create_task(dev.close())
-
     # Unload the platforms.
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS.values())
-
     hass.data[DOMAIN].pop(entry.entry_id)
 
+    _LOGGER.info("Unload completed")
     return True
 
 
