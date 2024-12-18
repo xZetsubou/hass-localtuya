@@ -70,6 +70,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._hass_entry: HassLocalTuyaData = hass.data[DOMAIN][entry.entry_id]
         self._device_config = DeviceConfig(device_config.copy())
         self.id = self._device_config.id
+        self.write_only = False # Used for BLE bulbs, see LocalTuyaLight
 
         self._status = {}
         self._interface = None
@@ -414,6 +415,9 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             payload, self._pending_status = self._pending_status.copy(), {}
             try:
                 await self._interface.set_dps(payload, cid=self._node_id)
+                if self.write_only:
+                    # The device never replies, process its status change now
+                    self.status_updated(payload)
             except Exception as ex:  # pylint: disable=broad-except
                 self.debug(f"Failed to set values {payload} --> {ex}", force=True)
         elif not self.connected:

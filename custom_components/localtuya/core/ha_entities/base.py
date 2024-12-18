@@ -189,6 +189,7 @@ class DPCode(StrEnum):
     COLOUR_DATA = "colour_data"  # Colored light mode
     COLOUR_DATA_HSV = "colour_data_hsv"  # Colored light mode
     COLOUR_DATA_V2 = "colour_data_v2"  # Colored light mode
+    COLOUR_DATA_RAW = "colour_data_raw"  # Colored light mode for BLE
     COMPRESSOR_COMMAND = "compressor_command"
     CONCENTRATION_SET = "concentration_set"  # Concentration setting
     CONTROL = "control"
@@ -505,6 +506,7 @@ class DPCode(StrEnum):
     SCENE_9 = "scene_9"
     SCENE_DATA = "scene_data"  # Colored light mode
     SCENE_DATA_V2 = "scene_data_v2"  # Colored light mode
+    SCENE_DATA_RAW = "scene_data_raw"  # Colored light mode for BLE
     SEEK = "seek"
     SENS = "sens"  # Ikuu SXSEN003PIR IP65 Motion Detector (Wi-Fi)
     SENSITIVITY = "sensitivity"  # Sensitivity
