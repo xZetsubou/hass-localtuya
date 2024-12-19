@@ -44,6 +44,7 @@ from homeassistant.core import callback
 from .coordinator import pytuya, TuyaCloudApi
 from .core.cloud_api import TUYA_ENDPOINTS
 from .core.helpers import templates, get_gateway_by_deviceid, gen_localtuya_entities
+from .core.ha_entities.base import DPCode
 from .const import (
     ATTR_UPDATED_AT,
     CONF_ADD_DEVICE,
@@ -1094,6 +1095,16 @@ def schema_defaults(schema, dps_list=None, **defaults):
     return copy
 
 
+def __is_special_dp(dp, cloud_dp_codes: dict[str, dict]) -> bool:
+    if not (dp_data := cloud_dp_codes.get(dp)):
+        return false
+    if not (code := dp_data.get("code")):
+        return false
+    return code in (
+        DPCode.COLOUR_DATA_RAW,
+        DPCode.SCENE_DATA_RAW,
+    )
+
 def dps_string_list(dps_data: dict[str, dict], cloud_dp_codes: dict[str, dict]) -> list:
     """Return list of friendly DPS values."""
     strs = []
@@ -1102,7 +1113,11 @@ def dps_string_list(dps_data: dict[str, dict], cloud_dp_codes: dict[str, dict]) 
     for dp, func in cloud_dp_codes.items():
         # Default Manual dp value is -1, we will replace it if it in cloud.
         add_dp = dp not in dps_data or dps_data.get(dp) == -1
-        if add_dp and ((value := func.get("value")) or value is not None):
+        if add_dp and (
+            (value := func.get("value"))
+            or value is not None
+            or __is_special_dp(dp, cloud_dp_codes)
+        ):
             dps_data[dp] = f"{value}, cloud pull"
 
     for dp, value in dps_data.items():

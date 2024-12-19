@@ -196,6 +196,7 @@
                     "music_mode": "Music mode available?",
                     "scene": "Scene",
                     "scene_values": "(Optional) Scene values",
+                    "write_only": "Write-only DPs (usually BLE bulbs)",
                     "select_options": "Select options values",
                     "fan_speed_control": "Fan Speed Control DP",
                     "fan_oscillating_control": "Fan Oscillating Control DP",

@@ -1,5 +1,6 @@
 """Platform to locally control Tuya-based light devices."""
 
+import base64
 import logging
 import textwrap
 import homeassistant.util.color as color_util
@@ -33,6 +34,7 @@ from .const import (
     CONF_COLOR_TEMP_REVERSE,
     CONF_MUSIC_MODE,
     CONF_SCENE_VALUES,
+    CONF_WRITE_ONLY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -51,11 +53,11 @@ MODE_MUSIC = "music"
 MODE_SCENE = "scene"
 MODE_WHITE = "white"
 
-SCENE_CUSTOM = "Custom"
 SCENE_MUSIC = "Music"
 
 MODES_SET = {"Colour, Music, Scene and White": 0, "Manual, Music, Scene and White": 1}
 
+# https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-10-scene_data
 SCENE_LIST_RGBW_255 = {
     "Night": "bd76000168ffff",
     "Read": "fffcf70168ffff",
@@ -66,6 +68,8 @@ SCENE_LIST_RGBW_255 = {
     "Scenario 3": "scene_3",
     "Scenario 4": "scene_4",
 }
+
+# https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-11-scene_data_v2
 SCENE_LIST_RGBW_1000 = {
     "Night": "000e0d0000000000000000c80000",
     "Read": "010e0d0000000000000003e801f4",
@@ -96,6 +100,16 @@ SCENE_LIST_RGB_1000 = {
     + "0000000",
 }
 
+# BASE64-encoded 1-byte numbers.
+# Other numbers up to 0x10 were tested to no avail.
+SCENE_LIST_RGBW_BLE = {
+    "Good Night": "AA==", # 00
+    "Leisure":    "Aw==", # 01
+    "Gorgeous":   "Bw==", # 07
+    "Dream":      "HA==", # 1C
+    "Sunflower":  "GA==", # 18
+    "Grassland":  "BA==", # 04
+}
 
 @dataclass(frozen=True)
 class Mode:
@@ -147,6 +161,7 @@ def flow_schema(dps):
         vol.Optional(CONF_SCENE): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_SCENE_VALUES, default={}): selector.ObjectSelector(),
         vol.Optional(CONF_MUSIC_MODE, default=False): selector.BooleanSelector(),
+        vol.Optional(CONF_WRITE_ONLY, default=False): selector.BooleanSelector(),
     }
 
 
@@ -162,8 +177,13 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     ):
         """Initialize the Tuya light."""
         super().__init__(device, config_entry, lightid, _LOGGER, **kwargs)
-        self._state = False
-        self._brightness = None
+        # Light is an active device (mains powered). It should be able
+        # to respond at any time. But Tuya BLE bulbs are write-only.
+        self._write_only = self._config.get(CONF_WRITE_ONLY, False)
+        if self._write_only:
+            self._device.write_only = self._write_only
+
+        self._state = None
         self._color_temp = None
         self._lower_brightness = int(
             self._config.get(CONF_BRIGHTNESS_LOWER, DEFAULT_LOWER_BRIGHTNESS)
@@ -171,6 +191,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._upper_brightness = int(
             self._config.get(CONF_BRIGHTNESS_UPPER, DEFAULT_UPPER_BRIGHTNESS)
         )
+        self._brightness = None if not self._write_only else self._upper_brightness
         self._upper_color_temp = self._upper_brightness
         self._min_kelvin = int(
             self._config.get(CONF_COLOR_TEMP_MIN_KELVIN, DEFAULT_MIN_KELVIN)
@@ -187,13 +208,13 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._effect_list = []
         self._scenes = {}
 
-        custom_scenes = False
         if self.has_config(CONF_SCENE):
-            if self.has_config(CONF_SCENE_VALUES):
-                custom_scenes = True
+            if self.has_config(CONF_SCENE_VALUES) and len(self._config.get(CONF_SCENE_VALUES)):
                 values_list = list(self._config.get(CONF_SCENE_VALUES))
                 values_name = list(self._config.get(CONF_SCENE_VALUES).values())
                 self._scenes = dict(zip(values_name, values_list))
+            elif self._write_only: # BLE bulbs
+                self._scenes = SCENE_LIST_RGBW_BLE
             elif int(self._config.get(CONF_SCENE)) < 20:
                 self._scenes = SCENE_LIST_RGBW_255
             elif self._config.get(CONF_BRIGHTNESS) is None:
@@ -201,10 +222,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             else:
                 self._scenes = SCENE_LIST_RGBW_1000
 
-            if not custom_scenes:
-                self._scenes = {**self._modes.as_dict(), **self._scenes}
+            self._scenes = {**self._modes.as_dict(), **self._scenes}
 
             self._effect_list = list(self._scenes.keys())
+        elif self._write_only and self._config.get(CONF_MUSIC_MODE):
+            # BLE bulbs with no scene value DP configured
+            self._scenes = self._modes.as_dict()
 
         if self._config.get(CONF_MUSIC_MODE):
             self._effect_list.append(SCENE_MUSIC)
@@ -249,7 +272,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def color_temp(self):
         """Return the color_temp of the light."""
         if self._color_temp is None:
-            return
+            return None
         if self.has_config(CONF_COLOR_TEMP):
             color_temp = (
                 self._upper_color_temp - self._color_temp
@@ -364,7 +387,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def __find_scene_by_scene_data(self, data):
         return next(
             (item for item in self._effect_list if self._scenes.get(item) == data),
-            SCENE_CUSTOM,
+            None,
         )
 
     def __get_color_mode(self):
@@ -374,14 +397,74 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             else self._modes.white
         )
 
+    def __to_color(self, hs, brightness):
+        """Converts HSB values to a string."""
+        # FIXME: the format should be selected by DP name, not a fuzzy logic
+        if self._write_only: # BLE bulbs
+            color = base64.b64encode(
+# BASE64-encoded 4-byte value: HHSL
+                bytes([
+                        round(hs[0]) // 256,
+                        round(hs[0]) % 256,
+                        round(hs[1]),
+                        round(brightness * 100 / self._upper_brightness)
+                ])
+            ).decode("ascii")
+            self._hs = hs
+        elif self.__is_color_rgb_encoded():
+# It is not
+# https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-8-colour_data
+            rgb = color_util.color_hsv_to_RGB(
+                hs[0], hs[1], int(brightness * 100 / self._upper_brightness)
+            )
+            color = "{:02x}{:02x}{:02x}{:04x}{:02x}{:02x}".format(
+                round(rgb[0]),
+                round(rgb[1]),
+                round(rgb[2]),
+                round(hs[0]),
+                round(hs[1] * 255 / 100),
+                brightness,
+            )
+        else:
+# https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-9-colour_data_v2
+            color = "{:04x}{:04x}{:04x}".format(
+                round(hs[0]), round(hs[1] * 10.0), brightness
+            )
+        return color
+
+    def __from_color(self, color):
+        """Convert a string to HSL values."""
+        if self._write_only: # BLE bulbs
+            hsl = int.from_bytes(
+                base64.b64decode(color), byteorder='big', signed=False
+            )
+            hue = hsl // 65536
+            sat = (hsl // 256) % 256
+            value = (hsl % 256) * self._upper_brightness / 100
+            self._hs = [hue, sat]
+            self._brightness = value
+        elif self.__is_color_rgb_encoded():
+            hue = int(color[6:10], 16)
+            sat = int(color[10:12], 16)
+            value = int(color[12:14], 16)
+            self._hs = [hue, sat]
+            self._brightness = value
+        else:
+            hue, sat, value = [
+                int(value, 16) for value in textwrap.wrap(color, 4)
+            ]
+            self._hs = [hue, sat / 10.0]
+            self._brightness = value
+
     async def async_turn_on(self, **kwargs):
         """Turn on or control the light."""
         states = {}
-        if not self.is_on:
+        if not self.is_on or self._write_only:
             states[self._dp_id] = True
         features = self.supported_features
         color_modes = self.supported_color_modes
         brightness = None
+        color_mode = None
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
             scene = self._scenes.get(effect)
@@ -390,14 +473,14 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                     self._modes.white,
                     self._modes.color,
                 ):
-                    states[self._config.get(CONF_COLOR_MODE)] = scene
+                    color_mode = scene
                 else:
-                    states[self._config.get(CONF_COLOR_MODE)] = self._modes.scene
+                    color_mode = self._modes.scene
                     states[self._config.get(CONF_SCENE)] = scene
             elif effect in self._modes.as_list():
-                states[self._config.get(CONF_COLOR_MODE)] = effect
+                color_mode = effect
             elif effect == self._modes.music:
-                states[self._config.get(CONF_COLOR_MODE)] = self._modes.music
+                color_mode = self._modes.music
 
         if ATTR_BRIGHTNESS in kwargs and (
             ColorMode.BRIGHTNESS in color_modes
@@ -411,29 +494,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 self._lower_brightness,
                 self._upper_brightness,
             )
-            if self.is_white_mode or self.dp_value(CONF_COLOR) is None:
-                states[self._config.get(CONF_BRIGHTNESS)] = brightness
+            if self.is_color_mode and self._hs is not None:
+                states[self._config.get(CONF_COLOR)] = self.__to_color(self._hs, brightness)
+                color_mode = self._modes.color
             else:
-                if self.__is_color_rgb_encoded():
-                    rgb = color_util.color_hsv_to_RGB(
-                        self._hs[0],
-                        self._hs[1],
-                        int(brightness * 100 / self._upper_brightness),
-                    )
-                    color = "{:02x}{:02x}{:02x}{:04x}{:02x}{:02x}".format(
-                        round(rgb[0]),
-                        round(rgb[1]),
-                        round(rgb[2]),
-                        round(self._hs[0]),
-                        round(self._hs[1] * 255 / 100),
-                        brightness,
-                    )
-                else:
-                    color = "{:04x}{:04x}{:04x}".format(
-                        round(self._hs[0]), round(self._hs[1] * 10.0), brightness
-                    )
-                states[self._config.get(CONF_COLOR)] = color
-                states[self._config.get(CONF_COLOR_MODE)] = self._modes.color
+                states[self._config.get(CONF_BRIGHTNESS)] = brightness
+                color_mode = self._modes.white
 
         if ATTR_HS_COLOR in kwargs and ColorMode.HS in color_modes:
             if brightness is None:
@@ -441,26 +507,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             hs = kwargs[ATTR_HS_COLOR]
             if hs[1] == 0 and self.has_config(CONF_BRIGHTNESS):
                 states[self._config.get(CONF_BRIGHTNESS)] = brightness
-                states[self._config.get(CONF_COLOR_MODE)] = self._modes.white
+                color_mode = self._modes.white
             else:
-                if self.__is_color_rgb_encoded():
-                    rgb = color_util.color_hsv_to_RGB(
-                        hs[0], hs[1], int(brightness * 100 / self._upper_brightness)
-                    )
-                    color = "{:02x}{:02x}{:02x}{:04x}{:02x}{:02x}".format(
-                        round(rgb[0]),
-                        round(rgb[1]),
-                        round(rgb[2]),
-                        round(hs[0]),
-                        round(hs[1] * 255 / 100),
-                        brightness,
-                    )
-                else:
-                    color = "{:04x}{:04x}{:04x}".format(
-                        round(hs[0]), round(hs[1] * 10.0), brightness
-                    )
-                states[self._config.get(CONF_COLOR)] = color
-                states[self._config.get(CONF_COLOR_MODE)] = self._modes.color
+                states[self._config.get(CONF_COLOR)] = self.__to_color(hs, brightness)
+                color_mode = self._modes.color
 
         if ATTR_COLOR_TEMP in kwargs and ColorMode.COLOR_TEMP in color_modes:
             if brightness is None:
@@ -477,9 +527,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 - (self._upper_color_temp / (self.max_mireds - self.min_mireds))
                 * (mired - self.min_mireds)
             )
-            states[self._config.get(CONF_COLOR_MODE)] = self._modes.white
+            color_mode = self._modes.white
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
+
+        if color_mode is not None:
+            states[self._config.get(CONF_COLOR_MODE)] = color_mode
 
         await self._device.set_dps(states)
 
@@ -499,20 +552,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if ColorMode.HS in self.supported_color_modes:
             color = self.dp_value(CONF_COLOR)
             if color is not None and not self.is_white_mode:
-                if self.__is_color_rgb_encoded():
-                    hue = int(color[6:10], 16)
-                    sat = int(color[10:12], 16)
-                    value = int(color[12:14], 16)
-                    self._hs = [hue, (sat * 100 / 255)]
-                    self._brightness = value
-                else:
-                    hue, sat, value = [
-                        int(value, 16) for value in textwrap.wrap(color, 4)
-                    ]
-                    self._hs = [hue, sat / 10.0]
-                    self._brightness = value
+                self.__from_color(color)
             elif self._brightness is None:
-                self._brightness = 20
+                self._brightness = self._upper_brightness
 
         if ColorMode.COLOR_TEMP in self.supported_color_modes:
             self._color_temp = self.dp_value(CONF_COLOR_TEMP)
@@ -526,11 +568,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 self._effect = self.__find_scene_by_scene_data(
                     self.dp_value(CONF_SCENE)
                 )
-                if self._effect == SCENE_CUSTOM:
-                    if SCENE_CUSTOM not in self._effect_list:
-                        self._effect_list.append(SCENE_CUSTOM)
-                elif SCENE_CUSTOM in self._effect_list:
-                    self._effect_list.remove(SCENE_CUSTOM)
+                if self._effect is None:
+                    self._effect = self.__find_scene_by_scene_data(
+                        self._modes.scene
+                    )
 
         if self.is_music_mode and supported & LightEntityFeature.EFFECT:
             self._effect = SCENE_MUSIC

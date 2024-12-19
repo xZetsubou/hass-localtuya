@@ -97,6 +97,7 @@ CONF_COLOR_TEMP_REVERSE = "color_temp_reverse"
 CONF_MUSIC_MODE = "music_mode"
 CONF_SCENE_VALUES = "scene_values"
 CONF_SCENE_VALUES_FRIENDLY = "scene_values_friendly"
+CONF_WRITE_ONLY = "write_only"
 
 # switch
 CONF_CURRENT = "current"
