@@ -284,6 +284,20 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
         return value
 
+    def dp_code(self, key):
+        """Returns DP code, if available from the cloud"""
+        dp_id = self._config.get(key)
+        if dp_id is None:
+            return None
+        for dp in self._device_config.dps_strings:
+            all = dp.split(" ")
+            if dp_id == all[0]:
+                if len(all) > 3 and all[2] == "code:":
+                    return all[3]
+                else:
+                    return None
+        return None
+
     def status_updated(self) -> None:
         """Device status was updated.
 
