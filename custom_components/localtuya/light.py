@@ -11,6 +11,7 @@ from homeassistant.helpers import selector
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
     ATTR_COLOR_TEMP,
+    ATTR_WHITE,
     ATTR_EFFECT,
     ATTR_HS_COLOR,
     DOMAIN,
@@ -300,7 +301,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             color_modes.add(ColorMode.COLOR_TEMP)
         if self.has_config(CONF_COLOR):
             color_modes.add(ColorMode.HS)
-
+        if (
+            self.has_config(CONF_COLOR)
+            and self.has_config(CONF_BRIGHTNESS)
+            and not self.has_config(CONF_COLOR_TEMP)
+        ):
+            return {ColorMode.HS, ColorMode.WHITE}
         if not color_modes and self.has_config(CONF_BRIGHTNESS):
             return {ColorMode.BRIGHTNESS}
 
@@ -350,7 +356,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if self.is_color_mode:
             return ColorMode.HS
         if self.is_white_mode:
-            return ColorMode.COLOR_TEMP
+            if self.has_config(CONF_COLOR_TEMP):
+                return ColorMode.COLOR_TEMP
+            return ColorMode.WHITE
         if self._brightness:
             return ColorMode.BRIGHTNESS
 
@@ -480,6 +488,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             states[self._config.get(CONF_COLOR_MODE)] = self._modes.white
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
+
+        if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
+            if brightness is None:
+                brightness = self._brightness
+            states[self._config.get(CONF_COLOR_MODE)] = self._modes.white
+            states[self._config.get(CONF_BRIGHTNESS)] = brightness
 
         await self._device.set_dps(states)
 
