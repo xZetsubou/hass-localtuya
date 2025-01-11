@@ -24,10 +24,12 @@ from homeassistant.const import (
     CONF_REGION,
     EVENT_HOMEASSISTANT_STOP,
     SERVICE_RELOAD,
+    CONF_DISCOVERY,
 )
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.typing import ConfigType
 
 from .coordinator import TuyaDevice, HassLocalTuyaData, TuyaCloudApi
 from .config_flow import ENTRIES_VERSION
@@ -47,6 +49,16 @@ from .discovery import TuyaDiscovery
 
 _LOGGER = logging.getLogger(__name__)
 
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Optional(CONF_DISCOVERY, default=True): bool,
+            }
+        ),
+    }
+)
+
 CONF_DP = "dp"
 CONF_VALUE = "value"
 
@@ -60,7 +72,7 @@ SERVICE_SET_DP_SCHEMA = vol.Schema(
 )
 
 
-async def async_setup(hass: HomeAssistant, config: dict):
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the LocalTuya integration component."""
     hass.data.setdefault(DOMAIN, {})
 
@@ -173,12 +185,14 @@ async def async_setup(hass: HomeAssistant, config: dict):
     )
 
     discovery = TuyaDiscovery(_device_discovered)
-    try:
-        await discovery.start()
-        hass.data[DOMAIN][DATA_DISCOVERY] = discovery
-        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _shutdown)
-    except Exception:  # pylint: disable=broad-except
-        _LOGGER.exception("failed to set up discovery")
+
+    if config[DOMAIN][CONF_DISCOVERY]:
+        try:
+            await discovery.start()
+            hass.data[DOMAIN][DATA_DISCOVERY] = discovery
+            hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _shutdown)
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("failed to set up discovery")
 
     return True
 
