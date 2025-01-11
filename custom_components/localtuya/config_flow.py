@@ -191,7 +191,7 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
                     user_input[i] = ""
                 return await self._create_entry(user_input)
 
-            cloud_api, res = await attempt_cloud_connection(self.hass, user_input)
+            cloud_api, res = await attempt_cloud_connection(user_input)
 
             if not res:
                 return await self._create_entry(user_input)
@@ -284,7 +284,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
 
                 return self._update_entry(new_data, new_title=username)
 
-            cloud_api, res = await attempt_cloud_connection(self.hass, user_input)
+            cloud_api, res = await attempt_cloud_connection(user_input)
 
             if not res:
                 new_data = self.config_entry.data.copy()
@@ -1330,10 +1330,9 @@ async def validate_input(hass: HomeAssistant, entry_id, data):
     }
 
 
-async def attempt_cloud_connection(hass, user_input):
+async def attempt_cloud_connection(user_input):
     """Create device."""
     cloud_api = TuyaCloudApi(
-        hass,
         user_input.get(CONF_REGION),
         user_input.get(CONF_CLIENT_ID),
         user_input.get(CONF_CLIENT_SECRET),

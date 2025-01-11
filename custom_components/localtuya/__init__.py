@@ -306,7 +306,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     client_id = entry.data[CONF_CLIENT_ID]
     secret = entry.data[CONF_CLIENT_SECRET]
     user_id = entry.data[CONF_USER_ID]
-    tuya_api = TuyaCloudApi(hass, region, client_id, secret, user_id)
+    tuya_api = TuyaCloudApi(region, client_id, secret, user_id)
     no_cloud = entry.data.get(CONF_NO_CLOUD, True)
 
     if no_cloud:
