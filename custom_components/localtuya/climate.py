@@ -334,25 +334,45 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
                 self._hvac_action = HVACAction.HEATING
             if self._hvac_mode == HVACMode.DRY:
                 self._hvac_action = HVACAction.DRYING
+            if self._hvac_mode == HVACMode.FAN_ONLY:
+                self._hvac_action = HVACAction.FAN
 
-        # This exists from upstream, not sure the use case of this.
         if self._config.get(CONF_HEURISTIC_ACTION, False):
             if self._hvac_mode == HVACMode.HEAT:
                 if self._current_temperature < (
                     self._target_temperature - self._precision
                 ):
-                    self._hvac_action = HVACMode.HEAT
-                if self._current_temperature == (
-                    self._target_temperature - self._precision
-                ):
-                    if self._hvac_action == HVACMode.HEAT:
-                        self._hvac_action = HVACMode.HEAT
-                    if self._hvac_action == HVACAction.IDLE:
-                        self._hvac_action = HVACAction.IDLE
+                    self._hvac_action = HVACAction.HEATING
                 if (
                     self._current_temperature + self._precision
                 ) > self._target_temperature:
                     self._hvac_action = HVACAction.IDLE
+            if self._hvac_mode == HVACMode.COOL:
+                if self._current_temperature > (
+                    self._target_temperature - self._precision
+                ):
+                    self._hvac_action = HVACAction.COOLING
+                if (
+                    self._current_temperature + self._precision
+                ) < self._target_temperature:
+                    self._hvac_action = HVACAction.IDLE
+            if self._hvac_mode == HVACMode.HEAT_COOL:
+                if self._current_temperature < (
+                    self._target_temperature - self._precision
+                ):
+                    self._hvac_action = HVACAction.HEATING
+                if self._current_temperature == (
+                    self._target_temperature - self._precision
+                ):
+                    self._hvac_action = HVACAction.IDLE
+                if (
+                    self._current_temperature + self._precision
+                ) > self._target_temperature:
+                    self._hvac_action = HVACAction.COOLING
+            if self._hvac_mode == HVACMode.DRY:
+                self._hvac_action = HVACAction.DRYING
+            if self._hvac_mode == HVACMode.FAN_ONLY:
+                self._hvac_action = HVACAction.FAN
             return self._hvac_action
         return self._hvac_action
 
