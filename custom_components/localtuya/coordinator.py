@@ -23,6 +23,7 @@ from .core.pytuya import (
     ContextualLogger,
     DecodeError,
     HEARTBEAT_INTERVAL,
+    TIMEOUT_CONNECT,
     SubdeviceState,
     TuyaListener,
     TuyaProtocol,
@@ -86,7 +87,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._subdevice_off_count: int = 0
 
         # last_update_time: Sleep timer, a device that reports the status every x seconds then goes into sleep.
-        self._last_update_time = time.time() - 5
+        self._last_update_time = time.monotonic() - 5
         self._pending_status: dict[str, dict[str, Any]] = {}
 
         self.is_closing = False
@@ -137,8 +138,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         device_sleep = self._device_config.sleep_time
         if device_sleep > 0:
             setattr(self, "low_power", True)
-        last_update = time.time() - self._last_update_time
-        is_sleep = last_update < device_sleep
+            last_update = int(time.monotonic()) - self._last_update_time
+            return last_update < device_sleep
+        else:
+            return False
 
         return device_sleep > 0 and is_sleep
 
@@ -479,7 +482,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         # Delay shutdown.
         if not self.is_closing:
             try:
-                await asyncio.sleep(3 + self._device_config.sleep_time)
+                await asyncio.sleep(TIMEOUT_CONNECT + self._device_config.sleep_time)
             except asyncio.CancelledError as e:
                 self.debug(f"Shutdown entities task has been canceled: {e}", force=True)
                 return
@@ -497,7 +500,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self.is_subdevice:
             self.info(f"Sub-device disconnected due to: {exc}")
         elif hasattr(self, "low_power"):
-            m, s = divmod((int(time.time()) - self._last_update_time), 60)
+            m, s = divmod((int(time.monotonic()) - self._last_update_time), 60)
             h, m = divmod(m, 60)
             self.info(f"The device is still out of reach since: {h}h:{m}m:{s}s")
         else:
@@ -611,7 +614,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self._fake_gateway:
             # Fake gateways are only used to pass commands no need to update status.
             return
-        self._last_update_time = int(time.time())
+        self._last_update_time = int(time.monotonic())
 
         self._handle_event(self._status, status)
         self._status.update(status)
