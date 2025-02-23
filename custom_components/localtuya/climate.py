@@ -184,8 +184,6 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
     """Tuya climate device."""
 
     _enable_turn_on_off_backwards_compatibility = False
-    _attr_swing_mode: str | None = None
-    _attr_swing_horizontal_mode: str | None = None
 
     def __init__(
         self,
@@ -201,9 +199,11 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         self._target_temperature = None
         self._target_temp_forced_to_celsius = None
         self._current_temperature = None
-        self._hvac_mode = None
-        self._preset_mode = None
-        self._hvac_action = None
+        self._hvac_mode: HVACMode | None = None
+        self._hvac_action: HVACAction | None = None
+        self._preset_mode: str | None = None
+        self._swing_mode: str | None = None
+        self._swing_horizontal_mode: str | None = None
         self._precision = float(self._config.get(CONF_PRECISION, DEFAULT_PRECISION))
         self._precision_target = float(
             self._config.get(CONF_TARGET_PRECISION, DEFAULT_PRECISION)
@@ -432,9 +432,19 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         return self._fan_supported_speeds
 
     @property
+    def swing_mode(self) -> str | None:
+        """Return the swing setting."""
+        return self._swing_mode
+
+    @property
     def swing_modes(self) -> list[str] | None:
         """Return the list of available swing modes."""
         return self._swing_v_modes.names
+
+    @property
+    def swing_horizontal_mode(self) -> str | None:
+        """Return the horizontal swing setting."""
+        return self._swing_horizontal_mode
 
     @property
     def swing_horizontal_modes(self) -> list[str] | None:
@@ -547,6 +557,12 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
                     self.dp_value(CONF_PRESET_DP), PRESET_NONE
                 )
 
+        # Update swing actions
+        if (swing_v := self.dp_value(self._swing_v_mode_dp)) is not None:
+            self._swing_mode = self._swing_v_modes.to_ha(swing_v)
+        if (swing_h := self.dp_value(self._swing_h_mode_dp)) is not None:
+            self._swing_horizontal_mode = self._swing_h_modes.to_ha(swing_h)
+
         # If device is off there is no needs to check the states.
         if not self._is_on:
             return
@@ -558,12 +574,6 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         # Update the current action
         if (action := self.dp_value(CONF_HVAC_ACTION_DP)) is not None:
             self._hvac_action = self._hvac_action_set.to_ha(action)
-
-        # Update swing actions
-        if (swing_v := self.dp_value(self._swing_v_mode_dp)) is not None:
-            self._attr_swing_mode = self._swing_v_modes.to_ha(swing_v)
-        if (swing_h := self.dp_value(self._swing_h_mode_dp)) is not None:
-            self._attr_swing_horizontal_mode = self._swing_h_modes.to_ha(swing_h)
 
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocalTuyaClimate, flow_schema)
