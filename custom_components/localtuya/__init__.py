@@ -370,7 +370,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     async def _shutdown(event):
         """Clean up resources when shutting down."""
-        await asyncio.gather(*connect_to_devices)
+        await asyncio.gather(*[dev.close() for dev in connect_to_devices])
         _LOGGER.info(f"{entry.title}: Shutdown completed")
 
     entry.async_on_unload(
