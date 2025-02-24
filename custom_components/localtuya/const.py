@@ -220,7 +220,13 @@ DEFAULT_CATEGORIES = {
 
 @dataclass
 class DictSelector:
-    """A class that manages the mapping between Tuya and HA values."""
+    """
+    A class that manages the mapping between Tuya values and Home Assistant (HA) values.
+
+    Attributes:
+        tuya_ha (dict): A dictionary mapping Tuya values (keys) to HA values (values).
+        reverse (bool): Swaps `tuya_ha` keys and values.
+    """
 
     tuya_ha: dict[str, Any]
     reverse: bool = False
@@ -245,18 +251,18 @@ class DictSelector:
         return getattr(self, "_cached_values_tuya_ha", list(self.tuya_ha.values()))
 
     def to_ha(self, value: str, default=None):
-        """Return the friendly name of value."""
+        """Return the friendly name."""
         return self.tuya_ha.get(value, default)
 
     def to_tuya(self, name: str):
-        """Return the tuya device value of name."""
+        """Return the tuya value."""
         reversed_dict = getattr(
             self, "_cached_reverse_tuya_ha", {v: k for k, v in self.tuya_ha.items()}
         )
         return reversed_dict.get(name)
 
     def __repr__(self) -> str:
-        "valid" if self.tuya_ha else ""
+        return "valid" if self.tuya_ha else ""
 
 
 @dataclass
