@@ -1,4 +1,4 @@
-{   
+{
     "config": {
         "abort": {
             "already_configured": "This account has already been configured.",
