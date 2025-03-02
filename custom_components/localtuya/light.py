@@ -240,7 +240,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._hs = None
         self._effect = None
         self._effect_list = []
-        self._scenes: DictSelector = {}
+        self._scenes = DictSelector({})
         self._cached_status = {}
 
         if self._config.get(CONF_MUSIC_MODE):
