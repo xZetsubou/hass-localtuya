@@ -324,11 +324,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
         # If not connected try to handle the errors.
         if not self.connected and not self.is_closing:
+            if update_localkey:
+                # Check if the cloud device info has changed!
+                await self._update_local_key()
             if self._task_reconnect is None:
                 self._task_reconnect = asyncio.create_task(self._async_reconnect())
-            if update_localkey:
-                # Check if the cloud device info has changed!.
-                await self._update_local_key()
 
         self._task_connect = None
 
