@@ -509,6 +509,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self._entry.data.get(CONF_NO_CLOUD, True):
             return self.info("Ensure that localkey hasn't changed and it's correct")
 
+        self.info(f"Trying to update local-key...")
         dev_id = self._device_config.id
         cloud_api = self._hass_entry.cloud_data
         await cloud_api.async_get_devices_list(force_update=True)
