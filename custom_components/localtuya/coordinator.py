@@ -174,8 +174,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         for subdevice in self.sub_devices.values():
             if not self.connected or self.is_closing:
                 break
-            if subdevice.subdevice_state != SubdeviceState.ABSENT:
-                await subdevice.async_connect()
+            await subdevice.async_connect()
 
     async def _make_connection(self):
         """Subscribe localtuya entity events."""
@@ -645,17 +644,26 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self.subdevice_state = state
 
         # This will trigger if state is absent twice.
-        if old_state == state and state == SubdeviceState.ABSENT:
-            self._subdevice_off_count = 0
-            return self.disconnected("Device is absent")
-        elif state == SubdeviceState.ABSENT:
-            return self.info(f"Sub-device is absent {node_id}")
-        elif old_state == SubdeviceState.ABSENT:
+        if state == SubdeviceState.ABSENT:
+            if old_state == state:
+                delay = time.monotonic() - self._last_update_time
+                if delay >= 2 * HEARTBEAT_INTERVAL:
+                    self._subdevice_off_count = 0
+                    self.disconnected("Device is absent")
+                else:
+                    self.debug(f"Sub-device is absent for {round(delay,3)}s")
+            else:
+                # Can be false alarm! Do nothing!
+                pass
+            return
+        elif old_state == SubdeviceState.ABSENT and not self.connected:
             self.info(f"Sub-device is back {node_id}")
 
         is_online = state == SubdeviceState.ONLINE
         off_count = self._subdevice_off_count
         self._subdevice_off_count = 0 if is_online else off_count + 1
+        # For sub-devices, the last time it is known as not absent
+        self._last_update_time = int(time.monotonic())
 
         if is_online:
             return self.info(f"Sub-device is online {node_id}") if off_count else None
