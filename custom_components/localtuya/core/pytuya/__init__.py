@@ -847,7 +847,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
         async def _action(on_devs, off_devs):
             try:
-                self.debug(f"Sub-Devices States Update: on_devs={on_devs} off_devs={off_devs}")
+                self.debug(
+                    f"Sub-Devices States Update: on_devs={on_devs} off_devs={off_devs}"
+                )
                 listener = self.listener and self.listener()
                 if listener is None:
                     return
