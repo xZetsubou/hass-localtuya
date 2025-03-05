@@ -574,7 +574,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             )
             brightness = max(brightness, self._lower_brightness)
 
-            if self.is_color_mode and self._hs is not None:
+            if self.is_color_mode and self._hs is not None and not self._send_one_state:
                 states[self._config.get(CONF_COLOR)] = self.__to_color(
                     self._hs, brightness
                 )
