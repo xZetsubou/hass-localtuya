@@ -612,9 +612,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
             if self._send_one_state:
                 temp_flag= True
-                await self._device.set_dp(self._modes.white,2)
+                await self._device.set_dp(color_mode,2)
                 await self._device.set_dp(color_temp,4)
                 await self._device.set_dp(brightness,3)
+                await self._device.set_dps(states)
                 
 
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
@@ -622,6 +623,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 brightness = self._brightness
             color_mode = self._modes.white
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
+
 
         if color_mode is not None:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
