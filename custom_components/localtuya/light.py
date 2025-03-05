@@ -2,6 +2,7 @@
 
 import base64
 import logging
+from re import T
 import textwrap
 import homeassistant.util.color as color_util
 import voluptuous as vol
@@ -549,9 +550,18 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         send_one_command_FLAG= False
         if self._send_one_state:
             color_temp = None
-            last_mode=states[self._config.get(CONF_COLOR_MODE,None)]
-            last_temp=states[self._config.get(CONF_COLOR_TEMP,None)]
-            last_brightness=states[self._config.get(CONF_BRIGHTNESS,None)]
+            try:
+                last_mode=states[self._config.get(CONF_COLOR_MODE,None)]
+            except:
+                last_mode=None
+            try:
+                last_temp=states[self._config.get(CONF_COLOR_TEMP,None)]
+            except:
+                last_temp=None
+            try:
+               last_brightness=states[self._config.get(CONF_BRIGHTNESS,None)]
+            except :
+                last_brightness=None
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
             scene = self._scenes.to_tuya(effect)
