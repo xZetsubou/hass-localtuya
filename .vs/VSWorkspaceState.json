@@ -1,7 +1,12 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\custom_components",
+    "\\custom_components\\localtuya",
+    "\\custom_components\\localtuya\\core",
+    "\\custom_components\\localtuya\\core\\ha_entities",
+    "\\custom_components\\localtuya\\templates"
   ],
-  "SelectedNode": "\\C:\\Users\\Alexandru\\Source\\Repos\\hass-localtuya",
+  "SelectedNode": "\\custom_components\\localtuya\\light.py",
   "PreviewInSolutionExplorer": false
 }
