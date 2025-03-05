@@ -632,7 +632,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if color_mode is not None:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
         
-        if send_one_command_FLAG:
+        if send_one_command_FLAG and color_mode!=self._modes.color:
             if color_mode is not None:
                 await self._device.set_dp(states[self._config.get(CONF_COLOR_MODE)],self._config[CONF_COLOR_MODE])
             if color_temp is not None:
