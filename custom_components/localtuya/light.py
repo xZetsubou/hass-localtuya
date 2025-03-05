@@ -608,7 +608,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             )
 
             color_mode = self._modes.white
-            CONF_COLOR_MODE
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
             if self._send_one_state:
@@ -626,9 +625,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
         
         if temp_flag:
-            await self._device.set_dp(states[self._config.get(CONF_COLOR_MODE)],2)
-            await self._device.set_dp(states[self._config.get(CONF_COLOR_TEMP)],4)
-            await self._device.set_dp(states[self._config.get(CONF_BRIGHTNESS)],3)
+            await self._device.set_dp(states[self._config.get(CONF_COLOR_MODE)],self._config[CONF_COLOR_MODE])
+            await self._device.set_dp(states[self._config.get(CONF_COLOR_TEMP)],self._config[CONF_COLOR_TEMP])
+            await self._device.set_dp(states[self._config.get(CONF_BRIGHTNESS)],self._config[CONF_BRIGHTNESS])
         else:
             await self._device.set_dps(states)
 
