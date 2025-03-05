@@ -546,6 +546,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         color_modes = self.supported_color_modes
         brightness = None
         color_mode = None
+        temp_flag= False
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
             scene = self._scenes.to_tuya(effect)
@@ -610,9 +611,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
             if self._send_one_state:
+                temp_flag= True
                 await self._device.set_dp(self._modes.white,2)
                 await self._device.set_dp(color_temp,4)
                 await self._device.set_dp(brightness,3)
+                
 
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
             if brightness is None:
@@ -623,7 +626,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if color_mode is not None:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
         
-        if not self._send_one_state:
+        if not self._send_one_state or not temp_flag:
             await self._device.set_dps(states)
 
     async def async_turn_off(self, **kwargs):
