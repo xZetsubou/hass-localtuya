@@ -137,7 +137,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         """Return whether the device is sleep or not."""
         if (device_sleep := self._device_config.sleep_time) > 0:
             setattr(self, "low_power", True)
-            last_update = int(time.monotonic()) - self._last_update_time
+            last_update = time.monotonic() - self._last_update_time
             return last_update < device_sleep
 
         return False
@@ -496,7 +496,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self.is_subdevice:
             self.info(f"Sub-device disconnected due to: {exc}")
         elif hasattr(self, "low_power"):
-            m, s = divmod((int(time.monotonic()) - self._last_update_time), 60)
+            m, s = divmod((int(time.monotonic() - self._last_update_time)), 60)
             h, m = divmod(m, 60)
             self.info(f"The device is still out of reach since: {h}h:{m}m:{s}s")
         else:
@@ -601,7 +601,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             # Fake gateways are only used to pass commands no need to update status.
             return
 
-        self._last_update_time = int(time.monotonic())
+        self._last_update_time = time.monotonic()
         self._handle_event(self._status, status)
         self._status.update(status)
         self._dispatch_status()
