@@ -546,11 +546,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         color_modes = self.supported_color_modes
         brightness = None
         color_mode = None
-        color_temp = None
-        temp_flag= False
-        last_mode=states[self._config.get(CONF_COLOR_MODE)]
-        last_temp=states[self._config.get(CONF_COLOR_TEMP)]
-        last_brightness=states[self._config.get(CONF_BRIGHTNESS)]
+        send_one_command_FLAG= False
+        if self._send_one_state:
+            color_temp = None
+            last_mode=states[self._config.get(CONF_COLOR_MODE)]
+            last_temp=states[self._config.get(CONF_COLOR_TEMP)]
+            last_brightness=states[self._config.get(CONF_BRIGHTNESS)]
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
             scene = self._scenes.to_tuya(effect)
@@ -587,7 +588,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 states[self._config.get(CONF_BRIGHTNESS)] = brightness
                 color_mode = self._modes.white
                 if self._send_one_state:
-                    temp_flag= True
+                    send_one_command_FLAG= True
         if ATTR_HS_COLOR in kwargs and ColorMode.HS in color_modes:
             if brightness is None:
                 brightness = self._brightness
@@ -596,7 +597,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 states[self._config.get(CONF_BRIGHTNESS)] = brightness
                 color_mode = self._modes.white
                 if self._send_one_state:
-                    temp_flag= True
+                    send_one_command_FLAG= True
             else:
                 states[self._config.get(CONF_COLOR)] = self.__to_color(hs, brightness)
                 color_mode = self._modes.color
@@ -618,7 +619,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
             if self._send_one_state:
-                temp_flag= True
+                send_one_command_FLAG= True
                 
 
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
@@ -630,7 +631,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if color_mode is not None:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
         
-        if temp_flag:
+        if send_one_command_FLAG:
             if color_mode is not None and color_mode is not last_mode:
                 await self._device.set_dp(states[self._config.get(CONF_COLOR_MODE)],self._config[CONF_COLOR_MODE])
             if color_temp is not None and color_temp is not last_temp:
