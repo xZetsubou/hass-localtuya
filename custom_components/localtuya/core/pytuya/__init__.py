@@ -942,6 +942,8 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                     self.debug("Stopped heartbeat loop")
                     break
                 except asyncio.TimeoutError:
+                    if hasattr(self.listener and self.listener(), "low_power"):
+                        break
                     fail_attempt += 1
                     if fail_attempt >= 2:
                         self.debug("Heartbeat failed due to timeout, disconnecting")
