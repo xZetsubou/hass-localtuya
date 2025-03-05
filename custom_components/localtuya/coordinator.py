@@ -653,10 +653,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     self.disconnected("Device is absent")
                 # Can be >2 subsequent payloads per one request
                 elif delay > HEARTBEAT_INTERVAL:
-                    self.debug(f"Sub-device is absent for {round(delay,3)}s")
-            else:
-                # Can be false alarm, do nothing!
-                pass
+                    self.debug(f"Sub-device is absent for {delay:.03f}s")
             return
         elif old_state == SubdeviceState.ABSENT and not self.connected:
             self.info(f"Sub-device is back {node_id}")
