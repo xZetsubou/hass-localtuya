@@ -72,7 +72,7 @@ class LocalTuyaHumidifier(LocalTuyaEntity, HumidifierEntity):
         self._state = None
         self._current_mode = None
 
-        if modes := self._config.get(self._available_modes, {}) and (
+        if (modes := self._config.get(self._available_modes, {})) and (
             self._config.get(self._dp_mode)
         ):
             self._attr_supported_features |= HumidifierEntityFeature.MODES
