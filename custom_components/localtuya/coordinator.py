@@ -648,7 +648,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if state == SubdeviceState.ABSENT:
             if old_state == state:
                 delay = time.monotonic() - self._last_update_time
-                if delay >= 2 * HEARTBEAT_INTERVAL:
+                if delay >= (HEARTBEAT_INTERVAL * 2):
                     self._subdevice_off_count = 0
                     self.disconnected("Device is absent")
                 # Can be >2 subsequent payloads per one request
