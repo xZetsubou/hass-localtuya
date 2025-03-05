@@ -608,14 +608,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             )
 
             color_mode = self._modes.white
+            CONF_COLOR_MODE
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
             if self._send_one_state:
                 temp_flag= True
-                await self._device.set_dp(color_mode,2)
-                await self._device.set_dp(color_temp,4)
-                await self._device.set_dp(brightness,3)
-                await self._device.set_dps(states)
                 
 
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
@@ -630,6 +627,13 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         
         if not self._send_one_state or not temp_flag:
             await self._device.set_dps(states)
+        elif self._send_one_state and temp_flag:
+            if states[self._config.get(CONF_COLOR_MODE)] !=color_mode:
+                await self._device.set_dp(states[self._config.get(CONF_COLOR_MODE)],self._config.get(CONF_COLOR_MODE))
+            if states[self._config.get(CONF_COLOR_TEMP)] != color_temp:
+                await self._device.set_dp(states[self._config.get(CONF_COLOR_TEMP)],self._config.get(CONF_COLOR_TEMP))
+            if states[self._config.get(CONF_BRIGHTNESS)] != brightness:
+                await self._device.set_dp(states[self._config.get(CONF_BRIGHTNESS)],self._config.get(CONF_BRIGHTNESS))
 
     async def async_turn_off(self, **kwargs):
         """Turn Tuya light off."""
