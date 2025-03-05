@@ -665,7 +665,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         off_count = self._subdevice_off_count
         self._subdevice_off_count = 0 if is_online else off_count + 1
         # For sub-devices, the last time it is known as not absent
-        self._last_update_time = int(time.monotonic())
+        self._last_update_time = time.monotonic()
 
         if is_online:
             return self.info(f"Sub-device is online {node_id}") if off_count else None
