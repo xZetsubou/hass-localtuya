@@ -623,8 +623,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 brightness = self._brightness
             color_mode = self._modes.white
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
-            if self._send_one_state:
-                temp_flag= True
+#            if self._send_one_state:
+#                temp_flag= True
 
 
         if color_mode is not None:
