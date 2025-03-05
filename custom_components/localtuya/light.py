@@ -582,7 +582,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             else:
                 states[self._config.get(CONF_BRIGHTNESS)] = brightness
                 color_mode = self._modes.white
-
+                if self._send_one_state:
+                    temp_flag= True
         if ATTR_HS_COLOR in kwargs and ColorMode.HS in color_modes:
             if brightness is None:
                 brightness = self._brightness
@@ -590,6 +591,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             if hs[1] == 0 and self.has_config(CONF_BRIGHTNESS):
                 states[self._config.get(CONF_BRIGHTNESS)] = brightness
                 color_mode = self._modes.white
+                if self._send_one_state:
+                    temp_flag= True
             else:
                 states[self._config.get(CONF_COLOR)] = self.__to_color(hs, brightness)
                 color_mode = self._modes.color
@@ -619,6 +622,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 brightness = self._brightness
             color_mode = self._modes.white
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
+            if self._send_one_state:
+                temp_flag= True
 
 
         if color_mode is not None:
