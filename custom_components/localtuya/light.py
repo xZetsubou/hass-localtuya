@@ -224,7 +224,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         # to respond at any time. But Tuya BLE bulbs are write-only.
         self._write_only = self._device.is_write_only
         self._send_one_state = self._device.is_send_one_state
-        self._first_run = True
 
 
         self._state = None
@@ -549,8 +548,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         color_mode = None
         if self._send_one_state:
             color_temp = None
-            if self._first_run:
-                self._first_run=False
 
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
@@ -628,11 +625,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
         
         if self._send_one_state and color_mode==self._modes.white:
-            if color_mode is not None:
+            if color_mode is not None and self.dp_value(CONF_COLOR_MODE) != color_mode:
                 await self._device.set_dp(states[self._config.get(CONF_COLOR_MODE)],self._config[CONF_COLOR_MODE])
-            if color_temp is not None:
+            if color_temp is not None and self.dp_value(CONF_COLOR_TEMP) != color_temp:
                 await self._device.set_dp(states[self._config.get(CONF_COLOR_TEMP)],self._config[CONF_COLOR_TEMP])
-            if brightness is not None:
+            if brightness is not None and self.dp_value(CONF_BRIGHTNESS) != brightness:
                 await self._device.set_dp(states[self._config.get(CONF_BRIGHTNESS)],self._config[CONF_BRIGHTNESS])
         else:
             await self._device.set_dps(states)
