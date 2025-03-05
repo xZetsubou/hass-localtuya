@@ -2,7 +2,6 @@
 
 import base64
 import logging
-from re import T
 import textwrap
 import homeassistant.util.color as color_util
 import voluptuous as vol
@@ -225,6 +224,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         # to respond at any time. But Tuya BLE bulbs are write-only.
         self._write_only = self._device.is_write_only
         self._send_one_state = self._device.is_send_one_state
+        self._first_run = True
 
 
         self._state = None
@@ -550,18 +550,15 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         send_one_command_FLAG= False
         if self._send_one_state:
             color_temp = None
-            try:
-                last_mode= await states[self._config.get(CONF_COLOR_MODE,None)]
-            except:
+            if self._first_run:
+                self._first_run=False
                 last_mode=None
-            try:
-                last_temp= await states[self._config.get(CONF_COLOR_TEMP,None)]
-            except:
                 last_temp=None
-            try:
-               last_brightness= await states[self._config.get(CONF_BRIGHTNESS,None)]
-            except :
                 last_brightness=None
+            else:
+                last_mode=states[self._config.get(CONF_COLOR_MODE)]
+                last_temp=states[self._config.get(CONF_COLOR_TEMP)]
+                last_brightness=states[self._config.get(CONF_BRIGHTNESS)]
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
             scene = self._scenes.to_tuya(effect)
