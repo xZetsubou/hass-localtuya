@@ -551,15 +551,15 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if self._send_one_state:
             color_temp = None
             try:
-                last_mode=states[self._config.get(CONF_COLOR_MODE,None)]
+                last_mode= await states[self._config.get(CONF_COLOR_MODE,None)]
             except:
                 last_mode=None
             try:
-                last_temp=states[self._config.get(CONF_COLOR_TEMP,None)]
+                last_temp= await states[self._config.get(CONF_COLOR_TEMP,None)]
             except:
                 last_temp=None
             try:
-               last_brightness=states[self._config.get(CONF_BRIGHTNESS,None)]
+               last_brightness= await states[self._config.get(CONF_BRIGHTNESS,None)]
             except :
                 last_brightness=None
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
