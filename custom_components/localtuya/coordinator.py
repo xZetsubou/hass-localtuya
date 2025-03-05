@@ -152,9 +152,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
     @property
     def is_send_one_state(self):
-        """Return if this sub-device is BLE. We uses -10 in manual dps as mark for BLE devices.
+        """Return if this sub-device is BLE and doesn't accept payload.
+        We uses -10 in manual dps as mark for marked BLE devices that don't accept the enire payload when updating light temperature.
 
-        NOTE: this may not be the best way to detect if this device is BLE
+        NOTE: this was the most acceptable way to implement this without breaking compatibility
         """
         return self.is_subdevice and "-10" in self._device_config.manual_dps.split(",")
 

@@ -546,6 +546,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         color_modes = self.supported_color_modes
         brightness = None
         color_mode = None
+        # Only expose color_temp if send_one_state is active
         if self._send_one_state:
             color_temp = None
 
@@ -624,7 +625,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if color_mode is not None:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
         
+        # We send one command per update for the devices that doesn't behave with the entire payload.
+        # But only when the light setting is white because this happens only for temp mode.
         if self._send_one_state and color_mode==self._modes.white:
+            # Check the cached value before sending update.
+            # Only send update if it's different than the cached one.
             if color_mode is not None and self.dp_value(CONF_COLOR_MODE) != color_mode:
                 await self._device.set_dp(states[self._config.get(CONF_COLOR_MODE)],self._config[CONF_COLOR_MODE])
             if color_temp is not None and self.dp_value(CONF_COLOR_TEMP) != color_temp:
@@ -632,6 +637,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             if brightness is not None and self.dp_value(CONF_BRIGHTNESS) != brightness:
                 await self._device.set_dp(states[self._config.get(CONF_BRIGHTNESS)],self._config[CONF_BRIGHTNESS])
         else:
+            # Othervise send normal states
             await self._device.set_dps(states)
 
 
