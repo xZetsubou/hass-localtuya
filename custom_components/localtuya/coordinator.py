@@ -150,6 +150,14 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         """
         return self.is_subdevice and "0" in self._device_config.manual_dps.split(",")
 
+    @property
+    def is_send_one_state(self):
+        """Return if this sub-device is BLE. We uses -10 in manual dps as mark for BLE devices.
+
+        NOTE: this may not be the best way to detect if this device is BLE
+        """
+        return self.is_subdevice and "-10" in self._device_config.manual_dps.split(",")
+
     def add_entities(self, entities):
         """Set the entities associated with this device."""
         self._entities.extend(entities)

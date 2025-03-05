@@ -223,6 +223,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         # Light is an active device (mains powered). It should be able
         # to respond at any time. But Tuya BLE bulbs are write-only.
         self._write_only = self._device.is_write_only
+        self._send_one_state = self._device.is_send_one_state
+
 
         self._state = None
         self._color_temp = None
@@ -607,6 +609,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             color_mode = self._modes.white
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
+            if self._send_one_state:
+                await self._device.set_dp(self._modes.white,2)
+                await self._device.set_dp(color_temp,4)
+                await self._device.set_dp(brightness,3)
 
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
             if brightness is None:
@@ -616,8 +622,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
         if color_mode is not None:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
-
-        await self._device.set_dps(states)
+        
+        if not self._send_one_state:
+            await self._device.set_dps(states)
 
     async def async_turn_off(self, **kwargs):
         """Turn Tuya light off."""
