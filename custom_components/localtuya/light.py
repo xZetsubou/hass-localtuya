@@ -546,6 +546,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         color_modes = self.supported_color_modes
         brightness = None
         color_mode = None
+        color_temp = None
         temp_flag= False
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
