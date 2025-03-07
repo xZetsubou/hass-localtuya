@@ -199,6 +199,7 @@
                     "select_options": "Select options values",
                     "fan_speed_control": "Fan Speed Control DP",
                     "fan_oscillating_control": "Fan Oscillating Control DP",
+                    "fan_oscillating_states": "(Optional) on/off values separate by comma ',' (e.g. state_on,state_off)",
                     "fan_speed_min": "minimum fan speed integer",
                     "fan_speed_max": "maximum fan speed integer",
                     "fan_speed_ordered_list": "Fan speed list (overrides speed min/max), separate entries by comma ','",

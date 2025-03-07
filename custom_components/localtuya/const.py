@@ -116,6 +116,7 @@ CONF_SPAN_TIME = "span_time"
 # fan
 CONF_FAN_SPEED_CONTROL = "fan_speed_control"
 CONF_FAN_OSCILLATING_CONTROL = "fan_oscillating_control"
+CONF_FAN_OSCILLATING_STATES = "fan_oscillating_states"
 CONF_FAN_SPEED_MIN = "fan_speed_min"
 CONF_FAN_SPEED_MAX = "fan_speed_max"
 CONF_FAN_ORDERED_LIST = "fan_speed_ordered_list"
