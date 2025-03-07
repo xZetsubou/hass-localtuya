@@ -43,6 +43,8 @@ CONFIG = {
                 "id": "21",
                 "platform": "fan",
                 "icon": "",
+                "fan_oscillating_control": "6",
+                "fan_oscillating_states": "on,off",
             },
         ],
     }
@@ -69,6 +71,9 @@ async def test_fan():
         == status[CONFIG[DEVICE_NAME]["entities"][0]["fan_direction"]]
     )
     assert entity_1.oscillating == True
+
+    device.status_updated({"6": "on"})
+    assert entity_2.oscillating == True
 
     speed_range = entity_1._speed_range
     speed_percentage = ranged_value_to_percentage(
