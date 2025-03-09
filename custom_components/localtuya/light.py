@@ -636,7 +636,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 await self._device.set_dp(states[self._config.get(CONF_COLOR_TEMP)],self._config[CONF_COLOR_TEMP])
             if brightness is not None and self.dp_value(CONF_BRIGHTNESS) != brightness:
                 await self._device.set_dp(states[self._config.get(CONF_BRIGHTNESS)],self._config[CONF_BRIGHTNESS])
-            if states[self._dp_id] == False:
+            if not self._state:
                 await self._device.set_dp(True,self._dp_id)
         else:
             # Othervise send normal states
