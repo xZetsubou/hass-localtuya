@@ -15,7 +15,8 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:custom_components\\localtuya\\const.py||{8B382828-6202-11D1-8870-0000F87579D2}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|c:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\Extensions\\Microsoft\\Python\\Core\\pylance\\dist\\typeshed-fallback\\stdlib\\builtins.pyi||{8B382828-6202-11D1-8870-0000F87579D2}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Alexandru\\source\\repos\\hass-localtuya\\.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:.gitignore||{3B902123-F8A7-4915-9F01-361F908088D0}"
     }
   ],
   "DocumentGroupContainers": [
@@ -28,21 +29,21 @@
           "SelectedChildIndex": 4,
           "Children": [
             {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "builtins.pyi",
-              "DocumentMoniker": "c:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\Extensions\\Microsoft\\Python\\Core\\pylance\\dist\\typeshed-fallback\\stdlib\\builtins.pyi",
-              "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\Extensions\\Microsoft\\Python\\Core\\pylance\\dist\\typeshed-fallback\\stdlib\\builtins.pyi",
-              "ToolTip": "c:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\Extensions\\Microsoft\\Python\\Core\\pylance\\dist\\typeshed-fallback\\stdlib\\builtins.pyi",
-              "RelativeToolTip": "..\\..\\..\\..\\..\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\IDE\\Extensions\\Microsoft\\Python\\Core\\pylance\\dist\\typeshed-fallback\\stdlib\\builtins.pyi",
-              "ViewState": "AgIAADgEAAAAAAAAAAAYwEsEAAAIAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2025-03-05T11:53:53.786Z",
-              "EditorCaption": ""
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
             },
             {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": ".gitignore",
+              "DocumentMoniker": "C:\\Users\\Alexandru\\source\\repos\\hass-localtuya\\.gitignore",
+              "RelativeDocumentMoniker": ".gitignore",
+              "ToolTip": "C:\\Users\\Alexandru\\source\\repos\\hass-localtuya\\.gitignore",
+              "RelativeToolTip": ".gitignore",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2025-03-05T17:33:59.753Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -52,7 +53,7 @@
               "RelativeDocumentMoniker": "custom_components\\localtuya\\const.py",
               "ToolTip": "C:\\Users\\Alexandru\\source\\repos\\hass-localtuya\\custom_components\\localtuya\\const.py",
               "RelativeToolTip": "custom_components\\localtuya\\const.py",
-              "ViewState": "AgIAAEUAAAAAAAAAAAAkwFkAAAAKAAAAAAAAAA==",
+              "ViewState": "AgIAANsAAAAAAAAAAAAAAFkAAAAqAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
               "WhenOpened": "2025-03-05T10:13:15.114Z",
               "EditorCaption": ""
@@ -65,7 +66,7 @@
               "RelativeDocumentMoniker": "custom_components\\localtuya\\coordinator.py",
               "ToolTip": "C:\\Users\\Alexandru\\source\\repos\\hass-localtuya\\custom_components\\localtuya\\coordinator.py",
               "RelativeToolTip": "custom_components\\localtuya\\coordinator.py",
-              "ViewState": "AgIAAIYAAAAAAAAAAAAkwJ4AAAApAAAAAAAAAA==",
+              "ViewState": "AgIAAIYAAAAAAAAAAAAkwJ0AAABfAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
               "WhenOpened": "2025-03-05T09:07:18.903Z",
               "EditorCaption": ""
@@ -78,7 +79,7 @@
               "RelativeDocumentMoniker": "custom_components\\localtuya\\light.py",
               "ToolTip": "C:\\Users\\Alexandru\\source\\repos\\hass-localtuya\\custom_components\\localtuya\\light.py",
               "RelativeToolTip": "custom_components\\localtuya\\light.py",
-              "ViewState": "AgIAAFYCAAAAAAAAAAAYwLQCAAAuAAAAAAAAAA==",
+              "ViewState": "AgIAAGsCAAAAAAAAAAAawIcCAAA1AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.002457|",
               "WhenOpened": "2025-03-05T08:22:43.771Z",
               "EditorCaption": ""

@@ -225,7 +225,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._write_only = self._device.is_write_only
         self._send_one_state = self._device.is_send_one_state
 
-
         self._state = None
         self._color_temp = None
         self._lower_brightness = int(
@@ -586,7 +585,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 states[self._config.get(CONF_BRIGHTNESS)] = brightness
                 color_mode = self._modes.white
 
-
         if ATTR_HS_COLOR in kwargs and ColorMode.HS in color_modes:
             if brightness is None:
                 brightness = self._brightness
@@ -614,7 +612,6 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             color_mode = self._modes.white
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
-                
 
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
             if brightness is None:
@@ -624,24 +621,32 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
         if color_mode is not None:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
-        
+
         # We send one command per update for the devices that doesn't behave with the entire payload.
         # But only when the light setting is white because this happens only for temp mode.
-        if self._send_one_state and color_mode==self._modes.white:
+        if self._send_one_state and color_mode == self._modes.white:
             # Check the cached value before sending update.
             # Only send update if it's different than the cached one.
             if color_mode is not None and self.dp_value(CONF_COLOR_MODE) != color_mode:
-                await self._device.set_dp(states[self._config.get(CONF_COLOR_MODE)],self._config[CONF_COLOR_MODE])
+                await self._device.set_dp(
+                    states[self._config.get(CONF_COLOR_MODE)],
+                    self._config[CONF_COLOR_MODE],
+                )
             if color_temp is not None and self.dp_value(CONF_COLOR_TEMP) != color_temp:
-                await self._device.set_dp(states[self._config.get(CONF_COLOR_TEMP)],self._config[CONF_COLOR_TEMP])
+                await self._device.set_dp(
+                    states[self._config.get(CONF_COLOR_TEMP)],
+                    self._config[CONF_COLOR_TEMP],
+                )
             if brightness is not None and self.dp_value(CONF_BRIGHTNESS) != brightness:
-                await self._device.set_dp(states[self._config.get(CONF_BRIGHTNESS)],self._config[CONF_BRIGHTNESS])
+                await self._device.set_dp(
+                    states[self._config.get(CONF_BRIGHTNESS)],
+                    self._config[CONF_BRIGHTNESS],
+                )
             if not self._state:
-                await self._device.set_dp(True,self._dp_id)
+                await self._device.set_dp(True, self._dp_id)
         else:
-            # Othervise send normal states
+            # Otherwise send normal states
             await self._device.set_dps(states)
-
 
     async def async_turn_off(self, **kwargs):
         """Turn Tuya light off."""
