@@ -1,3 +1,4 @@
+
 """Tuya Device API"""
 
 from __future__ import annotations
@@ -149,6 +150,15 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         NOTE: this may not be the best way to detect if this device is BLE
         """
         return self.is_subdevice and "0" in self._device_config.manual_dps.split(",")
+
+    @property
+    def is_send_one_state(self):
+        """Return if this sub-device is BLE and doesn't accept payload.
+        We uses -10 in manual dps as mark for marked BLE devices that don't accept the enire payload when updating light temperature.
+
+        NOTE: this was the most acceptable way to implement this without breaking compatibility
+        """
+        return self.is_subdevice and "-10" in self._device_config.manual_dps.split(",")
 
     def add_entities(self, entities):
         """Set the entities associated with this device."""
