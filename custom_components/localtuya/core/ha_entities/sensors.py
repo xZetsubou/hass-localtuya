@@ -1242,6 +1242,16 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             icon="mdi:progress-clock",
         ),
     ),
+    # Pet Water Feeder
+    # https://developer.tuya.com/en/docs/iot/f?id=K9gf46aewxem5
+    "cwysj": (
+        LocalTuyaEntity(
+            id=DPCode.FILTER_LIFE,
+            # name="filter_life",
+            icon="mdi:ticket-percent-outline",
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+    ),
     # Humidifier
     # https://developer.tuya.com/en/docs/iot/s?id=K9gf48qwjz0i3
     "jsq": (
