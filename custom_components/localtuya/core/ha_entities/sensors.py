@@ -819,6 +819,62 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.DIAGNOSTIC,
         ),
     ),
+    # Weather Station
+    "qxj": (
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT_EXTERNAL_1,
+            name="Temperature External 1",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT_EXTERNAL_2,
+            name="Temperature External 2",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_CURRENT_EXTERNAL_3,
+            name="Temperature External 3",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.HUMIDITY_VALUE,
+            name="Humidity",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.HUMIDITY_OUTDOOR_1,
+            name="Humidity Outdoor 1",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.HUMIDITY_OUTDOOR_2,
+            name="Humidity Outdoor 2",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.HUMIDITY_OUTDOOR_3,
+            name="Humidity Outdoor 3",
+            device_class=SensorDeviceClass.HUMIDITY,
+            state_class=SensorStateClass.MEASUREMENT,
+        ),
+        *BATTERY_SENSORS,
+    ),
     # Gas Detector
     # https://developer.tuya.com/en/docs/iot/categoryrqbj?id=Kaiuz3d162ubw
     "rqbj": (
