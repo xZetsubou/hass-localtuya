@@ -223,6 +223,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         # Light is an active device (mains powered). It should be able
         # to respond at any time. But Tuya BLE bulbs are write-only.
         self._write_only = self._device.is_write_only
+        self._send_one_state = self._device.is_send_one_state
 
         self._state = None
         self._color_temp = None
@@ -544,6 +545,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         color_modes = self.supported_color_modes
         brightness = None
         color_mode = None
+        # Only expose color_temp if send_one_state is active
+        if self._send_one_state:
+            color_temp = None
+
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
             scene = self._scenes.to_tuya(effect)
@@ -617,7 +622,31 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if color_mode is not None:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
 
-        await self._device.set_dps(states)
+        # We send one command per update for the devices that doesn't behave with the entire payload.
+        # But only when the light setting is white because this happens only for temp mode.
+        if self._send_one_state and color_mode == self._modes.white:
+            # Check the cached value before sending update.
+            # Only send update if it's different than the cached one.
+            if color_mode is not None and self.dp_value(CONF_COLOR_MODE) != color_mode:
+                await self._device.set_dp(
+                    states[self._config.get(CONF_COLOR_MODE)],
+                    self._config[CONF_COLOR_MODE],
+                )
+            if color_temp is not None and self.dp_value(CONF_COLOR_TEMP) != color_temp:
+                await self._device.set_dp(
+                    states[self._config.get(CONF_COLOR_TEMP)],
+                    self._config[CONF_COLOR_TEMP],
+                )
+            if brightness is not None and self.dp_value(CONF_BRIGHTNESS) != brightness:
+                await self._device.set_dp(
+                    states[self._config.get(CONF_BRIGHTNESS)],
+                    self._config[CONF_BRIGHTNESS],
+                )
+            if not self._state:
+                await self._device.set_dp(True, self._dp_id)
+        else:
+            # Otherwise send normal states
+            await self._device.set_dps(states)
 
     async def async_turn_off(self, **kwargs):
         """Turn Tuya light off."""
