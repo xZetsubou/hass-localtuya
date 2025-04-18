@@ -1641,6 +1641,30 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             state_class=SensorStateClass.MEASUREMENT,
             custom_configs=localtuya_sensor(PERCENTAGE, 0.1),
         ),
+        LocalTuyaEntity(
+            id=DPCode.CAT_WEIGHT,
+            name="Cat Weight",
+            device_class=SensorDeviceClass.WEIGHT,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfMass.KILOGRAMS, 0.1),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.EXCRETION_TIMES_DAY,
+            name="Excretion times",
+            custom_configs=localtuya_sensor("times"),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.EXCRETION_TIME_DAY,
+            name="Excretion duration",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.COLD_TEMP_CURRENT,
+            name="Cold Temp Current",
+            custom_configs=localtuya_sensor(scale_factor=0.1),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.DATA_IDENTIFICATION,
+        ),
     ),
     # Smart Water Meter
     # https://developer.tuya.com/en/docs/iot/f?id=Ka8n052xu7w4c

@@ -442,6 +442,18 @@ NUMBERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
             custom_configs=localtuya_numbers(1, 1439, 1, 1, UnitOfTime.MINUTES),
         ),
+        LocalTuyaEntity(
+            id=DPCode.DIS_CURRENT,
+            name="DIS CURRENT",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 50, 1, 1),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.FLOW_SET,
+            name="Flow",
+            entity_category=EntityCategory.CONFIG,
+            custom_configs=localtuya_numbers(0, 255, 1, 1),
+        ),
     ),
     # Sous Vide Cooker
     # https://developer.tuya.com/en/docs/iot/categorymzj?id=Kaiuz2vy130ux
