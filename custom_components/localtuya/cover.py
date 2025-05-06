@@ -166,6 +166,16 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
             return None
         return self.current_cover_position == 0 and self._current_state == STATE_STOPPED
 
+    @property
+    def position_scale(self):
+        """Return the configured scaling factor, or DEFAULT_POSITION_SCALE"""
+        if (
+            CONF_POSITION_SCALE in self._config
+            and self._config[CONF_POSITION_SCALE] != 0
+        ):
+            return self._config[CONF_POSITION_SCALE]
+        return DEFAULT_POSITION_SCALE
+
     async def async_set_cover_position(self, **kwargs):
         """Move the cover to a specific position."""
         # Update device values IF the device is moving at the moment.
@@ -190,9 +200,8 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
             self.debug("Done")
 
         elif self._config[CONF_POSITIONING_MODE] == MODE_SET_POSITION:
-            converted_position = int(
-                kwargs[ATTR_POSITION] / self._config[CONF_POSITION_SCALE]
-            )
+
+            converted_position = int(kwargs[ATTR_POSITION] / self.position_scale)
             if self._position_inverted:
                 converted_position = 100 - converted_position
             if 0 <= converted_position <= 100 and self.has_config(CONF_SET_POSITION_DP):
@@ -285,10 +294,7 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
         self._state = self.dp_value(self._dp_id)
 
         if self.has_config(CONF_CURRENT_POSITION_DP):
-            curr_pos = (
-                self.dp_value(CONF_CURRENT_POSITION_DP)
-                * self._config[CONF_POSITION_SCALE]
-            )
+            curr_pos = self.dp_value(CONF_CURRENT_POSITION_DP) * self.position_scale
             if isinstance(curr_pos, (bool, str)):
                 closed = curr_pos in (True, "fully_close")
                 stopped = (
