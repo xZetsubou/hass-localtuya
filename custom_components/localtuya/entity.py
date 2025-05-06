@@ -295,6 +295,13 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
 
         return value
 
+    def dp_timestamp(self, key) -> int | None:
+        """Return timestamp for DP if available."""
+        requested_dp = str(key)
+        if hasattr(self._device, "_dp_timestamps"):
+            return self._device._dp_timestamps.get(requested_dp)
+        return None
+
     def status_updated(self) -> None:
         """Device status was updated.
 
