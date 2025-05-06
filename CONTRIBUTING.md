@@ -16,6 +16,10 @@ Validate your installation with:
 
 `pytest`
 
+Optionally, install the pre-commit hook(s):
+
+```cp contrib/pre-commit .git/hooks/ && chmod +x .git/hooks/pre-commit```
+
 ## Contributing
 
 - Run `black` and `codespell` to ensure your code passes CI.
