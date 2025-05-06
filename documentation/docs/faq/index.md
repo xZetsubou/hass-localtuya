@@ -40,6 +40,13 @@
     Most of the cloud-pulled DPS aren't really useful; they might be encrypted or have empty values. 
     However, it won't change the fact that the device contains these DPS, so using them is up to the user.
 
+<br>
+
+### Energy Monitoring
+!!! abstract ""
+    To enable proper energy monitoring and tracking in Home Assistant, you need to add one or more [Utility Meter helper](https://www.home-assistant.io/integrations/utility_meter/) for your energy sensor entity `sensor.NAME_electricity`.
+    Make sure to configure the Utility Meter with the correct settings, such as enabling `delta_values` and disabling `periodically_resetting`, because the plug only sends incremental values based on the change of the last sent value. The plug tries to send a new value every `0,1 kWh` to this sensor entity.
+
 <!-- ### Scenes Controllers
 !!! abstract ""
     If you want to control Home Assistant automations from scene control devices, such as `remotes or switches`, you should consider adding them and relying on [events](/ha_events/) -->
