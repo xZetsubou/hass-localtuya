@@ -388,7 +388,9 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
                 value = value * scale_factor
             if not scale_only and offset is not None:
                 value = value + offset
-            value = round(value, 2)
+            device_class = self._config.get(CONF_DEVICE_CLASS, "")
+            precision = 3 if device_class == "energy" else 2
+            value = round(value, precision)
 
         return value
 
