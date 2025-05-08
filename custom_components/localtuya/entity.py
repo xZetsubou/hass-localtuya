@@ -363,7 +363,12 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         """Return the scaled factor of the value, else same value."""
         scale_factor = self._config.get(CONF_SCALING)
         if scale_factor is not None and isinstance(value, (int, float)):
-            value = round(value * scale_factor, 2)
+            # Use 3 decimals for energy sensors (kWh), 2 for others
+            device_class = self._config.get(CONF_DEVICE_CLASS, "")
+            if device_class == "energy":
+                value = round(value * scale_factor, 3)
+            else:
+                value = round(value * scale_factor, 2)
 
         return value
 
