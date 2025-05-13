@@ -421,6 +421,25 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             name="Light Mode",
         ),
     ),
+    # Cat litter box
+    # https://developer.tuya.com/en/docs/iot/f?id=Kakg309qkmuit
+    "msp": (
+        LocalTuyaEntity(
+            id=DPCode.LEVEL,
+            name="Doorbell song",
+            icon="mdi:thermometer-lines",
+            custom_configs=localtuya_selector(
+                {
+                    "red": "Red",
+                    "greed": "Green",
+                    "blue": "Blue",
+                    "yellow": "Yellow",
+                    "purple": "Purple",
+                    "white": "White",
+                }
+            ),
+        ),
+    ),
     # Heater
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
     "qn": (
