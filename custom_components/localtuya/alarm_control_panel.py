@@ -77,8 +77,8 @@ class LocalTuyaAlarmControlPanel(LocalTuyaEntity, AlarmControlPanelEntity):
         self._states = DictSelector(supported_modes, reverse=True)
 
     @property
-    def state(self):
-        """Return Alarm state."""
+    def alarm_state(self) -> AlarmControlPanelState | None:
+        """Return the state of the device."""
         return self._states.to_ha(self._state, None)
 
     @property
