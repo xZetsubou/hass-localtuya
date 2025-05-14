@@ -54,12 +54,12 @@ async def test_alarm_control_panel():
 
     assert type(entity_1) is LocalTuyaAlarmControlPanel
 
-    assert entity_1.state == None
+    assert entity_1.alarm_state == None
     device.status_updated({"1": TuyaMode.ARM})
-    assert entity_1.state == AlarmControlPanelState.ARMED_AWAY
+    assert entity_1.alarm_state == AlarmControlPanelState.ARMED_AWAY
     device.status_updated({"1": TuyaMode.DISARMED})
-    assert entity_1.state == AlarmControlPanelState.DISARMED
+    assert entity_1.alarm_state == AlarmControlPanelState.DISARMED
     device.status_updated({"1": TuyaMode.HOME})
-    assert entity_1.state == AlarmControlPanelState.ARMED_HOME
+    assert entity_1.alarm_state == AlarmControlPanelState.ARMED_HOME
     device.status_updated({"1": TuyaMode.SOS})
-    assert entity_1.state == AlarmControlPanelState.TRIGGERED
+    assert entity_1.alarm_state == AlarmControlPanelState.TRIGGERED
