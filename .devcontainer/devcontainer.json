@@ -1,0 +1,4 @@
+{
+    "image":"mcr.microsoft.com/devcontainers/universal:2",
+    "postCreateCommand": "cp contrib/pre-commit .git/hooks/ && chmod +x .git/hooks/pre-commit && pip install -r requirements_test.txt"
+}

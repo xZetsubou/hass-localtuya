@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep ".py")
+
+if ! [ -z "${FILES}" ]; then
+    codespell $FILES
+fi
+
+if ! [ -z "${FILES}" ]; then
+    black $FILES
+fi
