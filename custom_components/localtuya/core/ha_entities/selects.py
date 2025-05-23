@@ -440,6 +440,44 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             ),
         ),
     ),
+    # EV Charcher
+    # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
+    "qccdz": (
+        LocalTuyaEntity(
+            id=DPCode.WORK_MODE,
+            name="Mode",
+            icon="mdi:cog",
+            custom_configs=localtuya_selector(
+                {
+                    "charge_now": "NOW",
+                    "charge_pct": "PCT",
+                    "charge_energy": "Energy",
+                    "charge_schedule": "Schedule",
+                }
+            ),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.ONLINE_STATE,
+            name="Online state",
+            icon="mdi:cog",
+            custom_configs=localtuya_selector(
+                {"online": "online", "offline": "offline"}
+            ),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CHARGINGOPERATION,
+            name="Charge State",
+            icon="mdi:cog",
+            custom_configs=localtuya_selector(
+                {
+                    "OpenCharging": "Open charging",
+                    "CloseCharging": "Close charging",
+                    "WaitOperation": "Wait for operation",
+                }
+            ),
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
     # Heater
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
     "qn": (
