@@ -101,10 +101,11 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
             if not self._has_sub_entities:
                 self.hass.add_job(self.__create_sub_sensors())
 
-            if (sub_sensor := getattr(self, "_attr_sub_sensor", None)) and (
-                sub_state := self.decode_base64(state).get(sub_sensor)
+            if None not in (
+                sub_sensor := getattr(self, "_attr_sub_sensor", None),
+                sub_sensor_state := self.decode_base64(state).get(sub_sensor),
             ):
-                self._state = sub_state
+                self._state = sub_sensor_state
             else:
                 self._state = state
         else:

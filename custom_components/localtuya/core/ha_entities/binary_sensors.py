@@ -467,6 +467,9 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             condition_contains_any=["tilt", "true"],
         ),
     ),
+    # EV Charcher
+    # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
+    "qccdz": (*FAULT_SENSOR,),
 }
 
 BINARY_SENSORS["cl"] = FAULT_SENSOR
