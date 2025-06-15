@@ -18,7 +18,7 @@ CONFIG = {
                 "color_temp": "23",
                 "color": "24",
                 "scene": "25",
-                "brightness_lower": 10,
+                "brightness_lower": 0,
                 "brightness_upper": 1000,
                 "color_temp_min_kelvin": 2700,
                 "color_temp_max_kelvin": 6500,
@@ -60,6 +60,11 @@ async def test_light():
     assert entity_1.brightness is not None
     assert entity_1.is_white_mode
     assert entity_1.color_temp_kelvin is not None
+
+    device.status_updated({"22": 1000})
+    assert entity_1.brightness == 255
+    device.status_updated({"22": 0})
+    assert entity_1.brightness == 0
 
     device.status_updated({"21": "colour"})
     assert entity_1.hs_color is not None
