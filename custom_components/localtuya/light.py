@@ -175,12 +175,6 @@ def map_range(
     return min(max(round(mapped_value), to_min), to_max)
 
 
-def map_value_by_percent(value: int, value_max: int, target_max: int, percentage=100):
-    """Convert a value from one range to another based on percentage."""
-    raw_percent = (value / value_max) * percentage
-    return round((raw_percent / percentage) * target_max)
-
-
 def flow_schema(dps):
     """Return schema used in config flow."""
     return {
@@ -318,8 +312,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         """Return the brightness of the light."""
         brightness = self._brightness
         if brightness is not None and (self.is_color_mode or self.is_white_mode):
-            return map_value_by_percent(brightness, self._upper_brightness, 255)
-
+            return map_range(brightness, self._lower_brightness, self._upper_brightness)
         return None
 
     @property
@@ -524,7 +517,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._hs = [hue, sat / 10.0]
         self._brightness = value
 
-    def __from_color_common(self, color):
+    def __from_color_common(self, color: str):
         """Convert a string to HSL values."""
         if self.__is_color_rgb_encoded():
             hue = int(color[6:10], 16)
@@ -566,8 +559,12 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             or self.has_config(CONF_BRIGHTNESS)
             or self.has_config(CONF_COLOR)
         ):
-            brightness = map_value_by_percent(
-                int(kwargs[ATTR_BRIGHTNESS]), 255, self._upper_brightness
+            brightness = map_range(
+                int(kwargs[ATTR_BRIGHTNESS]),
+                0,
+                255,
+                self._lower_brightness,
+                self._upper_brightness,
             )
             brightness = max(brightness, self._lower_brightness)
 
