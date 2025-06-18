@@ -11,6 +11,7 @@ on:
     workflow_dispatch:
     branches:
       - master
+      - add_version_on_draft_release
 
 permissions:
   contents: write
@@ -118,7 +119,10 @@ jobs:
       - name: Create Release Notes
         id: release-notes
         run: |
+          ls
           notes="#### 🚨 **Note**: This draft has been released in $(date +'%Y.%m.%d - %H:%M:%S')\n\n"
+          integration_version=$(echo "custom_componets/localtuya" | jq -r ".version")
+          notes+="### 🚨 **Version**: $integration_version\n\n"
 
           while read -r item; do
             section=$(echo "$item"  | jq -r '.section') && [[ ! "$section" =~ [^[:space:]] ]] && continue
@@ -135,18 +139,18 @@ jobs:
 
           set -f; echo -e $notes > commits.md; set +f
 
-      - name: Remove old Draft
-        id: remove_drafts
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run:
-          gh release delete "Draft Latest version"
+      # - name: Remove old Draft
+      #   id: remove_drafts
+      #   continue-on-error: true
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run:
+      #     gh release delete "Draft Latest version"
 
-      - name: Create Release Draft
-        uses: softprops/action-gh-release@v1
-        with:
-          name: "Draft Latest version"  
-          tag_name: "Draft Latest version"  
-          body_path: commits.md 
-          draft: true
+      # - name: Create Release Draft
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     name: "Draft Latest version"  
+      #     tag_name: "Draft Latest version"  
+      #     body_path: commits.md 
+      #     draft: true
