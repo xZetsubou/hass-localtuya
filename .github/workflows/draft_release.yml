@@ -119,9 +119,8 @@ jobs:
       - name: Create Release Notes
         id: release-notes
         run: |
-          ls
           notes="#### 🚨 **Note**: This draft has been released in $(date +'%Y.%m.%d - %H:%M:%S')\n\n"
-          integration_version=$(echo "custom_componets/localtuya" | jq -r ".version")
+          integration_version=$(echo "custom_componets/localtuya/manifest.json" | jq -r ".version")
           notes+="### 🚨 **Version**: $integration_version\n\n"
 
           while read -r item; do
