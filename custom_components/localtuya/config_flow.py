@@ -331,7 +331,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 await self.cloud_data.async_get_devices_dps_query()
                 devices, fails = await setup_localtuya_devices(
                     self.hass,
-                    self.config_entry.entry_id,
+                    self.localtuya_data,
                     self.discovered_devices,
                     self.cloud_data.device_list,
                     log_fails=True,
@@ -343,14 +343,15 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                     for fail_dev in fails.values():
                         devices_fails += f"\n{fail_dev['name']}: {fail_dev['reason']}"
 
-                    msg = f"Succeeded devices: ``{len(devices)}``\n ```{devices_sucessed}\n```"
+                    msg = f"Succeeded devices: ``{len(devices)}``\n ```{devices_sucessed}\n```\nClick on submit to add the devices"
                     if fails:
                         msg += f" \n Failed devices: ``{len(fails)}``\n ```{devices_fails}\n```"
 
                     return await self.async_step_confirm(
                         msg=msg,
-                        confirm_callback=self._update_entry,
-                        callback_args=(devices, CONF_DEVICES),
+                        confirm_callback=lambda: self._update_entry(
+                            devices, CONF_DEVICES
+                        ),
                     )
 
             return await self.async_step_configure_device()
@@ -518,9 +519,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                         ]
                         return await self.async_step_configure_entity()
 
-                valid_data = await validate_input(
-                    self.hass, self.config_entry.entry_id, user_input
-                )
+                valid_data = await validate_input(self.localtuya_data, user_input)
                 self.dps_strings = valid_data[CONF_DPS_STRINGS]
                 # We will also get protocol version from valid date in case auto used.
                 self.device_data[CONF_PROTOCOL_VERSION] = valid_data[
@@ -808,18 +807,10 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             description_placeholders=placeholders,
         )
 
-    async def async_step_confirm(
-        self,
-        msg: str,
-        confirm_callback: Coroutine = None,
-        callback_args: tuple[Any, ...] | None = None,
-    ):
+    async def async_step_confirm(self, msg: str, confirm_callback: Coroutine = None):
         """Create a confirmation config flow page. If submitted, the `confirm_callback` will be called."""
         if confirm_callback:
-            if callback_args:
-                self._confirm_callback = partial(confirm_callback, *callback_args)
-            else:
-                self._confirm_callback = confirm_callback
+            self._confirm_callback = confirm_callback
 
         placeholders = {}
         placeholders["message"] = msg
@@ -881,7 +872,7 @@ class EmptyDpsList(exceptions.HomeAssistantError):
 
 async def setup_localtuya_devices(
     hass: HomeAssistant,
-    entry_id: str,
+    localtuya_data: HassLocalTuyaData,
     discovered_devices: dict,
     devices_cloud_data: dict,
     log_fails=False,
@@ -931,17 +922,16 @@ async def setup_localtuya_devices(
             devices_cfg.append(device_data)
 
     # Connect to the devices to ensure the are usable.
-    validate_devices = [validate_input(hass, entry_id, dev) for dev in devices_cfg]
+    validate_devices = [validate_input(localtuya_data, dev) for dev in devices_cfg]
     results = await asyncio.gather(*validate_devices, return_exceptions=True)
 
     # Merge test results with devices config
-    for i in range(len(results)):
-        dev_id = devices_cfg[i].get(CONF_DEVICE_ID)
-        if not isinstance(results[i], dict):
-            update_fails(dev_id, results[i])
+    for dev_cfg, result in zip(devices_cfg, results):
+        dev_id = dev_cfg.get(CONF_DEVICE_ID)
+        if not isinstance(result, dict):
+            update_fails(dev_id, result)
             continue
-
-        devices.update({dev_id: {**devices_cfg[i], **results[i]}})
+        devices.update({dev_id: {**dev_cfg, **result}})
 
     # Configure entities.
     for dev_id, dev_data in deepcopy(devices).items():
@@ -1189,7 +1179,7 @@ def flow_schema(platform, dps_strings):
     return import_module("." + platform, integration_module).flow_schema(dps_strings)
 
 
-async def validate_input(hass: HomeAssistant, entry_id, data):
+async def validate_input(entry_runtime: HassLocalTuyaData, data):
     """Validate the user input allows us to connect."""
     logger = pytuya.ContextualLogger()
     logger.set_logger(_LOGGER, data[CONF_DEVICE_ID], True, data[CONF_FRIENDLY_NAME])
@@ -1203,7 +1193,7 @@ async def validate_input(hass: HomeAssistant, entry_id, data):
     bypass_handshake = False  # In-case device is passive.
 
     cid = data.get(CONF_NODE_ID, None)
-    localtuya_devices = hass.data[DOMAIN][entry_id].devices
+    localtuya_devices = entry_runtime.devices
     try:
         conf_protocol = data[CONF_PROTOCOL_VERSION]
         auto_protocol = conf_protocol == "auto"
@@ -1221,18 +1211,17 @@ async def validate_input(hass: HomeAssistant, entry_id, data):
             for ver in SUPPORTED_PROTOCOL_VERSIONS:
                 try:
                     version = ver if auto_protocol else conf_protocol
-                    interface = await asyncio.wait_for(
-                        pytuya.connect(
+                    logger.info(f"Connecting with protocol version: {version}")
+                    async with asyncio.timeout(5):
+                        interface = await pytuya.connect(
                             data[CONF_HOST],
                             data[CONF_DEVICE_ID],
                             data[CONF_LOCAL_KEY],
                             float(version),
                             data[CONF_ENABLE_DEBUG],
-                        ),
-                        5,
-                    )
-
-                    detected_dps = await interface.detect_available_dps(cid=cid)
+                        )
+                        logger.info(f"Connected attempt to detect the device DPS")
+                        detected_dps = await interface.detect_available_dps(cid=cid)
 
                     # Break the loop if input isn't auto.
                     if not auto_protocol:
@@ -1241,29 +1230,28 @@ async def validate_input(hass: HomeAssistant, entry_id, data):
                     # If Auto: using DPS detected we will assume this is the correct version if dps found.
                     if len(detected_dps) > 0:
                         # Set the conf_protocol to the worked version to return it and update self.device_data.
+                        logger.info(f"Detected DPS: {detected_dps}")
                         conf_protocol = version
                         break
 
                 # If connection to host is failed raise wrong address.
                 except (OSError, ValueError, pytuya.DecodeError) as ex:
+                    logger.error(f"Connection failed! {ex}")
                     error = ex
                     break
                 except:
                     continue
                 finally:
                     if not auto_protocol and data.get(CONF_DEVICE_SLEEP_TIME, 0) > 0:
+                        logger.info("Low-power device configured — handshake skipped")
                         bypass_connection = True
                     if not error and not interface:
                         error = InvalidAuth
 
-        if CONF_RESET_DPIDS in data:
-            reset_ids_str = data[CONF_RESET_DPIDS].split(",")
-            reset_ids = []
-            for reset_id in reset_ids_str:
-                reset_ids.append(int(reset_id.strip()))
-            logger.debug(
-                "Reset DPIDs configured: %s (%s)", data[CONF_RESET_DPIDS], reset_ids
-            )
+        if conf_reset_dpids := data.get(CONF_RESET_DPIDS):
+            reset_ids_str = conf_reset_dpids.split(",")
+            reset_ids = [int(reset_id.strip()) for reset_id in reset_ids_str]
+            logger.info("Reset DPIDs configured: %s (%s)", conf_reset_dpids, reset_ids)
         try:
             # If reset dpids set - then assume reset is needed before status.
             if (reset_ids is not None) and (len(reset_ids) > 0):
@@ -1281,7 +1269,7 @@ async def validate_input(hass: HomeAssistant, entry_id, data):
         except (ValueError, pytuya.DecodeError) as ex:
             error = ex
         except Exception as ex:
-            logger.debug(f"No DPS able to be detected {ex}")
+            logger.info(f"No DPS able to be detected {ex}")
             detected_dps = {}
 
         # if manual DPs are set, merge these.
@@ -1313,7 +1301,7 @@ async def validate_input(hass: HomeAssistant, entry_id, data):
 
     # Get DP descriptions from the cloud, if the device is there.
     cloud_dp_codes = {}
-    cloud_data: TuyaCloudApi = hass.data[DOMAIN][entry_id].cloud_data
+    cloud_data = entry_runtime.cloud_data
     if (dev_id := data.get(CONF_DEVICE_ID)) in cloud_data.device_list:
         cloud_dp_codes = await cloud_data.async_get_device_functions(dev_id)
 
@@ -1329,7 +1317,7 @@ async def validate_input(hass: HomeAssistant, entry_id, data):
     ):
         raise EmptyDpsList
 
-    logger.debug("Total DPS: %s", detected_dps)
+    logger.info("Total DPS: %s", detected_dps)
     return {
         CONF_DPS_STRINGS: dps_string_list(detected_dps, cloud_dp_codes),
         CONF_PROTOCOL_VERSION: conf_protocol,
