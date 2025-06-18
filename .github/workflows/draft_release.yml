@@ -11,7 +11,6 @@ on:
     workflow_dispatch:
     branches:
       - master
-      - add_version_on_draft_release
 
 permissions:
   contents: write
@@ -138,18 +137,18 @@ jobs:
 
           set -f; echo -e $notes > commits.md; set +f
 
-      # - name: Remove old Draft
-      #   id: remove_drafts
-      #   continue-on-error: true
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run:
-      #     gh release delete "Draft Latest version"
+      - name: Remove old Draft
+        id: remove_drafts
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run:
+          gh release delete "Draft Latest version"
 
-      # - name: Create Release Draft
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     name: "Draft Latest version"  
-      #     tag_name: "Draft Latest version"  
-      #     body_path: commits.md 
-      #     draft: true
+      - name: Create Release Draft
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "Draft Latest version"  
+          tag_name: "Draft Latest version"  
+          body_path: commits.md 
+          draft: true
