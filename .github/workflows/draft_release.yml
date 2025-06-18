@@ -119,6 +119,8 @@ jobs:
         id: release-notes
         run: |
           notes="#### 🚨 **Note**: This draft has been released in $(date +'%Y.%m.%d - %H:%M:%S')\n\n"
+          integration_version=$(jq -r '.version' custom_components/localtuya/manifest.json)
+          notes+="### 🚨 **Version**: $integration_version\n\n"
 
           while read -r item; do
             section=$(echo "$item"  | jq -r '.section') && [[ ! "$section" =~ [^[:space:]] ]] && continue
