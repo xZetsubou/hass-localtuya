@@ -76,6 +76,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self.local_key = self._device_config.local_key
 
         self._status = {}
+        self._dp_timestamps = {}  # Store DP timestamps if present
         self._interface: TuyaProtocol = None
 
         # For SubDevices
@@ -603,7 +604,17 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
         self._last_update_time = time.monotonic()
         self._handle_event(self._status, status)
-        self._status.update(status)
+
+        # If status comes from dps_data, extract timestamps
+        for dp, value in status.items():
+            if isinstance(value, dict) and "value" in value and "time" in value:
+                self._status[dp] = value["value"]
+                self._dp_timestamps[dp] = value["time"]
+            else:
+                self._status[dp] = value
+                # Remove old timestamp if new not present
+                self._dp_timestamps.pop(dp, None)
+
         self._dispatch_status()
 
     @callback
