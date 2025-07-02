@@ -226,6 +226,24 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
     ),
+    # Lawn mower
+    "gcj": (
+        LocalTuyaEntity(
+            id=DPCode.CLEARAPPOINTMENT,
+            name="Clear schedule",
+            icon="mdi:calendar-remove-outline",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.QUERYAPPOINTMENT,
+            name="Query schedule",
+            icon="mdi:calendar-search-outline",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.QUERYPARTITION,
+            name="Query zones",
+            icon="mdi:map-search-outline",
+        ),
+    ),
 }
 
 # Wireless Switch  # also can come as knob switch.

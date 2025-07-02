@@ -48,6 +48,13 @@ FAULT_SENSOR = (
         custom_configs=ON_1,
     ),
     LocalTuyaEntity(
+        id=DPCode.MACHINEERROR,
+        name="Fault",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        custom_configs=ON_1,
+    ),
+    LocalTuyaEntity(
         id=DPCode.IDU_ERROR,
         name="IDU Error",
         device_class=BinarySensorDeviceClass.PROBLEM,
@@ -472,6 +479,7 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     "qccdz": (*FAULT_SENSOR,),
 }
 
+BINARY_SENSORS["gcj"] = FAULT_SENSOR
 BINARY_SENSORS["cl"] = FAULT_SENSOR
 BINARY_SENSORS["wk"] = FAULT_SENSOR
 BINARY_SENSORS["kg"] = FAULT_SENSOR

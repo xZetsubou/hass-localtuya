@@ -1039,6 +1039,16 @@ NUMBERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
     ),
+    # Lawn mower
+    "gcj": (
+        LocalTuyaEntity(
+            id=DPCode.MACHINEWORKTIME,
+            name="Running time",
+            custom_configs=localtuya_numbers(1, 99, unit=UnitOfTime.MINUTES),
+            icon="mdi:timer-outline",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
 }
 
 # Wireless Switch  # also can come as knob switch.
