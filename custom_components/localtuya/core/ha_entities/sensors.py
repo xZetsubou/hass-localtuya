@@ -1861,6 +1861,26 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             custom_configs=localtuya_sensor(PERCENTAGE, 1),
         ),
     ),
+    # Lawn mower
+    "gcj": (
+        LocalTuyaEntity(
+            id=DPCode.MACHINESTATUS,
+            name="State",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.MACHINEPASSWORD,
+            name="Password",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            icon="mdi:lock-question-outline",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.MACHINECOVER,
+            name="Cover",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            icon="mdi:shield-lock-outline",
+        ),
+        *BATTERY_SENSORS,
+    ),
 }
 
 

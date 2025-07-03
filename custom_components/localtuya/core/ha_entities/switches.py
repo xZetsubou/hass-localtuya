@@ -501,6 +501,13 @@ SWITCHES: dict[str, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.SWITCH,
         ),
     ),
+    "gcj": (
+        LocalTuyaEntity(
+            id=DPCode.MACHINERAINMODE,
+            name="Rain Mode",
+            icon="mdi:weather-rainy",
+        ),
+    ),
     # Unknown product with switch capabilities
     # Fond in some diffusers, plugs and PIR flood lights
     # Not documented

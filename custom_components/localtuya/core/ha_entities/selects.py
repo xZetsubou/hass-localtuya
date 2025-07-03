@@ -1402,6 +1402,29 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             ),
         ),
     ),
+    # Lawn mower
+    "gcj": (
+        LocalTuyaEntity(
+            id=DPCode.MACHINECONTROLCMD,
+            name="Control",
+            custom_configs=localtuya_selector(
+                {
+                    "PauseWork": "PauseWork",
+                    "CancelWork": "CancelWork",
+                    "ContinueWork": "ContinueWork",
+                    "StartMowing": "StartMowing",
+                    "StartFixedMowing": "StartFixedMowing",
+                    "StartReturnStation": "StartReturnStation",
+                }
+            ),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.MACHINEPASSWORD,
+            name="Password",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            icon="mdi:lock-question-outline",
+        ),
+    ),
 }
 # Wireless Switch  # also can come as knob switch. # and scene switch.
 # https://developer.tuya.com/en/docs/iot/wxkg?id=Kbeo9t3ryuqm5

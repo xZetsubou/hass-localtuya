@@ -1,0 +1,272 @@
+{
+    "title": "LocalTuya",
+    "config": {
+        "abort": {
+            "already_configured": "Tài khoản này đã được cấu hình.",
+            "device_updated": "Cấu hình thiết bị đã được cập nhật."
+        },
+        "error": {
+            "authentication_failed": "Xác thực thất bại.\n{msg}",
+            "cannot_connect": "Không thể kết nối tới thiết bị. Hãy kiểm tra lại địa chỉ IP và thử lại.",
+            "device_list_failed": "Không lấy được danh sách thiết bị.\n{msg}",
+            "invalid_auth": "Xác thực với thiết bị thất bại. Hãy kiểm tra Device Id và Local Key.",
+            "unknown": "Đã xảy ra lỗi không xác định.\n{ex}.",
+            "entity_already_configured": "Thực thể này đã được cấu hình.",
+            "address_in_use": "Cổng TCP 6668 (dùng cho khám phá thiết bị) đang được sử dụng. Kiểm tra xem có tích hợp nào khác đang dùng không.",
+            "discovery_failed": "Có lỗi khi khám phá thiết bị. Xem log để biết chi tiết. Nếu vẫn lỗi, hãy tạo issue mới (kèm debug log).",
+            "empty_dps": "Kết nối thiết bị thành công nhưng không tìm thấy datapoint nào. Hãy thử lại. Nếu vẫn lỗi, hãy tạo issue mới (kèm debug log)."
+        },
+        "step": {
+            "user": {
+                "title": "Cấu hình tài khoản Cloud API",
+                "description": "Cấu hình thông tin đăng nhập dùng để kết nối Tuya Cloud API.",
+                "data": {
+                    "region": "Khu vực trung tâm dữ liệu",
+                    "client_id": "Client ID",
+                    "client_secret": "Client Secret",
+                    "user_id": "User ID",
+                    "username": "Tên đăng nhập",
+                    "no_cloud": "Tắt Cloud API?"
+                }
+            }
+        }
+    },
+    "options": {
+        "abort": {
+            "already_configured": "Tài khoản này đã được cấu hình.",
+            "device_success": "Thiết bị {dev_name} đã được {action} thành công.",
+            "no_entities": "Không thể xóa hết thực thể khỏi thiết bị.\nNếu muốn xóa thiết bị: Vào menu `Thiết bị & dịch vụ`, tìm thiết bị trong tab `Thiết bị`, bấm 3 chấm ở khung `Thông tin thiết bị`, rồi nhấn `Xóa`."
+        },
+        "error": {
+            "authentication_failed": "Xác thực thất bại.\n{msg}",
+            "cannot_connect": "Không thể kết nối tới thiết bị. Hãy kiểm tra lại địa chỉ IP và thử lại.",
+            "device_list_failed": "Không lấy được danh sách thiết bị.\n{msg}",
+            "invalid_auth": "Xác thực với thiết bị thất bại. Hãy kiểm tra Device Id và Local Key.",
+            "unknown": "Đã xảy ra lỗi không xác định.\n{ex}.",
+            "entity_already_configured": "Thực thể này đã được cấu hình.",
+            "address_in_use": "Cổng TCP 6668 (dùng cho khám phá thiết bị) đang được sử dụng. Kiểm tra xem có tích hợp nào khác đang dùng không.",
+            "discovery_failed": "Có lỗi khi khám phá thiết bị. Xem log để biết chi tiết. Nếu vẫn lỗi, hãy tạo issue mới (kèm debug log).",
+            "empty_dps": "Kết nối thiết bị thành công nhưng không tìm thấy datapoint nào. Hãy thử lại. Nếu vẫn lỗi, hãy tạo issue mới (kèm debug log)."
+        },
+        "step": {
+            "yaml_import": {
+                "title": "Không hỗ trợ",
+                "description": "Thiết bị cấu hình bằng `YAML` không thể cấu hình trong giao diện. Hãy xóa thiết bị khỏi `YAML` và tạo lại trong giao diện hoặc chỉnh sửa file cấu hình."
+            },
+            "init": {
+                "title": "Cấu hình",
+                "description": "Chọn một tùy chọn để tiếp tục.",
+                "menu_options": {
+                    "add_device": "Thêm thiết bị mới",
+                    "edit_device": "Cấu hình lại thiết bị",
+                    "configure_cloud": "Quản lý tài khoản Cloud API"
+                }
+            },
+            "add_device": {
+                "title": "Chọn thiết bị để cấu hình",
+                "description": "Các thiết bị Tuya tương thích trong mạng nội bộ sẽ được tự động phát hiện sau khi đã cài đặt trong app Tuya. Nếu không thấy thiết bị mong muốn, chọn `Thêm thiết bị thủ công` trong danh sách.",
+                "data": {
+                    "selected_device": "Thiết bị đã phát hiện",
+                    "mass_configure": "Tự động cấu hình tất cả thiết bị nhận diện được"
+                }
+            },
+            "edit_device": {
+                "title": "Cấu hình lại thiết bị",
+                "description": "Chọn thiết bị bạn muốn cấu hình lại.",
+                "data": {
+                    "selected_device": "Thiết bị đã cấu hình"
+                }
+            },
+            "configure_cloud": {
+                "title": "Quản lý tài khoản Cloud API",
+                "description": "Cấu hình thông tin đăng nhập dùng để kết nối Tuya Cloud API.",
+                "data": {
+                    "region": "Khu vực trung tâm dữ liệu",
+                    "client_id": "Client ID",
+                    "client_secret": "Client Secret",
+                    "user_id": "User ID",
+                    "username": "Tên đăng nhập",
+                    "no_cloud": "Tắt Cloud API?"
+                }
+            },
+            "confirm": {
+                "title": "Xác nhận",
+                "description": "{message}"
+            },
+            "configure_device": {
+                "title": "Cấu hình kết nối thiết bị",
+                "description": "Cấu hình các thông tin thiết bị{for_device} còn thiếu (nếu có) để LocalTuya có thể kết nối.",
+                "data": {
+                    "friendly_name": "Tên thiết bị",
+                    "host": "Địa chỉ IP",
+                    "device_id": "Device ID",
+                    "local_key": "Local Key",
+                    "node_id": "(Tùy chọn) Node Id cho sub-device",
+                    "protocol_version": "Phiên bản giao thức",
+                    "enable_debug": "Bật debug (cần bật thủ công trong `configuration.yaml`)",
+                    "scan_interval": "(Tùy chọn) Khoảng thời gian quét (giây), nếu không tự động quét",
+                    "entities": "Các thực thể đã cấu hình (bỏ chọn để xóa)",
+                    "add_entities": "Thêm thực thể mới",
+                    "manual_dps_strings": "(Tùy chọn) DPS thủ công, nếu không tự phát hiện (cách nhau bằng dấu phẩy)",
+                    "reset_dpids": "(Tùy chọn) DPIDs gửi trong lệnh RESET, nếu thiết bị không phản hồi sau khi bật (cách nhau bằng dấu phẩy)",
+                    "device_sleep_time": "(Tùy chọn) Thời gian ngủ của thiết bị (giây): Nếu thiết bị báo trạng thái xong sẽ ngủ",
+                    "export_config": "Lưu cấu hình thực thể thành template"
+                }
+            },
+            "device_setup_method": {
+                "title": "Cấu hình thực thể thiết bị",
+                "description": "LocalTuya sẽ cố gắng tự động phát hiện cấu hình còn lại. Nếu không hoạt động hoặc muốn tùy chỉnh, chọn `thủ công`.",
+                "menu_options": {
+                    "auto_configure_device":"Tự động phát hiện thực thể",
+                    "pick_entity_type": "Cấu hình thực thể thủ công",
+                    "choose_template":"Dùng template đã lưu"
+                }
+            },
+            "auto_configure_device": {
+                "title": "Tự động cấu hình",
+                "description": "Có lỗi: {err_msg}. Nếu không rõ lý do, hãy kiểm tra log.",
+                "menu_options": {
+                    "device_setup_method":"Quay lại chọn phương thức cấu hình"
+                }
+            },
+            "pick_entity_type": {
+                "title": "Chọn loại thực thể",
+                "description": "Chọn loại thực thể bạn muốn thêm.",
+                "data": {
+                    "platform_to_add": "Chọn thực thể",
+                    "no_additional_entities": "Kết thúc cấu hình",
+                    "use_template" : "Nhập file template"
+                }
+            },
+            "choose_template":{
+                "title": "Nhập file template",
+                "description": "File template nằm trong thư mục `templates` ([Xem thêm](https://github.com/xZetsubou/hass-localtuya/discussions/13)).",
+                "data": {
+                    "templates": "Chọn template"
+                }
+            },
+            "configure_entity": {
+                "title": "Cấu hình thực thể",
+                "description": "Điền thông tin cho {entity} loại {platform}. Tất cả tùy chọn (trừ `Type` và `ID`) có thể thay đổi sau ở trang cấu hình.",
+                "data": {
+                    "id": "DP ID",
+                    "friendly_name": "Tên thân thiện cho thực thể",
+                    "current": "Dòng điện hiện tại",
+                    "current_consumption": "Công suất tiêu thụ hiện tại",
+                    "voltage": "Điện áp",
+                    "commands_set": "Bộ lệnh Open_Close_Stop",
+                    "positioning_mode": "Chế độ định vị",
+                    "current_position_dp": "Vị trí hiện tại (chỉ cho chế độ *position*)",
+                    "set_position_dp": "Đặt vị trí (chỉ cho chế độ *position*)",
+                    "stop_switch_dp": "(Tùy chọn) DP dừng (nếu cover có lệnh tiếp tục?)",
+                    "position_inverted": "Đảo ngược vị trí 0-100 (chỉ cho chế độ *position*)",
+                    "span_time": "Thời gian mở hoàn toàn (giây, chỉ cho *timed*)",
+                    "unit_of_measurement": "(Tùy chọn) Đơn vị đo lường",
+                    "device_class": "(Tùy chọn) Device Class",
+                    "state_class": "(Tùy chọn) State Class",
+                    "scaling": "(Tùy chọn) Hệ số scale",
+                    "state_on": "Giá trị Bật",
+                    "state_off": "Giá trị Tắt",
+                    "powergo_dp": "DP công suất (thường là 25 hoặc 2)",
+                    "idle_status_value": "Trạng thái chờ (cách nhau bằng dấu phẩy)",
+                    "returning_status_value": "Trạng thái đang về (cách nhau bằng dấu phẩy)",
+                    "docked_status_value": "Trạng thái đã về dock (cách nhau bằng dấu phẩy)",
+                    "fault_dp": "DP lỗi (thường là 11)",
+                    "battery_dp": "DP pin (thường là 14)",
+                    "mode_dp": "DP chế độ",
+                    "modes": "Danh sách chế độ",
+                    "return_mode": "Chế độ về nhà",
+                    "fan_speed_dp": "(Tùy chọn) DP tốc độ quạt",
+                    "fan_speeds": "Danh sách tốc độ quạt (cách nhau bằng dấu phẩy)",
+                    "clean_time_dp": "DP thời gian làm sạch (thường là 33)",
+                    "clean_area_dp": "DP diện tích làm sạch (thường là 32)",
+                    "clean_record_dp": "DP lịch sử làm sạch (thường là 34)",
+                    "locate_dp": "DP định vị (thường là 31)",
+                    "pause_dp":"DP tạm dừng",
+                    "paused_state": "Trạng thái tạm dừng (pause, paused, v.v.)",
+                    "stop_status": "Trạng thái dừng",
+                    "brightness": "Độ sáng (chỉ cho màu trắng)",
+                    "brightness_lower": "Giá trị độ sáng thấp nhất",
+                    "brightness_upper": "Giá trị độ sáng cao nhất",
+                    "color_temp": "Nhiệt độ màu",
+                    "color_temp_reverse": "Đảo ngược nhiệt độ màu?",
+                    "color": "Màu sắc",
+                    "color_mode": "Chế độ màu (Work Mode)",
+                    "color_temp_min_kelvin": "Nhiệt độ màu tối thiểu (K)",
+                    "color_temp_max_kelvin": "Nhiệt độ màu tối đa (K)",
+                    "music_mode": "Có chế độ nhạc không?",
+                    "scene": "Cảnh",
+                    "scene_values": "(Tùy chọn) Giá trị cảnh",
+                    "select_options": "Giá trị các tùy chọn",
+                    "fan_speed_control": "DP điều khiển tốc độ quạt",
+                    "fan_oscillating_control": "DP điều khiển quay quạt",
+                    "fan_speed_min": "Tốc độ quạt nhỏ nhất (số nguyên)",
+                    "fan_speed_max": "Tốc độ quạt lớn nhất (số nguyên)",
+                    "fan_speed_ordered_list": "Danh sách tốc độ quạt (ghi đè min/max), cách nhau bằng dấu phẩy ','",
+                    "fan_direction":"DP hướng quạt",
+                    "fan_direction_forward": "Chuỗi DP tiến",
+                    "fan_direction_reverse": "Chuỗi DP lùi",
+                    "fan_dps_type": "Kiểu giá trị DP",
+                    "current_temperature_dp": "Nhiệt độ hiện tại",
+                    "target_temperature_dp": "Nhiệt độ mục tiêu",
+                    "temperature_step": "(Tùy chọn) Bước nhiệt độ",
+                    "min_temperature": "Nhiệt độ tối thiểu",
+                    "max_temperature": "Nhiệt độ tối đa",
+                    "precision": "Độ chính xác (tùy chọn, cho giá trị DP)",
+                    "target_precision": "Độ chính xác mục tiêu (tùy chọn, cho giá trị DP)",
+                    "temperature_unit": "(Tùy chọn) Đơn vị nhiệt độ",
+                    "hvac_mode_dp": "(Tùy chọn) DP chế độ HVAC",
+                    "hvac_mode_set": "(Tùy chọn) Các chế độ HVAC",
+                    "hvac_add_off": "(Tùy chọn) Thêm `OFF` vào chế độ HVAC",
+                    "hvac_action_dp": "(Tùy chọn) DP trạng thái hiện tại HVAC",
+                    "hvac_action_set": "(Tùy chọn) Các trạng thái HVAC",
+                    "preset_dp": "(Tùy chọn) DP preset",
+                    "preset_set": "(Tùy chọn) Preset",
+                    "fan_speed_list": "(Tùy chọn) Danh sách tốc độ quạt, cách nhau bằng dấu phẩy ','",
+                    "eco_dp": "(Tùy chọn) DP Eco",
+                    "eco_value": "(Tùy chọn) Giá trị Eco",
+                    "heuristic_action": "(Tùy chọn) Bật heuristic action",
+                    "dps_default_value": "(Tùy chọn) Giá trị mặc định khi chưa khởi tạo",
+                    "restore_on_reconnect": "Khôi phục giá trị cuối cùng đã đặt trong Home Assistant sau khi mất kết nối?",
+                    "min_value": "Giá trị nhỏ nhất",
+                    "max_value": "Giá trị lớn nhất",
+                    "step_size": "Bước tăng nhỏ nhất",
+                    "is_passive_entity": "Thực thể thụ động? (cần tích hợp gửi giá trị khởi tạo)",
+                    "entity_category": "Hiển thị thực thể trong nhóm này",
+                    "humidifier_available_modes": "(Tùy chọn) Các chế độ khả dụng trên thiết bị",
+                    "humidifier_current_humidity_dp": "(Tùy chọn) DP độ ẩm hiện tại",
+                    "humidifier_mode_dp": "(Tùy chọn) DP đặt chế độ",
+                    "humidifier_set_humidity_dp": "(Tùy chọn) DP đặt độ ẩm",
+                    "min_humidity": "Đặt độ ẩm tối thiểu hỗ trợ",
+                    "max_humidity": "Đặt độ ẩm tối đa hỗ trợ",
+                    "alarm_supported_states": "Các trạng thái thiết bị hỗ trợ",
+                    "receive_dp":"DP nhận tín hiệu (mặc định là 202)",
+                    "key_study_dp":"(Tùy chọn) DP học phím (thường là 7)",
+                    "lock_state_dp":"(Tùy chọn) DP trạng thái khóa",
+                    "jammed_dp":"(Tùy chọn) DP kẹt",
+                    "target_temperature_high_dp":"(Tùy chọn) DP nhiệt độ cao mục tiêu",
+                    "target_temperature_low_dp":"(Tùy chọn) DP nhiệt độ thấp mục tiêu",
+                    "color_mode_set":"Bộ chế độ màu hỗ trợ (để mặc định nếu không chắc)",
+                    "reset_timer": "(Tùy chọn) Hẹn giờ đặt lại trạng thái về tắt",
+                    "swing_mode_dp": "(Tùy chọn) DP quay dọc",
+                    "swing_modes": "(Tùy chọn) Các chế độ quay dọc",
+                    "swing_horizontal_dp": "(Tùy chọn) DP quay ngang",
+                    "swing_horizontal_modes": "(Tùy chọn) Các chế độ quay ngang"
+                },
+                "data_description": {
+                    "hvac_mode_set":"Mỗi dòng là [ hvac_mode: device_value ] [Các chế độ HVAC hỗ trợ](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-modes)",
+                    "hvac_action_set":"Mỗi dòng là [ hvac_action: device_value ] [Các trạng thái HVAC hỗ trợ](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-action)",
+                    "preset_set":"Mỗi dòng là [ device_value: tên thân thiện ]",
+                    "scene_values":"Mỗi dòng là [ device_value: tên thân thiện ]",
+                    "select_options":"Mỗi dòng là [ device_value: tên thân thiện ]",
+                    "swing_modes":"Mỗi dòng là [ device_value: tên thân thiện ]",
+                    "swing_horizontal_modes":"Mỗi dòng là [ device_value: tên thân thiện ]",
+                    "alarm_supported_states":"Mỗi dòng là [ trạng thái hỗ trợ: device value ] [Các trạng thái hỗ trợ](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states)",
+                    "humidifier_available_modes":"Mỗi dòng là [ device_value: tên thân thiện ]",
+                    "device_class": "Tìm hiểu thêm về [Device Classes](https://www.home-assistant.io/integrations/homeassistant/#device-class)",
+                    "state_class": "Tìm hiểu thêm về [State Classes](https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes)"
+                }
+            }
+        }
+    }
+}
