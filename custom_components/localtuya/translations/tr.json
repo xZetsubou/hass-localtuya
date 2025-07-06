@@ -164,7 +164,7 @@
           "device_class": "(Opsiyonel) Cihaz Sınıfı",
           "state_class": "(Opsiyonel) Durum Sınıfı",
           "scaling": "(Opsiyonel) Ölçeklendirme Faktörü",
-          "state_on": "Açık Değer",
+          "state_on": "Açık Değer (virgülle ayrılmış)",
           "state_off": "Kapalı Değer",
           "powergo_dp": "Güç DP'si (genellikle 25 veya 2)",
           "idle_status_value": "Boşta Durum (virgülle ayrılmış)",

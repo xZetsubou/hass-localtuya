@@ -164,7 +164,7 @@
                     "device_class": "(Opcjonalnie) Klasa urządzenia",
                     "state_class": "(Opcjonalnie) Klasa stanu",
                     "scaling": "Współczynnik skalowania",
-                    "state_on": "Wartość włączenia",
+                    "state_on": "Wartość włączenia (oddzielone przecinkami)",
                     "state_off": "Wartość wyłączenia",
                     "powergo_dp": "DP mocy (zazwyczaj 25 or 2)",
                     "idle_status_value": "Stan bezczynności (oddzielone przecinkami)",
