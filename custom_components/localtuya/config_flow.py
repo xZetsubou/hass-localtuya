@@ -1236,7 +1236,7 @@ async def validate_input(entry_runtime: HassLocalTuyaData, data):
                         break
 
                 # If connection to host is failed raise wrong address.
-                except (OSError, ValueError, pytuya.DecodeError) as ex:
+                except (OSError, ValueError) as ex:
                     logger.error(f"Connection failed! {ex}")
                     error = ex
                     break
