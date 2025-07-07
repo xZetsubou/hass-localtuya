@@ -65,13 +65,6 @@ def unpack_message(
     data: bytes, hmac_key=None, header=None, no_retcode=False, logger=_LOGGER
 ):
     """Unpack bytes into a TuyaMessage."""
-    # log_data = {
-    #     "==== hmac_key ====": hmac_key,
-    #     "==== header ====": header,
-    #     "==== no_retcode ====": no_retcode,
-    #     "==== data ====": data,
-    # }
-    # logger.error(f"!!!!!!!!!!!! {log_data}")
     if header is None:
         header = parse_header(data)
 

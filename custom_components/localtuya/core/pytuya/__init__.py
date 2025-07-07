@@ -328,10 +328,10 @@ class MessageDispatcher(ContextualLogger):
                 prefix_index = self.buffer.find(Affix.prefix_6699.bin)
 
             if prefix_index == -1:
-                self.error(f"Invalid prefix !!!!: {self.buffer!r}")
+                self.debug(f"Invalid prefix: {self.buffer!r}")
                 self.buffer = b""
             elif self.buffer[:4] not in (prefixes_bin) and prefix_index > 0:
-                self.error(f"prefix is not at the end !!!!!: {self.buffer}")
+                self.debug(f"prefix is not at the end: {self.buffer}")
                 self.buffer = self.buffer[prefix_index:]
 
             if (suffix_index := self.buffer.find(Affix.suffix_55aa.bin)) == -1:
@@ -339,16 +339,16 @@ class MessageDispatcher(ContextualLogger):
 
             # if not any (self.buffer.endswith(suffix) for suffix in suffixes)
             if suffix_index == -1:
-                self.error(f"Invalid suffix !!!!: {self.buffer!r}")
+                self.debug(f"Invalid suffix: {self.buffer!r}")
                 self.buffer = b""
             if not any(self.buffer.endswith(suffix_bin) for suffix_bin in suffixes_bin):
-                self.error(f"suffix is not at the end !!!!!: {self.buffer}")
+                self.debug(f"suffix is not at the end: {self.buffer!r}")
                 break
                 # self.buffer = self.buffer[: suffix_index + 4]
 
             header = parser.parse_header(self.buffer, logger=self)
             if len(self.buffer) < header.total_length:
-                self.error(f"NOT ENOUGH DATA: {self.buffer}")
+                self.debug(f"Not enough data to parse: {self.buffer}")
                 break  # not enough data.
 
             hmac_key = self.local_key if self.version >= 3.4 else None
@@ -717,7 +717,6 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             if isinstance(payload, MessagePayload)
             else payload
         )
-        self.error(f"payload: {payload} enc payload!! {enc_payload}")
         # self.debug("Quick-dispatching message %s, seqno %s", binascii.hexlify(enc_payload), self.seqno)
 
         try:
