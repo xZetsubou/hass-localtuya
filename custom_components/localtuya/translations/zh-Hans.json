@@ -164,7 +164,7 @@
                     "device_class": "（非必填）设备类型",
                     "state_class": "（非必填）状态分类",
                     "scaling": "（非必填）缩放系数",
-                    "state_on": "打开时的状态值",
+                    "state_on": "打开时的状态值（用英文逗号分隔）",
                     "state_off": "关闭时的状态值",
                     "powergo_dp": "电源数据点位（通常为25或2）",
                     "idle_status_value": "空闲状态值（用英文逗号分隔）",

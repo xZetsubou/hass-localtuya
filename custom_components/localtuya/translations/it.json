@@ -159,7 +159,7 @@
                     "device_class": "(Optional) Device Class",
                     "state_class": "(Optional) State Class",
                     "scaling": "(Optional) Scaling Factor",
-                    "state_on": "On Value",
+                    "state_on": "On Value (optionally comma-separated)",
                     "state_off": "Off Value",
                     "powergo_dp": "Power DP (usually 25 or 2)",
                     "idle_status_value": "Idle Status (comma-separated)",

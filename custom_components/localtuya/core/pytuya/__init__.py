@@ -46,34 +46,29 @@ import logging
 import struct
 import time
 import weakref
-from enum import Enum
 from abc import ABC, abstractmethod
 from typing import Self
-from collections import namedtuple
 from hashlib import md5, sha256
+from .cipher import AESCipher
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-version_tuple = (2024, 6, 0)
+from . import parser
+from .const import (
+    CMDType,
+    SubdeviceState,
+    Affix,
+    TuyaHeader,
+    TuyaMessage,
+    MessagePayload,
+    MessagesFormat,
+)
+
+version_tuple = (2025, 7, 0)
 version = version_string = __version__ = "%d.%d.%d" % version_tuple
 __author__ = "rospogrigio, xZetsubou"
 
 _LOGGER = logging.getLogger(__name__)
 
-# Tuya Packet Format
-TuyaHeader = namedtuple("TuyaHeader", "prefix seqno cmd length total_length")
-MessagePayload = namedtuple("MessagePayload", "cmd payload")
-try:
-    TuyaMessage = namedtuple(
-        "TuyaMessage",
-        "seqno cmd retcode payload crc crc_good prefix iv",
-        defaults=(True, 0x55AA, None),
-    )
-except:
-    TuyaMessage = namedtuple(
-        "TuyaMessage", "seqno cmd retcode payload crc crc_good prefix iv"
-    )
 
 # TinyTuya Error Response Codes
 ERR_JSON = 900
@@ -110,44 +105,6 @@ error_codes = {
 }
 
 
-class DecodeError(Exception):
-    """Specific Exception caused by decoding error."""
-
-    pass
-
-
-class SubdeviceState(Enum):
-    ONLINE = 1
-    OFFLINE = 2
-    ABSENT = 3
-
-
-# Tuya Command Types
-# Reference:
-# https://github.com/tuya/tuya-iotos-embeded-sdk-wifi-ble-bk7231n/blob/master/sdk/include/lan_protocol.h
-AP_CONFIG = 0x01  # FRM_TP_CFG_WF      # only used for ap 3.0 network config
-ACTIVE = 0x02  # FRM_TP_ACTV (discard) # WORK_MODE_CMD
-SESS_KEY_NEG_START = 0x03  # FRM_SECURITY_TYPE3 # negotiate session key
-SESS_KEY_NEG_RESP = 0x04  # FRM_SECURITY_TYPE4 # negotiate session key response
-SESS_KEY_NEG_FINISH = 0x05  # FRM_SECURITY_TYPE5 # finalize session key negotiation
-UNBIND = 0x06  # FRM_TP_UNBIND_DEV  # DATA_QUERT_CMD - issue command
-CONTROL = 0x07  # FRM_TP_CMD         # STATE_UPLOAD_CMD
-STATUS = 0x08  # FRM_TP_STAT_REPORT # STATE_QUERY_CMD
-HEART_BEAT = 0x09  # FRM_TP_HB
-DP_QUERY = 0x0A  # 10 # FRM_QUERY_STAT      # UPDATE_START_CMD - get data points
-QUERY_WIFI = 0x0B  # 11 # FRM_SSID_QUERY (discard) # UPDATE_TRANS_CMD
-TOKEN_BIND = 0x0C  # 12 # FRM_USER_BIND_REQ   # GET_ONLINE_TIME_CMD - system time (GMT)
-CONTROL_NEW = 0x0D  # 13 # FRM_TP_NEW_CMD      # FACTORY_MODE_CMD
-ENABLE_WIFI = 0x0E  # 14 # FRM_ADD_SUB_DEV_CMD # WIFI_TEST_CMD
-WIFI_INFO = 0x0F  # 15 # FRM_CFG_WIFI_INFO
-DP_QUERY_NEW = 0x10  # 16 # FRM_QUERY_STAT_NEW
-SCENE_EXECUTE = 0x11  # 17 # FRM_SCENE_EXEC
-UPDATEDPS = 0x12  # 18 # FRM_LAN_QUERY_DP    # Request refresh of DPS
-UDP_NEW = 0x13  # 19 # FR_TYPE_ENCRYPTION
-AP_CONFIG_NEW = 0x14  # 20 # FRM_AP_CFG_WF_V40
-BOARDCAST_LPV34 = 0x23  # 35 # FR_TYPE_BOARDCAST_LPV34
-LAN_EXT_STREAM = 0x40  # 64 # FRM_LAN_EXT_STREAM
-
 UPDATE_DPS_LIST = [3.2, 3.3, 3.4, 3.5]  # 3.2 behaves like 3.3 with type_0d
 
 PROTOCOL_VERSION_BYTES_31 = b"3.1"
@@ -159,33 +116,17 @@ PROTOCOL_3x_HEADER = 12 * b"\x00"
 PROTOCOL_33_HEADER = PROTOCOL_VERSION_BYTES_33 + PROTOCOL_3x_HEADER
 PROTOCOL_34_HEADER = PROTOCOL_VERSION_BYTES_34 + PROTOCOL_3x_HEADER
 PROTOCOL_35_HEADER = PROTOCOL_VERSION_BYTES_35 + PROTOCOL_3x_HEADER
-MESSAGE_RECV_HEADER_FMT = ">5I"  # 4*uint32: prefix, seqno, cmd, length, retcode
-MESSAGE_HEADER_FMT = MESSAGE_HEADER_FMT_55AA = (
-    ">4I"  # 4*uint32: prefix, seqno, cmd, length [, retcode]
-)
-MESSAGE_HEADER_FMT_6699 = ">IHIII"  # 4*uint32: prefix, unknown, seqno, cmd, length
-MESSAGE_RETCODE_FMT = ">I"  # retcode for received messages
-MESSAGE_END_FMT = MESSAGE_END_FMT_55AA = ">2I"  # 2*uint32: crc, suffix
-MESSAGE_END_FMT_HMAC = ">32sI"  # 32s:hmac, uint32:suffix
-MESSAGE_END_FMT_6699 = ">16sI"  # 16s:tag, suffix
-PREFIX_VALUE = PREFIX_55AA_VALUE = 0x000055AA
-PREFIX_BIN = PREFIX_55AA_BIN = b"\x00\x00U\xaa"
-SUFFIX_VALUE = SUFFIX_55AA_VALUE = 0x0000AA55
-SUFFIX_BIN = SUFFIX_55AA_BIN = b"\x00\x00\xaaU"
-PREFIX_6699_VALUE = 0x00006699
-PREFIX_6699_BIN = b"\x00\x00\x66\x99"
-SUFFIX_6699_VALUE = 0x00009966
-SUFFIX_6699_BIN = b"\x00\x00\x99\x66"
+
 
 NO_PROTOCOL_HEADER_CMDS = [
-    DP_QUERY,
-    DP_QUERY_NEW,
-    UPDATEDPS,
-    HEART_BEAT,
-    SESS_KEY_NEG_START,
-    SESS_KEY_NEG_RESP,
-    SESS_KEY_NEG_FINISH,
-    LAN_EXT_STREAM,
+    CMDType.DP_QUERY,
+    CMDType.DP_QUERY_NEW,
+    CMDType.UPDATEDPS,
+    CMDType.HEART_BEAT,
+    CMDType.SESS_KEY_NEG_START,
+    CMDType.SESS_KEY_NEG_RESP,
+    CMDType.SESS_KEY_NEG_FINISH,
+    CMDType.LAN_EXT_STREAM,
 ]
 
 HEARTBEAT_INTERVAL = 8.3
@@ -205,52 +146,49 @@ UPDATE_DPS_WHITELIST = [18, 19, 20]  # Socket (Wi-Fi)
 # of remaining payload, i.e. command + suffix (unclear if multiple bytes used for
 # length, zero padding implies could be more than one byte)
 
-# Any command not defined in payload_dict will be sent as-is with a
-#  payload of {"gwId": "", "devId": "", "uid": "", "t": ""}
-
 payload_dict = {
     # Default Device
     "type_0a": {
-        AP_CONFIG: {  # [BETA] Set Control Values on Device
+        CMDType.AP_CONFIG: {  # [BETA] Set Control Values on Device
             "command": {"gwId": "", "devId": "", "uid": "", "t": "", "cid": ""},
         },
-        CONTROL: {  # Set Control Values on Device
+        CMDType.CONTROL: {  # Set Control Values on Device
             "command": {"devId": "", "uid": "", "t": "", "cid": ""},
         },
-        STATUS: {  # Get Status from Device
+        CMDType.STATUS: {  # Get Status from Device
             "command": {"gwId": "", "devId": "", "cid": ""},
         },
-        HEART_BEAT: {"command": {"gwId": "", "devId": ""}},
-        DP_QUERY: {  # Get Data Points from Device
+        CMDType.HEART_BEAT: {"command": {"gwId": "", "devId": ""}},
+        CMDType.DP_QUERY: {  # Get Data Points from Device
             "command": {"gwId": "", "devId": "", "uid": "", "t": "", "cid": ""},
         },
-        CONTROL_NEW: {"command": {"devId": "", "uid": "", "t": "", "cid": ""}},
-        DP_QUERY_NEW: {"command": {"devId": "", "uid": "", "t": "", "cid": ""}},
-        UPDATEDPS: {"command": {"dpId": [18, 19, 20], "cid": ""}},
-        LAN_EXT_STREAM: {"command": {"reqType": "", "data": {}}},
+        CMDType.CONTROL_NEW: {"command": {"devId": "", "uid": "", "t": "", "cid": ""}},
+        CMDType.DP_QUERY_NEW: {"command": {"devId": "", "uid": "", "t": "", "cid": ""}},
+        CMDType.UPDATEDPS: {"command": {"dpId": [18, 19, 20], "cid": ""}},
+        CMDType.LAN_EXT_STREAM: {"command": {"reqType": "", "data": {}}},
     },
     # Special Case Device "0d" - Some of these devices
     # Require the 0d command as the DP_QUERY status request and the list of
     # dps requested payload
     "type_0d": {
-        DP_QUERY: {  # Get Data Points from Device
-            "command_override": CONTROL_NEW,  # Uses CONTROL_NEW command for some reason
+        CMDType.DP_QUERY: {  # Get Data Points from Device
+            "command_override": CMDType.CONTROL_NEW,  # Uses CONTROL_NEW command for some reason
             "command": {"devId": "", "uid": "", "t": "", "cid": ""},
         },
     },
     "v3.4": {
-        CONTROL: {
-            "command_override": CONTROL_NEW,  # Uses CONTROL_NEW command
+        CMDType.CONTROL: {
+            "command_override": CMDType.CONTROL_NEW,  # Uses CONTROL_NEW command
             "command": {"protocol": 5, "t": "int", "data": {"cid": ""}},
         },
-        DP_QUERY: {"command_override": DP_QUERY_NEW},
+        CMDType.DP_QUERY: {"command_override": CMDType.DP_QUERY_NEW},
     },
     "v3.5": {
-        CONTROL: {
-            "command_override": CONTROL_NEW,  # Uses CONTROL_NEW command
+        CMDType.CONTROL: {
+            "command_override": CMDType.CONTROL_NEW,  # Uses CONTROL_NEW command
             "command": {"protocol": 5, "t": "int", "data": {"cid": ""}},
         },
-        DP_QUERY: {"command_override": DP_QUERY_NEW},
+        CMDType.DP_QUERY: {"command_override": CMDType.DP_QUERY_NEW},
     },
 }
 
@@ -317,268 +255,6 @@ class ContextualLogger:
         return self._logger.exception(msg, *args)
 
 
-def pack_message(msg, hmac_key=None):
-    """Pack a TuyaMessage into bytes."""
-    if msg.prefix == PREFIX_55AA_VALUE:
-        header_fmt = MESSAGE_HEADER_FMT_55AA
-        end_fmt = MESSAGE_END_FMT_HMAC if hmac_key else MESSAGE_END_FMT_55AA
-        msg_len = len(msg.payload) + struct.calcsize(end_fmt)
-        header_data = (msg.prefix, msg.seqno, msg.cmd, msg_len)
-    elif msg.prefix == PREFIX_6699_VALUE:
-        if not hmac_key:
-            raise TypeError("key must be provided to pack 6699-format messages")
-        header_fmt = MESSAGE_HEADER_FMT_6699
-        end_fmt = MESSAGE_END_FMT_6699
-        msg_len = len(msg.payload) + (struct.calcsize(end_fmt) - 4) + 12
-        if type(msg.retcode) == int:
-            msg_len += struct.calcsize(MESSAGE_RETCODE_FMT)
-        header_data = (msg.prefix, 0, msg.seqno, msg.cmd, msg_len)
-    else:
-        raise ValueError(
-            "pack_message() cannot handle message format %08X" % msg.prefix
-        )
-
-    # Create full message excluding CRC and suffix
-    data = struct.pack(header_fmt, *header_data)
-
-    if msg.prefix == PREFIX_6699_VALUE:
-        cipher = AESCipher(hmac_key)
-        if type(msg.retcode) == int:
-            raw = struct.pack(MESSAGE_RETCODE_FMT, msg.retcode) + msg.payload
-        else:
-            raw = msg.payload
-        data2 = cipher.encrypt(
-            raw,
-            use_base64=False,
-            pad=False,
-            iv=True if not msg.iv else msg.iv,
-            header=data[4:],
-        )
-        data += data2 + SUFFIX_6699_BIN
-    else:
-        data += msg.payload
-        if hmac_key:
-            crc = hmac.new(hmac_key, data, sha256).digest()
-        else:
-            crc = binascii.crc32(data) & 0xFFFFFFFF
-        # Calculate CRC, add it together with suffix
-        data += struct.pack(end_fmt, crc, SUFFIX_VALUE)
-
-    return data
-
-
-def unpack_message(data, hmac_key=None, header=None, no_retcode=False, logger=_LOGGER):
-    """Unpack bytes into a TuyaMessage."""
-    if header is None:
-        header = parse_header(data)
-
-    if header.prefix == PREFIX_55AA_VALUE:
-        # 4-word header plus return code
-        header_len = struct.calcsize(MESSAGE_HEADER_FMT_55AA)
-        end_fmt = MESSAGE_END_FMT_HMAC if hmac_key else MESSAGE_END_FMT_55AA
-        retcode_len = 0 if no_retcode else struct.calcsize(MESSAGE_RETCODE_FMT)
-        msg_len = header_len + header.length
-    elif header.prefix == PREFIX_6699_VALUE:
-        if not hmac_key:
-            raise TypeError("key must be provided to unpack 6699-format messages")
-        header_len = struct.calcsize(MESSAGE_HEADER_FMT_6699)
-        end_fmt = MESSAGE_END_FMT_6699
-        retcode_len = 0
-        msg_len = header_len + header.length + 4
-    else:
-        raise ValueError(
-            "unpack_message() cannot handle message format %08X" % header.prefix
-        )
-
-    if len(data) < msg_len:
-        logger.debug(
-            "unpack_message(): not enough data to unpack payload! need %d but only have %d",
-            header_len + header.length,
-            len(data),
-        )
-        raise DecodeError(f"Not enough data to unpack payload: {data}")
-
-    end_len = struct.calcsize(end_fmt)
-    # the retcode is technically part of the payload, but strip it as we do not want it here
-    retcode = (
-        0
-        if not retcode_len
-        else struct.unpack(
-            MESSAGE_RETCODE_FMT, data[header_len : header_len + retcode_len]
-        )[0]
-    )
-    payload = data[header_len + retcode_len : msg_len]
-    crc, suffix = struct.unpack(end_fmt, payload[-end_len:])
-    payload = payload[:-end_len]
-
-    if header.prefix == PREFIX_55AA_VALUE:
-        if hmac_key:
-            have_crc = hmac.new(
-                hmac_key, data[: (header_len + header.length) - end_len], sha256
-            ).digest()
-        else:
-            have_crc = (
-                binascii.crc32(data[: (header_len + header.length) - end_len])
-                & 0xFFFFFFFF
-            )
-
-        if suffix != SUFFIX_VALUE:
-            logger.debug("Suffix prefix wrong! %08X != %08X", suffix, SUFFIX_VALUE)
-
-        if crc != have_crc:
-            if hmac_key:
-                logger.debug(
-                    "HMAC checksum wrong! %r != %r",
-                    binascii.hexlify(have_crc),
-                    binascii.hexlify(crc),
-                )
-            else:
-                logger.debug("CRC wrong! %08X != %08X", have_crc, crc)
-        crc_good = crc == have_crc
-        iv = None
-    elif header.prefix == PREFIX_6699_VALUE:
-        iv = payload[:12]
-        payload = payload[12:]
-        try:
-            cipher = AESCipher(hmac_key)
-            payload = cipher.decrypt(
-                payload,
-                use_base64=False,
-                decode_text=False,
-                iv=iv,
-                header=data[4:header_len],
-                tag=crc,
-            )
-            crc_good = True
-        except:
-            crc_good = False
-
-        retcode_len = struct.calcsize(MESSAGE_RETCODE_FMT)
-        if no_retcode is False:
-            pass
-        elif (
-            no_retcode is None
-            and payload[0:1] != b"{"
-            and payload[retcode_len : retcode_len + 1] == b"{"
-        ):
-            retcode_len = struct.calcsize(MESSAGE_RETCODE_FMT)
-        else:
-            retcode_len = 0
-        if retcode_len:
-            retcode = struct.unpack(MESSAGE_RETCODE_FMT, payload[:retcode_len])[0]
-            payload = payload[retcode_len:]
-
-    return TuyaMessage(
-        header.seqno, header.cmd, retcode, payload, crc, crc_good, header.prefix, iv
-    )
-
-
-def parse_header(data, logger=_LOGGER):
-    """Unpack bytes into a TuyaHeader."""
-    if data[:4] == PREFIX_6699_BIN:
-        fmt = MESSAGE_HEADER_FMT_6699
-    else:
-        fmt = MESSAGE_HEADER_FMT_55AA
-
-    header_len = struct.calcsize(fmt)
-
-    if len(data) < header_len:
-        err = "Not enough data to unpack header"
-        logger.error(err)
-        raise DecodeError(err)
-
-    unpacked = struct.unpack(fmt, data[:header_len])
-    prefix = unpacked[0]
-
-    if prefix == PREFIX_55AA_VALUE:
-        prefix, seqno, cmd, payload_len = unpacked
-        total_length = payload_len + header_len
-    elif prefix == PREFIX_6699_VALUE:
-        prefix, unknown, seqno, cmd, payload_len = unpacked
-        # seqno |= unknown << 32
-        total_length = payload_len + header_len + len(SUFFIX_6699_BIN)
-    else:
-        err = f"Header prefix wrong! {prefix} is not {PREFIX_55AA_VALUE} or {PREFIX_6699_VALUE}"
-        logger.error(err)
-        raise DecodeError(err)
-
-    # sanity check. currently the max payload length is somewhere around 300 bytes
-    if payload_len > 2000:
-        err = f"Header claims the packet size is over 2000 bytes!  It is most likely corrupt. Claimed size: {payload_len} bytes. fmt: {fmt} unpacked: {unpacked}"
-        logger.error(err)
-        raise DecodeError(err)
-
-    return TuyaHeader(prefix, seqno, cmd, payload_len, total_length)
-
-
-class AESCipher:
-    """Cipher module for Tuya communication."""
-
-    def __init__(self, key):
-        """Initialize a new AESCipher."""
-        self.block_size = 16
-        self.key = key
-        self.cipher = Cipher(algorithms.AES(key), modes.ECB(), default_backend())
-
-    def encrypt(self, raw, use_base64=True, pad=True, iv=False, header=None):
-        """Encrypt data to be sent to device."""
-        if iv:
-            if iv is True:
-                if _LOGGER.isEnabledFor(logging.DEBUG):
-                    iv = b"0123456789ab"
-                else:
-                    iv = str(time.time() * 10)[:12].encode("utf8")
-            encryptor = Cipher(algorithms.AES(self.key), modes.GCM(iv)).encryptor()
-            if header:
-                encryptor.authenticate_additional_data(header)
-            crypted_text = encryptor.update(raw) + encryptor.finalize()
-            crypted_text = iv + crypted_text + encryptor.tag
-        else:
-            encryptor = self.cipher.encryptor()
-            if pad:
-                raw = self._pad(raw)
-            crypted_text = encryptor.update(raw) + encryptor.finalize()
-        return base64.b64encode(crypted_text) if use_base64 else crypted_text
-
-    def decrypt(
-        self, enc, use_base64=True, decode_text=True, iv=False, header=None, tag=None
-    ):
-        """Decrypt data from device."""
-        if not iv:
-            if use_base64:
-                enc = base64.b64decode(enc)
-
-        if iv:
-            if iv is True:
-                iv = enc[:12]
-                enc = enc[12:]
-            if tag is None:
-                decryptor = Cipher(
-                    algorithms.AES(self.key), modes.CTR(iv + b"\x00\x00\x00\x02")
-                ).decryptor()
-            else:
-                decryptor = Cipher(
-                    algorithms.AES(self.key), modes.GCM(iv, tag)
-                ).decryptor()
-            if header and (tag is not None):
-                decryptor.authenticate_additional_data(header)
-            raw = decryptor.update(enc) + decryptor.finalize()
-        else:
-            decryptor = self.cipher.decryptor()
-            raw = decryptor.update(enc) + decryptor.finalize()
-            raw = self._unpad(raw)
-
-        return raw.decode("utf-8") if decode_text else raw
-
-    def _pad(self, data):
-        padnum = self.block_size - len(data) % self.block_size
-        return data + padnum * chr(padnum).encode()
-
-    @staticmethod
-    def _unpad(data):
-        return data[: -ord(data[len(data) - 1 :])]
-
-
 class MessageDispatcher(ContextualLogger):
     """Buffer and dispatcher for Tuya messages."""
 
@@ -594,20 +270,16 @@ class MessageDispatcher(ContextualLogger):
         """Initialize a new MessageBuffer."""
         super().__init__()
         self.buffer = b""
-        self.listeners: dict[str, asyncio.Semaphore] = {}
+        self.listeners: dict[str, asyncio.Future] = {}
         self.callback_status_update = callback_status_update
         self.version = protocol_version
         self.local_key = local_key
 
     def abort(self):
         """Abort all waiting clients."""
-        for key in self.listeners:
-            sem = self.listeners[key]
-            self.listeners[key] = None
-
-            # TODO: Received data and semahore should be stored separately
-            if isinstance(sem, asyncio.Semaphore):
-                sem.release()
+        for feat in self.listeners.copy():
+            feature = self.listeners.pop(feat)
+            feature.cancel("aborted")
 
     async def wait_for(self, seqno, cmd, timeout=TIMEOUT_REPLY):
         """Wait for response to a sequence number to be received and return it."""
@@ -617,53 +289,71 @@ class MessageDispatcher(ContextualLogger):
                 raise Exception(f"listener exists for {seqno}")
 
         self.debug("Command %d waiting for seq. number %d", cmd, seqno)
-        self.listeners[seqno] = asyncio.Semaphore(0)
+        future = asyncio.Future()
+        self.listeners[seqno] = future
         try:
-            await asyncio.wait_for(self.listeners[seqno].acquire(), timeout=timeout)
+            response = await asyncio.wait_for(future, timeout=timeout)
+            return response
         except asyncio.TimeoutError:
-            self.debug(
-                "Command %d timed out waiting for sequence number %d", cmd, seqno
-            )
-            del self.listeners[seqno]
+            self.abort()
             raise TimeoutError(
                 f"Command {cmd} timed out waiting for sequence number {seqno}"
             )
-        return self.listeners.pop(seqno)
+        finally:
+            self.listeners.pop(seqno, True)
 
-    def add_data(self, data):
+    def _release_listener(self, seqno, msg):
+        if seqno not in self.listeners:
+            return
+
+        future = self.listeners[seqno]
+        if isinstance(future, asyncio.Future) and not future.done():
+            future.set_result(msg)
+        else:
+            self.debug(f"{seqno} - Got additional message without request: skip {msg}")
+
+    def add_data(self, data: bytes):
         """Add new data to the buffer and try to parse messages."""
         self.buffer += data
-
-        header_len = struct.calcsize(MESSAGE_RECV_HEADER_FMT)
+        prefixes_bin = {prefix.bin for prefix in Affix.prefixes}
+        suffixes_bin = {suffix.bin for suffix in Affix.suffixes}
+        header_len = struct.calcsize(MessagesFormat.END_55AA)
         while self.buffer:
+
             # Check if enough data for measage header
             if len(self.buffer) < header_len:
                 break
 
-            prefix_offset_55AA = self.buffer.find(PREFIX_55AA_BIN)
-            prefix_offset_6699 = self.buffer.find(PREFIX_6699_BIN)
-            prefixes = (prefix_offset_55AA, prefix_offset_6699)
+            if (prefix_index := self.buffer.find(Affix.prefix_55aa.bin)) == -1:
+                prefix_index = self.buffer.find(Affix.prefix_6699.bin)
 
-            # If somehow we got unexpected message, we will ignore it and reset the buffer.
-            if prefix_offset_55AA < 0 and prefix_offset_6699 < 0:
-                self.debug(f"Got unexpected Message prefix: {self.buffer}", force=True)
+            if prefix_index == -1:
+                self.debug(f"Invalid prefix: {self.buffer!r}")
                 self.buffer = b""
+            elif self.buffer[:4] not in (prefixes_bin) and prefix_index > 0:
+                self.debug(f"prefix is not at the end: {self.buffer}")
+                self.buffer = self.buffer[prefix_index:]
+
+            if (suffix_index := self.buffer.find(Affix.suffix_55aa.bin)) == -1:
+                suffix_index = self.buffer.find(Affix.suffix_6699.bin)
+
+            # if not any (self.buffer.endswith(suffix) for suffix in suffixes)
+            if suffix_index == -1:
+                self.debug(f"Invalid suffix: {self.buffer!r}")
+                self.buffer = b""
+            if not any(self.buffer.endswith(suffix_bin) for suffix_bin in suffixes_bin):
+                self.debug(f"suffix is not at the end: {self.buffer!r}")
                 break
+                # self.buffer = self.buffer[: suffix_index + 4]
 
-            # If the prefix is not at the start of the message.
-            if prefix_offset_55AA != 0 and prefix_offset_6699 != 0:
-                self.debug(f"Message prefix offset not at the start {self.buffer}")
-                prefix_offset = min(prefix for prefix in prefixes if not prefix < 0)
-                self.buffer = self.buffer[prefix_offset:]
-
-            header = parse_header(self.buffer, logger=self)
-            # Check if the all data for the message has been received.
+            header = parser.parse_header(self.buffer, logger=self)
             if len(self.buffer) < header.total_length:
-                break
+                self.debug(f"Not enough data to parse: {self.buffer}")
+                break  # not enough data.
 
             hmac_key = self.local_key if self.version >= 3.4 else None
             no_retcode = False
-            msg = unpack_message(
+            msg = parser.unpack_message(
                 self.buffer,
                 header=header,
                 hmac_key=hmac_key,
@@ -673,7 +363,7 @@ class MessageDispatcher(ContextualLogger):
             self.buffer = self.buffer[header.total_length :]
             self._dispatch(msg)
 
-    def _dispatch(self, msg):
+    def _dispatch(self, msg: TuyaMessage):
         """Dispatch a message to someone that is listening."""
 
         self.debug("Dispatching message CMD %r %s", msg.cmd, msg)
@@ -682,29 +372,29 @@ class MessageDispatcher(ContextualLogger):
             self.debug("Dispatching sequence number %d", msg.seqno)
             self._release_listener(msg.seqno, msg)
 
-        if msg.cmd == HEART_BEAT:
+        if msg.cmd == CMDType.HEART_BEAT:
             self.debug("Got heartbeat response")
             self._release_listener(self.HEARTBEAT_SEQNO, msg)
-        elif msg.cmd == UPDATEDPS:
+        elif msg.cmd == CMDType.UPDATEDPS:
             self.debug("Got normal updatedps response")
             self._release_listener(self.RESET_SEQNO, msg)
-        elif msg.cmd == SESS_KEY_NEG_RESP:
+        elif msg.cmd == CMDType.SESS_KEY_NEG_RESP:
             self.debug("Got key negotiation response")
             self._release_listener(self.SESS_KEY_SEQNO, msg)
-        elif msg.cmd == STATUS:
+        elif msg.cmd == CMDType.STATUS:
             if self.RESET_SEQNO in self.listeners:
                 self.debug("Got reset status update")
                 self._release_listener(self.RESET_SEQNO, msg)
             else:
                 self.debug("Got status update")
                 self.callback_status_update(msg)
-        elif msg.cmd == LAN_EXT_STREAM:
+        elif msg.cmd == CMDType.LAN_EXT_STREAM:
             self._release_listener(self.SUB_DEVICE_QUERY_SEQNO, msg)
             if msg.payload:
                 self.debug(f"Got Sub-devices status update")
                 self.callback_status_update(msg)
         else:
-            if msg.cmd == CONTROL_NEW or not msg.payload:
+            if msg.cmd == CMDType.CONTROL_NEW or not msg.payload:
                 self.debug(
                     "Got ACK message for command %d: ignoring it %s", msg.cmd, msg.seqno
                 )
@@ -716,17 +406,6 @@ class MessageDispatcher(ContextualLogger):
                     msg.seqno,
                     msg,
                 )
-
-    def _release_listener(self, seqno, msg):
-        if seqno not in self.listeners:
-            return
-
-        sem = self.listeners[seqno]
-        if isinstance(sem, asyncio.Semaphore):
-            self.listeners[seqno] = msg
-            sem.release()
-        else:
-            self.debug(f"{seqno} - Got additional message without request: skip {sem}")
 
 
 class TuyaListener(ABC):
@@ -782,6 +461,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         Attributes:
             port (int): The port to connect to.
         """
+        if len(local_key) != 16:
+            raise ValueError("The localkey is incorrect")
+
         super().__init__()
         self.loop = asyncio.get_running_loop()
         self.id = dev_id
@@ -887,7 +569,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             cid = None
 
             # Sub-devices query message.
-            if msg.cmd == LAN_EXT_STREAM:
+            if msg.cmd == CMDType.LAN_EXT_STREAM:
                 return self._msg_subdevs_query(decoded_message)
 
             if "dps" not in decoded_message:
@@ -1039,7 +721,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
         try:
             await self.transport_write(enc_payload)
-        except Exception:  # pylint: disable=broad-except
+        except (Exception, TimeoutError) as ee:  # pylint: disable=broad-except
             return self.clean_up_session()
 
         while recv_retries:
@@ -1065,7 +747,13 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                 )
         return None
 
-    async def exchange(self, command, dps=None, nodeID=None, payload=None):
+    async def exchange(
+        self,
+        command: CMDType,
+        dps: dict = None,
+        nodeID: str = None,
+        payload: dict = None,
+    ):
         """Send and receive a message, returning response from device."""
         if not self.is_connected:
             return None
@@ -1085,11 +773,11 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         # Wait for special sequence number
         seqno = self.seqno
 
-        if payload.cmd == HEART_BEAT:
+        if payload.cmd == CMDType.HEART_BEAT:
             seqno = MessageDispatcher.HEARTBEAT_SEQNO
-        elif payload.cmd == UPDATEDPS:
+        elif payload.cmd == CMDType.UPDATEDPS:
             seqno = MessageDispatcher.RESET_SEQNO
-        elif payload.cmd == LAN_EXT_STREAM:
+        elif payload.cmd == CMDType.LAN_EXT_STREAM:
             seqno = MessageDispatcher.SUB_DEVICE_QUERY_SEQNO
 
         enc_payload = self._encode_message(payload)
@@ -1104,7 +792,10 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             return None
 
         # TODO: Verify stuff, e.g. CRC sequence number?
-        if real_cmd in [HEART_BEAT, CONTROL, CONTROL_NEW] and len(msg.payload) == 0:
+        if (
+            real_cmd in [CMDType.HEART_BEAT, CMDType.CONTROL, CMDType.CONTROL_NEW]
+            and len(msg.payload) == 0
+        ):
             # device may send messages with empty payload in response
             # to a HEART_BEAT or CONTROL or CONTROL_NEW command: consider them an ACK
             self.debug(f"ACK received for command {real_cmd}: ignoring: {msg.seqno}")
@@ -1124,7 +815,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
     async def status(self, cid=None):
         """Return device status."""
-        status: dict = await self.exchange(command=DP_QUERY, nodeID=cid)
+        status: dict = await self.exchange(command=CMDType.DP_QUERY, nodeID=cid)
 
         self.dps_cache.setdefault("parent", {})
         if status and "dps" in status:
@@ -1137,14 +828,14 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
     async def heartbeat(self):
         """Send a heartbeat message."""
-        return await self.exchange(HEART_BEAT)
+        return await self.exchange(CMDType.HEART_BEAT)
 
     async def reset(self, dpIds=None, cid=None):
         """Send a reset message (3.3 only)."""
         if self.version == 3.3:
             self.dev_type = "type_0a"
             self.debug("reset switching to dev_type %s", self.dev_type)
-            return await self.exchange(UPDATEDPS, dpIds, nodeID=cid)
+            return await self.exchange(CMDType.UPDATEDPS, dpIds, nodeID=cid)
 
         return True
 
@@ -1170,7 +861,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                         dps = [int(dp) for dp in self.dps_cache["parent"]]
                     # filter non whitelisted dps
                     dps = list(set(dps).intersection(set(self.dps_whitelist)))
-            payload = self._generate_payload(UPDATEDPS, dps, nodeId=cid)
+            payload = self._generate_payload(CMDType.UPDATEDPS, dps, nodeId=cid)
             enc_payload = self._encode_message(payload)
             await self.transport_write(enc_payload)
         return True
@@ -1183,21 +874,23 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             dp_index(int):   dps index to set
             value: new value for the dps index
         """
-        return await self.exchange(CONTROL, {str(dp_index): value}, nodeID=cid)
+        return await self.exchange(CMDType.CONTROL, {str(dp_index): value}, nodeID=cid)
 
     async def set_dps(self, dps, cid=None):
         """Set values for a set of datapoints."""
-        return await self.exchange(CONTROL, dps, nodeID=cid)
+        return await self.exchange(CMDType.CONTROL, dps, nodeID=cid)
 
     async def subdevices_query(self):
         """Request a list of sub-devices and their status."""
         # Return payload: {"online": [cid1, ...], "offline": [cid2, ...]}
         # "nearby": [cids, ...] can come in payload.
         payload = self._generate_payload(
-            LAN_EXT_STREAM, rawData={"cids": []}, reqType="subdev_online_stat_query"
+            CMDType.LAN_EXT_STREAM,
+            rawData={"cids": []},
+            reqType="subdev_online_stat_query",
         )
 
-        return await self.exchange(command=LAN_EXT_STREAM, payload=payload)
+        return await self.exchange(command=CMDType.LAN_EXT_STREAM, payload=payload)
 
     async def detect_available_dps(self, cid=None):
         """Return which datapoints are supported by the device."""
@@ -1287,7 +980,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                     return self.error_json(ERR_JSON, payload)
 
             if "data unvalid" in payload:  # codespell:ignore
-                if self.version <= 3.3:
+                if self.version == 3.3:
                     self.dev_type = "type_0d"
                     self.debug(
                         "'data unvalid' error detected: switching to dev_type %r",
@@ -1334,15 +1027,22 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.remote_nonce = b""
         self.local_key = self.real_local_key
 
-        rkey = await self.exchange_quick(
-            MessagePayload(SESS_KEY_NEG_START, self.local_nonce), 2
-        )
+        try:
+            rkey = await self.exchange_quick(
+                MessagePayload(CMDType.SESS_KEY_NEG_START, self.local_nonce), 2
+            )
+        except:
+            # Device may instantly disconnect if we sent send wrong localkey.
+            if not self.is_connected:
+                raise ConnectionAbortedError("Session key negotiation failed on step 1")
+
         if not rkey or not isinstance(rkey, TuyaMessage) or len(rkey.payload) < 48:
             # error
             self.debug("session key negotiation failed on step 1")
+
             return False
 
-        if rkey.cmd != SESS_KEY_NEG_RESP:
+        if rkey.cmd != CMDType.SESS_KEY_NEG_RESP:
             self.debug(
                 "session key negotiation step 2 returned wrong command: %d", rkey.cmd
             )
@@ -1381,7 +1081,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
         # self.debug("session local nonce: %r remote nonce: %r", self.local_nonce, self.remote_nonce)
         rkey_hmac = hmac.new(self.local_key, self.remote_nonce, sha256).digest()
-        await self.exchange_quick(MessagePayload(SESS_KEY_NEG_FINISH, rkey_hmac), None)
+        await self.exchange_quick(
+            MessagePayload(CMDType.SESS_KEY_NEG_FINISH, rkey_hmac), None
+        )
 
         self.local_key = bytes(
             [a ^ b for (a, b) in zip(self.local_nonce, self.remote_nonce)]
@@ -1404,7 +1106,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         return True
 
     # adds protocol header (if needed) and encrypts
-    def _encode_message(self, msg):
+    def _encode_message(self, msg: MessagePayload):
         hmac_key = None
         iv = None
         payload = msg.payload
@@ -1421,10 +1123,17 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                 iv = True
                 # seqno cmd retcode payload crc crc_good, prefix, iv
                 msg = TuyaMessage(
-                    self.seqno, msg.cmd, None, payload, 0, True, PREFIX_6699_VALUE, True
+                    self.seqno,
+                    msg.cmd,
+                    None,
+                    payload,
+                    0,
+                    True,
+                    Affix.prefix_6699.value,
+                    True,
                 )
                 self.seqno += 1  # increase message sequence number
-                data = pack_message(msg, hmac_key=self.local_key)
+                data = parser.pack_message(msg, hmac_key=self.local_key)
                 self.debug("payload encrypted=%r", binascii.hexlify(data))
                 return data
 
@@ -1435,7 +1144,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             if msg.cmd not in NO_PROTOCOL_HEADER_CMDS:
                 # add the 3.x header
                 payload = self.version_header + payload
-        elif msg.cmd == CONTROL:
+        elif msg.cmd == CMDType.CONTROL:
             # need to encrypt
             payload = self.cipher.encrypt(payload)
             preMd5String = (
@@ -1458,35 +1167,36 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
         self.cipher = None
         msg = TuyaMessage(
-            self.seqno, msg.cmd, 0, payload, 0, True, PREFIX_55AA_VALUE, False
+            self.seqno, msg.cmd, 0, payload, 0, True, Affix.prefix_55aa.value, False
         )
         self.seqno += 1  # increase message sequence number
-        buffer = pack_message(msg, hmac_key=hmac_key)
+        buffer = parser.pack_message(msg, hmac_key=hmac_key)
         # self.debug("payload encrypted with key %r => %r", self.local_key, binascii.hexlify(buffer))
         return buffer
 
     def _generate_payload(
         self,
-        command,
-        data=None,
-        gwId=None,
-        devId=None,
-        uid=None,
-        nodeId=None,
-        rawData=None,
-        reqType=None,
+        command: CMDType,
+        data: dict = None,
+        gwId: str = None,
+        devId: str = None,
+        uid: str = None,
+        nodeId: str = None,
+        rawData: dict = None,
+        reqType: str = None,
     ):
         """
-        Generate the payload to send.
+        Generate the payload to be sent.
 
         Args:
-            command(str): The type of command.
-                This is one of the entries from payload_dict
-            data(dict, optional): The data to be send.
-                This is what will be passed via the 'dps' entry
-            gwId(str, optional): Will be used for gwId
-            devId(str, optional): Will be used for devId
-            uid(str, optional): Will be used for uid
+            command (str): The type of command (must be a key from `payload_dict`).
+            data (dict, optional): Payload data, typically assigned to the 'dps' field.
+            gwId (str, optional): Gateway ID.
+            devId (str, optional): Device ID.
+            uid (str, optional): User ID.
+            nodeId (str, optional): Sub-device node ID.
+            rawData (str, optional): Overrides the 'data' field in the payload.
+            reqType (str, optional): Request type, used for gateway-level commands.
         """
         json_data = command_override = None
 
@@ -1527,41 +1237,26 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             json_data = {"gwId": "", "devId": "", "uid": "", "t": "", "cid": ""}
 
         if "gwId" in json_data:
-            if gwId is not None:
-                json_data["gwId"] = gwId
-            else:
-                json_data["gwId"] = self.id
+            json_data["gwId"] = gwId if gwId is not None else self.id
         if "devId" in json_data:
-            if devId is not None:
-                json_data["devId"] = devId
-            else:
-                json_data["devId"] = self.id
+            json_data["devId"] = devId if devId is not None else self.id
         if "uid" in json_data:
-            if uid is not None:
-                json_data["uid"] = uid
-            else:
-                json_data["uid"] = self.id
+            json_data["uid"] = uid if uid is not None else self.id
         if "cid" in json_data:
-            if cid := nodeId:
-                json_data["cid"] = cid
+            if nodeId:
+                json_data["cid"] = nodeId
                 # for <= 3.3 we don't need `gwID`, `devID` and `uid` in payload.
-                if command in (CONTROL, DP_QUERY):
+                if command in (CMDType.CONTROL, CMDType.DP_QUERY):
                     for k in ("gwId", "devId", "uid"):
-                        if k in json_data:
-                            json_data.pop(k)
+                        json_data.pop(k, None)
             else:
                 del json_data["cid"]
         if "data" in json_data and "cid" in json_data["data"]:
             # "cid" is inside "data" For 3.4 and 3.5 versions.
-            if cid := nodeId:
-                json_data["data"]["cid"] = cid
+            if nodeId:
+                json_data["data"]["cid"] = nodeId
             else:
                 del json_data["data"]["cid"]
-        if "t" in json_data:
-            if json_data["t"] == "int":
-                json_data["t"] = int(time.time())
-            else:
-                json_data["t"] = str(int(time.time()))
         if rawData is not None and "data" in json_data:
             json_data["data"] = rawData
         elif data is not None:
@@ -1571,20 +1266,18 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
                 json_data["data"]["dps"] = data  # We don't want to remove CID
             else:
                 json_data["dps"] = data
-        elif self.dev_type == "type_0d" and command == DP_QUERY:
+        elif self.dev_type == "type_0d" and command == CMDType.DP_QUERY:
             json_data["dps"] = self.dps_to_request
         if reqType and "reqType" in json_data:
             json_data["reqType"] = reqType
+        if "t" in json_data:
+            t = time.time()
+            json_data["uid"] = int(t) if json_data["t"] == "int" else str(int(t))
 
-        if json_data == "":
-            payload = ""
-        else:
-            payload = json.dumps(json_data)
-        # if spaces are not removed device does not respond!
-        payload = payload.replace(" ", "").encode("utf-8")
+        payload = json.dumps(json_data, separators=(",", ":")) if json_data else ""
+
         self.debug("Sending payload: %s", payload)
-
-        return MessagePayload(command_override, payload)
+        return MessagePayload(command_override, payload.encode())
 
     def enable_debug(self, enable=False, friendly_name=None):
         """Enable the debug logs for the device."""
