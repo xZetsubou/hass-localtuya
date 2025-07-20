@@ -535,7 +535,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 errors["base"] = "invalid_auth"
             except EmptyDpsList:
                 errors["base"] = "empty_dps"
-            except (OSError, ValueError, pytuya.DecodeError) as ex:
+            except (OSError, ValueError, pytuya.parser.DecodeError) as ex:
                 _LOGGER.debug("Unexpected exception: %s", ex)
                 placeholders["ex"] = str(ex)
                 errors["base"] = "unknown"
@@ -1267,7 +1267,7 @@ async def validate_input(entry_runtime: HassLocalTuyaData, data):
             if not detected_dps:
                 detected_dps = await interface.detect_available_dps(cid=cid)
 
-        except (ValueError, pytuya.DecodeError) as ex:
+        except (ValueError, pytuya.parser.DecodeError) as ex:
             error = ex
         except Exception as ex:
             logger.info(f"No DPS able to be detected {ex}")
@@ -1294,7 +1294,7 @@ async def validate_input(entry_runtime: HassLocalTuyaData, data):
 
     except (ConnectionRefusedError, ConnectionResetError) as ex:
         raise CannotConnect from ex
-    except (OSError, ValueError, pytuya.DecodeError) as ex:
+    except (OSError, ValueError, pytuya.parser.DecodeError) as ex:
         error = ex
     finally:
         if interface and close:
