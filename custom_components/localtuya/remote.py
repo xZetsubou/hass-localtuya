@@ -186,20 +186,6 @@ class LocalTuyaRemote(LocalTuyaEntity, RemoteEntity):
         repeats: int = kwargs.get(ATTR_NUM_REPEATS)
         repeats_delay: float = kwargs.get(ATTR_DELAY_SECS)
 
-        # If device is not specified, treat commands as raw codes
-        if not device:
-            for base64_code in commands:
-                if repeats:
-                    current_repeat = 0
-                    while current_repeat < repeats:
-                        await self.send_signal(ControlMode.SEND_IR, base64_code)
-                        if repeats_delay:
-                            await asyncio.sleep(repeats_delay)
-                        current_repeat += 1
-                    continue
-                await self.send_signal(ControlMode.SEND_IR, base64_code)
-            return
-
         for req in [device, commands]:
             if not req:
                 raise ServiceValidationError("Missing required fields")
@@ -207,9 +193,9 @@ class LocalTuyaRemote(LocalTuyaEntity, RemoteEntity):
         if not self._storage_loaded:
             await self._async_load_storage()
 
-        for command in commands:
-            code = self._get_code(device, command)
-
+        for cmd in commands:
+            # If device is "raw_b64", treat cmd as raw base64 code
+            code = cmd if device == "raw_b64" else self._get_code(device, cmd)
             base64_code = code
             if repeats:
                 current_repeat = 0
