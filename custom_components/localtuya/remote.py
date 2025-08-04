@@ -193,16 +193,9 @@ class LocalTuyaRemote(LocalTuyaEntity, RemoteEntity):
         if not self._storage_loaded:
             await self._async_load_storage()
 
-        # base64_code = ""
-        # if base64_code is None:
-        #     option_value = ""
-        #     _LOGGER.debug("Sending Option: -> " + option_value)
-
-        #     pulses = self.pronto_to_pulses(option_value)
-        #     base64_code = "1" + self.pulses_to_base64(pulses)
-        for command in commands:
-            code = self._get_code(device, command)
-
+        for cmd in commands:
+            # If device is "raw_b64", treat cmd as raw base64 code
+            code = cmd if device == "raw_b64" else self._get_code(device, cmd)
             base64_code = code
             if repeats:
                 current_repeat = 0
