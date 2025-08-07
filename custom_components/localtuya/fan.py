@@ -220,10 +220,12 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
                 self._ordered_list,
             )
             if current_speed is not None:
-                self._percentage = ordered_list_item_to_percentage(
-                    self._ordered_list, str(current_speed)
-                )
-
+                if str(current_speed) not in self._ordered_list:
+                    self._percentage = None
+                else:
+                    self._percentage = ordered_list_item_to_percentage(
+                        self._ordered_list, str(current_speed)
+                    )
         else:
             _LOGGER.debug(
                 "Fan current_speed ranged_value_to_percentage: %s from %s",
