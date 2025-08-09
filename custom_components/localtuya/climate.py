@@ -67,8 +67,9 @@ HVAC_OFF = {HVACMode.OFF.value: "off"}  # Migrate to 3
 RENAME_HVAC_MODE_SETS = {  # Migrate to 3
     ("manual", "Manual", "hot", "m", "True"): HVACMode.HEAT.value,
     ("auto", "0", "p", "Program"): HVACMode.AUTO.value,
-    ("freeze", "cold", "1"): HVACMode.COOL.value,
-    ("wet"): HVACMode.DRY.value,
+    ("freeze", "cold", "1", "cool"): HVACMode.COOL.value,
+    ("wet", "dry"): HVACMode.DRY.value,
+    ("fan"): HVACMode.FAN_ONLY.value,
 }
 RENAME_ACTION_SETS = {  # Migrate to 3
     ("open", "opened", "heating", "Heat", "True"): HVACAction.HEATING.value,
@@ -86,6 +87,12 @@ RENAME_PRESET_SETS = {  # Migrate to 3
     "Smart": "smart",
     "Comfort": "comfortable",
     "ECO": "eco",
+}
+RENAME_HVAC_FAN_MODE_SETS = {
+    ("auto"): "auto",
+    ("low"): "low",
+    ("middle", "mid"): "middle",
+    ("high"): "high",
 }
 
 
@@ -424,6 +431,9 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
         """Return the fan setting."""
         if not (fan_value := self.dp_value(self._fan_speed_dp)):
             return None
+        for keys, mapped in RENAME_HVAC_FAN_MODE_SETS.items():
+            if str(fan_value).lower() in [str(k).lower() for k in (keys if isinstance(keys, tuple) else (keys,))]:
+                return mapped
         return fan_value
 
     @property
