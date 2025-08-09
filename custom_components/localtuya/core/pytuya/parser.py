@@ -118,7 +118,7 @@ def unpack_message(
                 & 0xFFFFFFFF
             )
 
-        if suffix != Affix.prefix_55aa.value:
+        if suffix != Affix.suffix_55aa.value:
             logger.debug(
                 "Suffix prefix wrong! %08X != %08X", suffix, Affix.suffix_55aa.value
             )
