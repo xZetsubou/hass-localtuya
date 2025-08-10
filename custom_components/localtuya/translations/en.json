@@ -221,7 +221,7 @@
                     "hvac_action_set": "(Optional) HVAC Actions",
                     "preset_dp": "(Optional) Presets DP",
                     "preset_set": "(Optional) Presets",
-                    "fan_speed_list": "(Optional) Fan supported speeds, separate entries by comma ','",
+                    "fan_mode_set": "(Optional) Fan speed modes",
                     "eco_dp": "(Optional) Eco DP",
                     "eco_value": "(Optional) Eco value",
                     "heuristic_action": "(Optional) Enable heuristic action",
@@ -255,6 +255,7 @@
                 "data_description": {
                     "hvac_mode_set":"Each line represents [ hvac_mode: device_value ] [Supported HVAC Modes](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-modes)",
                     "hvac_action_set":"Each line represents [ hvac_action: device_value ] [Supported HVAC Actions](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-action)",
+                    "fan_mode_set": "Each line represents [ hvac_fan_speede: device_value ] [Supported Fan Modes](https://developers.home-assistant.io/docs/core/entity/climate/#fan-modes)",
                     "preset_set":"Each line represents [ device_value: friendly name ]",
                     "scene_values":"Each line represents [ device_value: friendly name ]",
                     "select_options":"Each line represents [ device_value: friendly name ]",
