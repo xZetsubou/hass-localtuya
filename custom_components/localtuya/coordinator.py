@@ -562,7 +562,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         def fire_event(event, data: dict):
             """Fire events."""
             if f"localtuya_{event}" not in self.hass.bus.async_listeners():
-                return self.error(f"No listeners for event: {event}")
+                return
             event_data = {CONF_DEVICE_ID: self.id, **data}
             if len(event_data) > 1:
                 self.hass.bus.async_fire(f"localtuya_{event}", event_data)
