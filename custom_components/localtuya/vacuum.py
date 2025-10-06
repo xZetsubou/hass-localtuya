@@ -14,7 +14,6 @@ from homeassistant.components.vacuum import (
 
 from .entity import LocalTuyaEntity, async_setup_entry
 from .const import (
-    CONF_BATTERY_DP,
     CONF_CLEAN_AREA_DP,
     CONF_CLEAN_RECORD_DP,
     CONF_CLEAN_TIME_DP,
@@ -65,7 +64,6 @@ def flow_schema(dps):
         vol.Optional(CONF_PAUSED_STATE, default=DEFAULT_PAUSED_STATE): str,
         vol.Optional(CONF_STOP_STATUS, default=DEFAULT_STOP_STATUS): str,
         vol.Optional(CONF_PAUSE_DP): col_to_select(dps, is_dps=True),
-        vol.Optional(CONF_BATTERY_DP): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_MODE_DP): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_MODES, default=DEFAULT_MODES): str,
         vol.Optional(CONF_RETURN_MODE, default=DEFAULT_RETURN_MODE): str,
@@ -86,7 +84,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
         """Initialize a new LocalTuyaVacuum."""
         super().__init__(device, config_entry, switchid, _LOGGER, **kwargs)
         self._state = None
-        self._battery_level = None
         self._attrs = {}
 
         self._idle_status_list = []
@@ -136,8 +133,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             supported_features |= VacuumEntityFeature.RETURN_HOME
         if self.has_config(CONF_FAN_SPEED_DP):
             supported_features |= VacuumEntityFeature.FAN_SPEED
-        if self.has_config(CONF_BATTERY_DP):
-            supported_features |= VacuumEntityFeature.BATTERY
         if self.has_config(CONF_LOCATE_DP):
             supported_features |= VacuumEntityFeature.LOCATE
 
@@ -147,11 +142,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
     def activity(self) -> VacuumActivity | None:
         """Return the vacuum state."""
         return self._state
-
-    @property
-    def battery_level(self):
-        """Return the current battery level."""
-        return self._battery_level
 
     @property
     def extra_state_attributes(self):
@@ -238,9 +228,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             self._state = VacuumActivity.PAUSED
         else:
             self._state = VacuumActivity.CLEANING
-
-        if self.has_config(CONF_BATTERY_DP):
-            self._battery_level = self.dp_value(CONF_BATTERY_DP)
 
         self._cleaning_mode = ""
         if self.has_config(CONF_MODES):
