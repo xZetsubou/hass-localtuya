@@ -4,11 +4,11 @@ import asyncio
 import errno
 import logging
 import time
+import copy
 from importlib import import_module
 from functools import partial
 from collections.abc import Coroutine
 from typing import Any
-from copy import deepcopy
 
 
 import homeassistant.helpers.config_validation as cv
@@ -209,7 +209,7 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=schema_defaults(CLOUD_CONFIGURE_SCHEMA, **defaults),
+            data_schema=schema_suggested_values(CLOUD_CONFIGURE_SCHEMA, **defaults),
             errors=errors,
             description_placeholders=placeholders,
         )
@@ -311,7 +311,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
 
         return self.async_show_form(
             step_id="configure_cloud",
-            data_schema=schema_defaults(CLOUD_CONFIGURE_SCHEMA, **defaults),
+            data_schema=schema_suggested_values(CLOUD_CONFIGURE_SCHEMA, **defaults),
             errors=errors,
             description_placeholders=placeholders,
         )
@@ -468,14 +468,11 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                             self.device_data[CONF_FRIENDLY_NAME],
                         )
                         return self.async_create_entry(title="", data={})
+
                     # We will restore device details if it's already existed!
                     for res_conf in [CONF_GATEWAY_ID, CONF_MODEL, CONF_PRODUCT_KEY]:
                         if dev_config.get(res_conf):
                             self.device_data[res_conf] = dev_config.get(res_conf)
-                    # Remove the values that assigned as "- or empty space"
-                    for rm_conf in [CONF_RESET_DPIDS, CONF_MANUAL_DPS]:
-                        if rm_conf in user_input and user_input[rm_conf] in ["-", " "]:
-                            self.device_data.pop(rm_conf)
 
                     self.dps_strings = merge_dps_manual_strings(
                         self.device_data.get(CONF_MANUAL_DPS, ""), self.dps_strings
@@ -573,7 +570,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                         placeholders = {
                             "for_device": f" for sub-device `{dev_id}.\nNodeID {self.nodeID}.{note}`"
                         }
-            schema = schema_defaults(options_schema(self.entities), **defaults)
+            schema = schema_suggested_values(options_schema(self.entities), **defaults)
         else:
             # user_in will restore input if an error occurred instead of clears all fields.
             user_in = user_input or {}
@@ -599,7 +596,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 defaults[CONF_LOCAL_KEY] = cloud_devs[dev_id].get(CONF_LOCAL_KEY)
                 defaults[CONF_FRIENDLY_NAME] = cloud_devs[dev_id].get(CONF_NAME)
 
-            schema = schema_defaults(DEVICE_SCHEMA, **defaults)
+            schema = schema_suggested_values(DEVICE_SCHEMA, **defaults)
 
             placeholders["for_device"] = ""
 
@@ -732,9 +729,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         return self.async_show_form(
             step_id="entity",
             errors=errors,
-            data_schema=schema_defaults(
-                schema, self.dps_strings, **self.current_entity
-            ),
+            data_schema=schema_suggested_values(schema, **self.current_entity),
             description_placeholders={
                 "id": int(self.current_entity[CONF_ID]),
                 "platform": self.current_entity[CONF_PLATFORM],
@@ -786,7 +781,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             schema = await platform_schema(
                 self.hass, self.current_entity[CONF_PLATFORM], self.dps_strings, False
             )
-            schema = schema_defaults(schema, self.dps_strings, **self.current_entity)
+            schema = schema_suggested_values(schema, **self.current_entity)
             placeholders = {
                 "entity": f"entity with DP {int(self.current_entity[CONF_ID])}",
                 "platform": self.current_entity[CONF_PLATFORM],
@@ -831,7 +826,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
     @callback
     def _update_entry(self, new_data, target_obj="", new_title=""):
         """Update entry data and save etnry,"""
-        _data = deepcopy(dict(self.config_entry.data))
+        _data = copy.deepcopy(dict(self.config_entry.data))
         if target_obj:
             _data[target_obj].update(new_data)
         else:
@@ -935,7 +930,7 @@ async def setup_localtuya_devices(
         devices.update({dev_id: {**dev_cfg, **result}})
 
     # Configure entities.
-    for dev_id, dev_data in deepcopy(devices).items():
+    for dev_id, dev_data in copy.deepcopy(devices).items():
         category = devices_cloud_data[dev_id].get("category")
         dev_data[DEVICE_CLOUD_DATA] = devices_cloud_data[dev_id]
         if category and (dps_strings := dev_data.get(CONF_DPS_STRINGS, False)):
@@ -1070,24 +1065,20 @@ def options_schema(entities):
     )
 
 
-def schema_defaults(schema, dps_list=None, **defaults):
-    """Create a new schema with default values filled in."""
-    copy = schema.extend({})
-    for field, field_type in copy.schema.items():
-        if isinstance(field_type, vol.In):
-            value = None
-            for dps in dps_list or []:
-                if dps.startswith(f"{defaults.get(field)} "):
-                    value = dps
-                    break
+def schema_suggested_values(schema: vol.Schema, **defaults):
+    """Returns a copy of the schema with suggested values added to field descriptions."""
+    new_schema = {}
+    for field, field_type in schema.schema.items():
+        new_field = copy.copy(field)
 
-            if value in field_type.container:
-                field.default = vol.default_factory(value)
-                continue
+        # We don't want to overwrite existing suggested values.
+        if field.schema in defaults and (
+            not field.description or "suggested_value" not in field.description
+        ):
+            new_field.description = {"suggested_value": defaults[field]}
 
-        if field.schema in defaults:
-            field.default = vol.default_factory(defaults[field])
-    return copy
+        new_schema[new_field] = field_type
+    return vol.Schema(new_schema)
 
 
 def dps_string_list(dps_data: dict[str, dict], cloud_dp_codes: dict[str, dict]) -> list:
