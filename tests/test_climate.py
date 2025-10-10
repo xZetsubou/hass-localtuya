@@ -8,7 +8,7 @@ from custom_components.localtuya.climate import (
     DOMAIN as PLATFORM_DOMAIN,
 )
 
-FAN_SPEED_LIST = ["auto", "low", "middle", "high"]
+FAN_SPEED_LIST = {"auto": "Auto", "low": "Low", "middle": "Middle", "high": "High"}
 CONFIG = {
     DEVICE_NAME: {
         **DEVICE_CONFIG,
@@ -37,7 +37,7 @@ CONFIG = {
                 "preset_dp": "5",
                 "preset_set": {"holiday": "Holiday Friendly Name"},
                 "fan_speed_dp": "6",
-                "fan_speed_list": ",".join(FAN_SPEED_LIST),
+                "fan_speed_list": FAN_SPEED_LIST,
                 "swing_mode_dp": "11",
                 "swing_modes": {
                     "both": "up-and-down",
@@ -98,11 +98,11 @@ async def test_climate():
     assert entity_1._is_on == True
     assert entity_1.hvac_action == HVACAction.IDLE
     assert entity_1.hvac_mode == HVACMode.COOL
-    assert entity_1.fan_modes == FAN_SPEED_LIST
+    assert entity_1.fan_modes == list(FAN_SPEED_LIST.values())
     assert entity_1.preset_mode == "Holiday Friendly Name"
     assert entity_1.current_temperature == 24
     assert entity_1.target_temperature == 20  # f to c
-    assert entity_1.fan_mode == "middle"
+    assert entity_1.fan_mode == "Middle"
 
     # Eco Preset
     device.status_updated({**DPS_STATUS, **{"101": "eco_on"}})

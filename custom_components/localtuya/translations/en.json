@@ -221,7 +221,7 @@
                     "hvac_action_set": "(Optional) HVAC Actions",
                     "preset_dp": "(Optional) Presets DP",
                     "preset_set": "(Optional) Presets",
-                    "fan_speed_list": "(Optional) Fan supported speeds, separate entries by comma ','",
+                    "fan_speed_list": "(Optional) Fan supported speeds",
                     "eco_dp": "(Optional) Eco DP",
                     "eco_value": "(Optional) Eco value",
                     "heuristic_action": "(Optional) Enable heuristic action",
@@ -262,6 +262,7 @@
                     "swing_horizontal_modes":"Each line represents [ device_value: friendly name ]",
                     "alarm_supported_states":"Each line represents [ supported state: device value ] [Supported States](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states)",
                     "humidifier_available_modes":"Each line represents [ device_value: friendly name ]",
+                    "fan_speed_list":"Each line represents [ device_value: friendly name ]",
                     "device_class": "Find out more about [Device Classes](https://www.home-assistant.io/integrations/homeassistant/#device-class)",
                     "state_class": "Find out more about [State Classes](https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes)"
                 }
