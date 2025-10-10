@@ -1598,12 +1598,14 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             name="Temperature",
             device_class=SensorDeviceClass.TEMPERATURE,
             state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
         ),
         LocalTuyaEntity(
             id=DPCode.HUMIDITY_INDOOR,
             name="Humidity",
             device_class=SensorDeviceClass.HUMIDITY,
             state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(PERCENTAGE),
         ),
         LocalTuyaEntity(
             id=DPCode.COUNTDOWN_LEFT,
