@@ -57,7 +57,7 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
             )
             config_options = {}
         for k, v in config_options.items():
-            options[k] = v if v else k.replace("_", "").capitalize()
+            options[k] = str(v) if v else k.replace("_", "").capitalize()
 
         self._options = DictSelector(options)
 
