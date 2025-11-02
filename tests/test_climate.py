@@ -1,6 +1,7 @@
 """Test for localtuya."""
 
 from . import *
+import copy
 from custom_components.localtuya.climate import (
     LocalTuyaClimate,
     HVACAction,
@@ -9,55 +10,58 @@ from custom_components.localtuya.climate import (
 )
 
 FAN_SPEED_LIST = ["auto", "low", "middle", "high"]
+FAN_SPEED_DICT = {"1": "Silent", "2": "Low", "3": "Middle", "4": "High"}
+ENTITY_CONFIG = {
+    "friendly_name": "Terrace Floor",
+    "entity_category": "None",
+    "target_temperature_dp": "16",
+    "current_temperature_dp": "24",
+    "temperature_step": "1",
+    "min_temperature": 7.0,
+    "max_temperature": 35.0,
+    "precision": "1",
+    "target_precision": "1",
+    "hvac_mode_dp": "2",
+    "hvac_mode_set": {
+        "auto": "program",
+        "heat": "manual",
+        "cool": "COLD",
+    },
+    "hvac_action_dp": "100",
+    "hvac_action_set": {
+        "heating": True,
+        "idle": False,
+    },
+    "preset_dp": "5",
+    "preset_set": {"holiday": "Holiday Friendly Name"},
+    "fan_speed_dp": "6",
+    "fan_speed_list": ",".join(FAN_SPEED_LIST),
+    "swing_mode_dp": "11",
+    "swing_modes": {
+        "both": "up-and-down",
+        "up": "up-only",
+        "down": "down-only",
+    },
+    "swing_horizontal_dp": "12",
+    "swing_horizontal_modes": {
+        "both": "left-and-right",
+        "left": "left-only",
+        "right": "right-only",
+    },
+    "temperature_unit": "fahrenheit/celsius",
+    "id": "1",
+    "eco_dp": "101",
+    "eco_value": "eco_on",
+    "platform": "climate",
+    "icon": "",
+    "heuristic_action": False,
+}
 CONFIG = {
     DEVICE_NAME: {
         **DEVICE_CONFIG,
         "entities": [
-            {
-                "friendly_name": "Terrace Floor",
-                "entity_category": "None",
-                "target_temperature_dp": "16",
-                "current_temperature_dp": "24",
-                "temperature_step": "1",
-                "min_temperature": 7.0,
-                "max_temperature": 35.0,
-                "precision": "1",
-                "target_precision": "1",
-                "hvac_mode_dp": "2",
-                "hvac_mode_set": {
-                    "auto": "program",
-                    "heat": "manual",
-                    "cool": "COLD",
-                },
-                "hvac_action_dp": "100",
-                "hvac_action_set": {
-                    "heating": True,
-                    "idle": False,
-                },
-                "preset_dp": "5",
-                "preset_set": {"holiday": "Holiday Friendly Name"},
-                "fan_speed_dp": "6",
-                "fan_speed_list": ",".join(FAN_SPEED_LIST),
-                "swing_mode_dp": "11",
-                "swing_modes": {
-                    "both": "up-and-down",
-                    "up": "up-only",
-                    "down": "down-only",
-                },
-                "swing_horizontal_dp": "12",
-                "swing_horizontal_modes": {
-                    "both": "left-and-right",
-                    "left": "left-only",
-                    "right": "right-only",
-                },
-                "temperature_unit": "fahrenheit/celsius",
-                "id": "1",
-                "eco_dp": "101",
-                "eco_value": "eco_on",
-                "platform": "climate",
-                "icon": "",
-                "heuristic_action": False,
-            }
+            ENTITY_CONFIG,
+            {**ENTITY_CONFIG, "id": "2", "fan_speed_list": FAN_SPEED_DICT},
         ],
     }
 }
@@ -81,7 +85,7 @@ async def test_climate():
     entities: list[LocalTuyaClimate] = get_entites(device)
 
     assert len(entities) > 0
-    entity_1, *_ = entities
+    entity_1, entity_2, *_ = entities
     assert type(entity_1) is LocalTuyaClimate
 
     assert entity_1._is_on == None
@@ -99,6 +103,7 @@ async def test_climate():
     assert entity_1.hvac_action == HVACAction.IDLE
     assert entity_1.hvac_mode == HVACMode.COOL
     assert entity_1.fan_modes == FAN_SPEED_LIST
+    assert entity_2.fan_modes == list(FAN_SPEED_DICT.values())
     assert entity_1.preset_mode == "Holiday Friendly Name"
     assert entity_1.current_temperature == 24
     assert entity_1.target_temperature == 20  # f to c

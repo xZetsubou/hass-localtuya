@@ -221,7 +221,7 @@
                     "hvac_action_set": "（非必填）HVAC动作列表（用英文逗号分隔）",
                     "preset_dp": "（非必填）预设数据点位",
                     "preset_set": "（非必填）预设值列表（用英文逗号分隔）",
-                    "fan_speed_list": "（非必填）支持的风速值（用英文逗号分隔）",
+                    "fan_speed_list": "（非必填）支持的风速值",
                     "eco_dp": "（非必填）节能数据点位",
                     "eco_value": "（非必填）节能值",
                     "heuristic_action": "（非必填）启用启发式动作",
@@ -262,6 +262,7 @@
                     "swing_horizontal_modes": "每一行格式为 [ 设备值: 显示名称 ]",
                     "alarm_supported_states": "每一行格式为 [ 支持的状态: 设备值 ] [参考状态](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states)",
                     "humidifier_available_modes": "每一行格式为 [ 设备值: 显示名称 ]",
+                    "fan_speed_list": "每一行格式为 [ 设备值: 显示名称 ]",
                     "device_class": "查看更多 [设备类型](https://www.home-assistant.io/integrations/homeassistant/#device-class)",
                     "state_class": "查看更多 [状态分类](https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes)"
                 }

@@ -221,7 +221,7 @@
           "hvac_action_set": "(Opsiyonel) HVAC Eylemleri",
           "preset_dp": "(Opsiyonel) Önayarlar DP",
           "preset_set": "(Opsiyonel) Önayarlar",
-          "fan_speed_list": "(Opsiyonel) Desteklenen fan hızları, her girdiyi virgülle ',' ayırın",
+          "fan_speed_list": "(Opsiyonel) Desteklenen fan hızları",
           "eco_dp": "(Opsiyonel) Eko DP",
           "eco_value": "(Opsiyonel) Eko değeri",
           "heuristic_action": "(Opsiyonel) Heuristik eylemi etkinleştir",
@@ -255,6 +255,7 @@
           "select_options": "Her satır [ cihaz_değeri: dostane ad ] temsil eder",
           "alarm_supported_states": "Her satır [ desteklenen durum: cihaz değeri ] temsil eder [Desteklenen Durumlar](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states)",
           "humidifier_available_modes": "Her satır [ cihaz_değeri: dostane ad ] temsil eder",
+          "fan_speed_list": "Her satır [ cihaz_değeri: dostane ad ] temsil eder",
           "device_class": "[Cihaz Sınıfları](https://www.home-assistant.io/integrations/homeassistant/#device-class) hakkında daha fazla bilgi edinin",
           "state_class": "[Durum Sınıfları](https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes) hakkında daha fazla bilgi edinin"
         }
