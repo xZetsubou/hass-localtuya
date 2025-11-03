@@ -1020,6 +1020,16 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
         # We will store the payload to trigger an event in HA.
         if "dps" in json_payload:
+            # Only wrap for energy increment DPs - for details: https://github.com/xZetsubou/hass-localtuya/discussions/507#discussioncomment-13032485
+            ts = json_payload.get("t")
+            dps_with_time = {"17"}
+            if ts is not None:
+                for dp, val in list(json_payload["dps"].items()):
+                    if dp in dps_with_time and not (
+                        isinstance(val, dict) and "value" in val and "time" in val
+                    ):
+                        json_payload["dps"][dp] = {"value": val, "time": ts}
+
             self.dispatched_dps = json_payload["dps"]
         return json_payload
 
