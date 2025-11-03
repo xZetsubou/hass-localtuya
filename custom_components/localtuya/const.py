@@ -222,6 +222,7 @@ DEFAULT_CATEGORIES = {
 class DictSelector:
     """
     A class that manages the mapping between Tuya values and Home Assistant (HA) values.
+    If string is provided split bya comma, it will be converted to a dict.
 
     Attributes:
         tuya_ha (dict): A dictionary mapping Tuya values (keys) to HA values (values).
@@ -232,6 +233,9 @@ class DictSelector:
     reverse: bool = False
 
     def __post_init__(self):
+        if isinstance(self.tuya_ha, str):
+            # Convert string into a dict with capitalized values.
+            self.tuya_ha = {v: v for v in self.tuya_ha.split(",")}
         if self.reverse:
             self.tuya_ha = {v: k for k, v in self.tuya_ha.items()}
 
