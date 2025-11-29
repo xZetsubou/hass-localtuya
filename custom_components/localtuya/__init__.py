@@ -7,6 +7,9 @@ import time
 from datetime import timedelta
 from typing import Any, NamedTuple
 
+from tuya_sharing import Manager
+
+from homeassistant.components.tuya.config_flow import CONF_ENDPOINT, CONF_TERMINAL_ID, CONF_TOKEN_INFO, CONF_USER_CODE, TUYA_CLIENT_ID
 import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.device_registry as dr
 import homeassistant.helpers.entity_registry as er
@@ -294,24 +297,27 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up LocalTuya integration from a config entry."""
-    if entry.version < ENTRIES_VERSION:
-        _LOGGER.debug(
-            "Skipping setup for entry %s since its version (%s) is old",
-            entry.entry_id,
-            entry.version,
-        )
-        return
+#    if entry.version < ENTRIES_VERSION:
+#        _LOGGER.debug(
+#            "Skipping setup for entry %s since its version (%s) is old",
+#            entry.entry_id,
+#            entry.version,
+#        )
+#        return False
 
-    region = entry.data[CONF_REGION]
-    client_id = entry.data[CONF_CLIENT_ID]
-    secret = entry.data[CONF_CLIENT_SECRET]
-    user_id = entry.data[CONF_USER_ID]
-    tuya_api = TuyaCloudApi(region, client_id, secret, user_id)
+    tuya_api = None
     no_cloud = entry.data.get(CONF_NO_CLOUD, True)
-
     if no_cloud:
         _LOGGER.info(f"Cloud API account not configured.")
     else:
+        tuya_api = TuyaCloudApi(
+            hass,
+            TUYA_CLIENT_ID,
+            entry.data[CONF_USER_CODE],
+            entry.data[CONF_TERMINAL_ID],
+            entry.data[CONF_ENDPOINT],
+            entry.data[CONF_TOKEN_INFO],
+        )
         entry.async_create_background_task(
             hass, tuya_api.async_connect(), "localtuya-cloudAPI"
         )
