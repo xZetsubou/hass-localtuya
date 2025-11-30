@@ -6,10 +6,11 @@ import logging
 import time
 import copy
 from importlib import import_module
-from functools import partial
 from collections.abc import Coroutine
 from typing import Any
 
+from tuya_sharing import LoginControl
+from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 
 import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.entity_registry as er
@@ -18,14 +19,15 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
     SelectOptionDict,
+    QrCodeSelector,
+    QrCodeSelectorConfig,
+    QrErrorCorrectionLevel,
 )
 import voluptuous as vol
 from homeassistant import exceptions
 from homeassistant.core import callback, HomeAssistant
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import (
-    CONF_CLIENT_ID,
-    CONF_CLIENT_SECRET,
     CONF_DEVICE_ID,
     CONF_DEVICES,
     CONF_ENTITIES,
@@ -36,15 +38,13 @@ from homeassistant.const import (
     CONF_ID,
     CONF_NAME,
     CONF_PLATFORM,
-    CONF_REGION,
     CONF_SCAN_INTERVAL,
-    CONF_USERNAME,
     EntityCategory,
 )
 
 from .coordinator import HassLocalTuyaData
 from .core import pytuya
-from .core.cloud_api import TUYA_ENDPOINTS, TuyaCloudApi
+from .core.cloud_api import TuyaCloudApi
 from .core.helpers import templates, get_gateway_by_deviceid, gen_localtuya_entities
 from .const import (
     ATTR_UPDATED_AT,
@@ -75,6 +75,19 @@ from .const import (
     PLATFORMS,
     SUPPORTED_PROTOCOL_VERSIONS,
     CONF_DEVICE_SLEEP_TIME,
+)
+from .const import (
+    CONF_ENDPOINT, 
+    CONF_TERMINAL_ID, 
+    CONF_TOKEN_INFO, 
+    CONF_USER_CODE, 
+    TUYA_CLIENT_ID, 
+    TUYA_RESPONSE_CODE, 
+    TUYA_RESPONSE_MSG, 
+    TUYA_RESPONSE_QR_CODE, 
+    TUYA_RESPONSE_SUCCESS, 
+    TUYA_SCHEMA,
+    TUYA_RESPONSE_RESULT,
 )
 from .discovery import discover
 
@@ -129,17 +142,6 @@ def col_to_select(
         )
 
 
-CLOUD_CONFIGURE_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_REGION, default="eu"): col_to_select(TUYA_ENDPOINTS),
-        vol.Optional(CONF_CLIENT_ID): cv.string,
-        vol.Optional(CONF_CLIENT_SECRET): cv.string,
-        vol.Optional(CONF_USER_ID): cv.string,
-        vol.Optional(CONF_USERNAME, default=DOMAIN): cv.string,
-        vol.Required(CONF_NO_CLOUD, default=False): bool,
-    }
-)
-
 DEVICE_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_FRIENDLY_NAME): cv.string,
@@ -167,7 +169,6 @@ CONF_MASS_CONFIGURE = "mass_configure"
 MASS_CONFIGURE_SCHEMA = {vol.Optional(CONF_MASS_CONFIGURE, default=False): bool}
 CUSTOM_DEVICE = {"Add Device Manually": "..."}
 
-
 class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for LocalTuya integration."""
 
@@ -182,52 +183,26 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self):
         """Initialize a new LocaltuyaConfigFlow."""
 
+    async def async_step_bluetooth(
+        self, discovery_info: BluetoothServiceInfoBleak
+    ) -> ConfigFlowResult:
+        info = discovery_info.address
+        return None
+
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
-        errors = {}
-        placeholders = {}
-        if user_input is not None:
-            if user_input.get(CONF_NO_CLOUD):
-                for i in [CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_USER_ID]:
-                    user_input[i] = ""
-                return await self._create_entry(user_input)
-
-            cloud_api, res = await attempt_cloud_connection(user_input)
-
-            if not res:
-                return await self._create_entry(user_input)
-            errors["base"] = res["reason"]
-            # 1004 = Secret, 1106 = USER ID, 2009 = Client ID
-            if "1106" in res["msg"]:
-                res["msg"] = f"{res['msg']} Check UserID or country code!"
-            if "1004" in res["msg"]:
-                res["msg"] = f"{res['msg']} Check Secret Key!"
-            placeholders = {"msg": res["msg"]}
-
-        defaults = {}
-        defaults.update(user_input or {})
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=schema_suggested_values(CLOUD_CONFIGURE_SCHEMA, **defaults),
-            errors=errors,
-            description_placeholders=placeholders,
-        )
-
-    async def _create_entry(self, user_input):
-        """Register new entry."""
-        # if self._async_current_entries():
-        #     return self.async_abort(reason="already_configured")
-
-        await self.async_set_unique_id(user_input.get(CONF_USER_ID))
-        self._abort_if_unique_id_configured()
-
-        user_input[CONF_DEVICES] = {}
 
         return self.async_create_entry(
-            title=user_input.get(CONF_USERNAME),
-            data=user_input,
-        )
+                    title="Local Tuya",
+                    data = {
+                        CONF_USER_CODE: "",
+                        CONF_TOKEN_INFO: {}, 
+                        CONF_TERMINAL_ID: "",
+                        CONF_ENDPOINT: "",
+                        CONF_DEVICES: {},
+                        CONF_NO_CLOUD: True
+                    },
+                )
 
     async def async_step_import(self, user_input):
         """Handle import from YAML."""
@@ -235,12 +210,13 @@ class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
             "Configuration via YAML file is no longer supported by this integration."
         )
 
-
 class LocalTuyaOptionsFlowHandler(OptionsFlow):
     """Handle options flow for LocalTuya integration."""
 
     def __init__(self, config_entry: ConfigEntry):
         """Initialize localtuya options flow."""
+        self.__login_control = LoginControl()
+        self._user_code = ""
         self._entry_id = config_entry.entry_id
 
         self.selected_device = None
@@ -279,42 +255,148 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         """Handle the initial step."""
         errors = {}
         placeholders = {}
+        entry_data = self.config_entry.data
+        self._user_code = entry_data[CONF_USER_CODE] if CONF_USER_CODE in entry_data else "";
         if user_input is not None:
-            username = user_input.get(CONF_USERNAME)
+            new_data = entry_data.copy()
+            new_data.update(user_input)
+            self._user_code = user_input[CONF_USER_CODE]
             if user_input.get(CONF_NO_CLOUD):
-                new_data = self.config_entry.data.copy()
-                new_data.update(user_input)
-                for i in [CONF_CLIENT_ID, CONF_CLIENT_SECRET, CONF_USER_ID]:
+                for i in [CONF_TOKEN_INFO, CONF_TERMINAL_ID, CONF_ENDPOINT, CONF_USER_ID]:
                     new_data[i] = ""
-
-                return self._update_entry(new_data, new_title=username)
-
-            cloud_api, res = await attempt_cloud_connection(user_input)
-
-            if not res:
-                new_data = self.config_entry.data.copy()
-                new_data.update(user_input)
-                cloud_devs = cloud_api.device_list
-                for dev_id, dev in new_data[CONF_DEVICES].items():
-                    if CONF_MODEL not in dev and dev_id in cloud_devs:
-                        model = cloud_devs[dev_id].get(CONF_PRODUCT_NAME)
-                        new_data[CONF_DEVICES][dev_id][CONF_MODEL] = model
-
-                return self._update_entry(new_data, new_title=username)
-
-            errors["base"] = res["reason"]
-            placeholders = {"msg": res["msg"]}
-
-        defaults = self.config_entry.data.copy()
-        defaults.update(user_input or {})
-        defaults[CONF_NO_CLOUD] = False
+                await self._update_cloud_connection(new_data)
+                return self._update_entry(new_data, new_title= f"Local Tuya (no cloud)")
+            else:
+                success, response = await self.__async_get_qr_code(
+                    self._user_code
+                )
+                if success:
+                    return await self.async_step_scan()
 
         return self.async_show_form(
             step_id="configure_cloud",
-            data_schema=schema_suggested_values(CLOUD_CONFIGURE_SCHEMA, **defaults),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_USER_CODE, default=self._user_code): str,
+                    vol.Required(CONF_NO_CLOUD, default=False): bool,
+                }
+            ),
             errors=errors,
             description_placeholders=placeholders,
         )
+
+    async def async_step_scan(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Step scan."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id="scan",
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional("QR"): QrCodeSelector(
+                            config=QrCodeSelectorConfig(
+                                data=f"tuyaSmart--qrLogin?token={self.__qr_code}",
+                                scale=5,
+                                error_correction_level=QrErrorCorrectionLevel.QUARTILE,
+                            )
+                        )
+                    }
+                ),
+            )
+
+        ret, info = await self.hass.async_add_executor_job(
+            self.__login_control.login_result,
+            self.__qr_code,
+            TUYA_CLIENT_ID,
+            self.__user_code,
+        )
+        if not ret:
+            # Try to get a new QR code on failure
+            await self.__async_get_qr_code(self.__user_code)
+            return self.async_show_form(
+                step_id="scan",
+                errors={"base": "login_error"},
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional("QR"): QrCodeSelector(
+                            config=QrCodeSelectorConfig(
+                                data=f"tuyaSmart--qrLogin?token={self.__qr_code}",
+                                scale=5,
+                                error_correction_level=QrErrorCorrectionLevel.QUARTILE,
+                            )
+                        )
+                    }
+                ),
+                description_placeholders={
+                    TUYA_RESPONSE_MSG: info.get(TUYA_RESPONSE_MSG, "Unknown error"),
+                    TUYA_RESPONSE_CODE: info.get(TUYA_RESPONSE_CODE, 0),
+                },
+            )
+
+        result_data = {
+            CONF_USER_CODE: self._user_code,
+            CONF_TOKEN_INFO: {
+                "t": info["t"],
+                "uid": info["uid"],
+                "expire_time": info["expire_time"],
+                "access_token": info["access_token"],
+                "refresh_token": info["refresh_token"],
+            },
+            CONF_TERMINAL_ID: info[CONF_TERMINAL_ID],
+            CONF_ENDPOINT: info[CONF_ENDPOINT],
+            CONF_USER_ID: info.get("username"),
+            CONF_NO_CLOUD: False,
+        }
+        new_data = self.config_entry.data.copy()
+        new_data.update(result_data)
+
+        res = None
+        if self._user_code:
+            cloud_api, res = await self._update_cloud_connection(new_data)
+        if not res:
+            cloud_devs = cloud_api.device_list
+            for dev_id, dev in new_data[CONF_DEVICES].items():
+                if CONF_MODEL not in dev and dev_id in cloud_devs:
+                    model = cloud_devs[dev_id].get(CONF_PRODUCT_NAME)
+                    new_data[CONF_DEVICES][dev_id][CONF_MODEL] = model
+            return self._update_entry(new_data, new_title= f"Local Tuya ({result_data[CONF_USER_ID]})")
+        
+        return self._update_entry(new_data, new_title= f"Local Tuya (cloud error)")
+
+    async def __async_get_qr_code(self, user_code: str) -> tuple[bool, dict[str, Any]]:
+        """Get the QR code."""
+        response = await self.hass.async_add_executor_job(
+            self.__login_control.qr_code,
+            TUYA_CLIENT_ID,
+            TUYA_SCHEMA,
+            user_code,
+        )
+        if success := response.get(TUYA_RESPONSE_SUCCESS, False):
+            self.__user_code = user_code
+            self.__qr_code = response[TUYA_RESPONSE_RESULT][TUYA_RESPONSE_QR_CODE]
+        return success, response
+
+    async def _update_cloud_connection(self, user_input):
+        """Create device."""
+
+        self.cloud_data.configure(
+            self.hass,
+            TUYA_CLIENT_ID,
+            user_input.get(CONF_USER_CODE),
+            user_input.get(CONF_TERMINAL_ID),
+            user_input.get(CONF_ENDPOINT),
+            user_input.get(CONF_TOKEN_INFO),
+        )
+
+        if user_input.get(CONF_ENDPOINT):
+            msg, res = await self.cloud_data.async_connect()
+            if res != "ok":
+                return self.cloud_data, {"reason": msg, "msg": res}
+            return self.cloud_data, {}
+
+        return self.cloud_data, {}
+
 
     async def async_step_add_device(self, user_input=None):
         """Handle adding a new device."""
@@ -853,7 +935,6 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         """Existing configuration for entity currently being edited."""
         return self.entities[len(self.device_data[CONF_ENTITIES])]
 
-
 class CannotConnect(exceptions.HomeAssistantError):
     """Error to indicate we cannot connect."""
 
@@ -1315,19 +1396,3 @@ async def validate_input(entry_runtime: HassLocalTuyaData, data):
         CONF_PROTOCOL_VERSION: conf_protocol,
     }
 
-
-async def attempt_cloud_connection(user_input):
-    """Create device."""
-    cloud_api = TuyaCloudApi(
-        user_input.get(CONF_REGION),
-        user_input.get(CONF_CLIENT_ID),
-        user_input.get(CONF_CLIENT_SECRET),
-        user_input.get(CONF_USER_ID),
-    )
-
-    msg, res = await cloud_api.async_connect()
-
-    if res != "ok":
-        return cloud_api, {"reason": msg, "msg": res}
-
-    return cloud_api, {}

@@ -13,21 +13,17 @@ import homeassistant.helpers.entity_registry as er
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import (
-    CONF_CLIENT_ID,
-    CONF_CLIENT_SECRET,
     CONF_DEVICES,
     CONF_DEVICE_ID,
     CONF_ENTITIES,
     CONF_HOST,
     CONF_ID,
     CONF_PLATFORM,
-    CONF_REGION,
     EVENT_HOMEASSISTANT_STOP,
     SERVICE_RELOAD,
 )
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.event import async_track_time_interval
 
 from .coordinator import TuyaDevice, HassLocalTuyaData, TuyaCloudApi
 from .config_flow import ENTRIES_VERSION
@@ -37,10 +33,16 @@ from .const import (
     CONF_NODE_ID,
     CONF_NO_CLOUD,
     CONF_PRODUCT_KEY,
-    CONF_USER_ID,
     DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
+)
+from .const import (
+    CONF_ENDPOINT, 
+    CONF_USER_CODE, 
+    CONF_TERMINAL_ID, 
+    CONF_TOKEN_INFO, 
+    TUYA_CLIENT_ID
 )
 
 from .discovery import TuyaDiscovery
@@ -300,18 +302,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             entry.entry_id,
             entry.version,
         )
-        return
-
-    region = entry.data[CONF_REGION]
-    client_id = entry.data[CONF_CLIENT_ID]
-    secret = entry.data[CONF_CLIENT_SECRET]
-    user_id = entry.data[CONF_USER_ID]
-    tuya_api = TuyaCloudApi(region, client_id, secret, user_id)
+        return False
+    
+    tuya_api = TuyaCloudApi()
     no_cloud = entry.data.get(CONF_NO_CLOUD, True)
-
     if no_cloud:
         _LOGGER.info(f"Cloud API account not configured.")
     else:
+        tuya_api.configure(
+            hass,
+            TUYA_CLIENT_ID,
+            entry.data[CONF_USER_CODE],
+            entry.data[CONF_TERMINAL_ID],
+            entry.data[CONF_ENDPOINT],
+            entry.data[CONF_TOKEN_INFO],
+        )
         entry.async_create_background_task(
             hass, tuya_api.async_connect(), "localtuya-cloudAPI"
         )
