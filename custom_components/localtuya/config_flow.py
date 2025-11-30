@@ -390,12 +390,12 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         )
 
         if user_input.get(CONF_ENDPOINT):
-            msg, res = await cloud_api.async_connect()
+            msg, res = await self.cloud_data.async_connect()
             if res != "ok":
-                return cloud_api, {"reason": msg, "msg": res}
-            return cloud_api, {}
+                return self.cloud_data, {"reason": msg, "msg": res}
+            return self.cloud_data, {}
 
-        return cloud_api, {}
+        return self.cloud_data, {}
 
 
     async def async_step_add_device(self, user_input=None):
