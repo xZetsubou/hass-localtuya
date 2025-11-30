@@ -7,30 +7,23 @@ import time
 from datetime import timedelta
 from typing import Any, NamedTuple
 
-from tuya_sharing import Manager
-
-from homeassistant.components.tuya.config_flow import CONF_ENDPOINT, CONF_TERMINAL_ID, CONF_TOKEN_INFO, CONF_USER_CODE, TUYA_CLIENT_ID
 import homeassistant.helpers.config_validation as cv
 import homeassistant.helpers.device_registry as dr
 import homeassistant.helpers.entity_registry as er
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import (
-    CONF_CLIENT_ID,
-    CONF_CLIENT_SECRET,
     CONF_DEVICES,
     CONF_DEVICE_ID,
     CONF_ENTITIES,
     CONF_HOST,
     CONF_ID,
     CONF_PLATFORM,
-    CONF_REGION,
     EVENT_HOMEASSISTANT_STOP,
     SERVICE_RELOAD,
 )
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.event import async_track_time_interval
 
 from .coordinator import TuyaDevice, HassLocalTuyaData, TuyaCloudApi
 from .config_flow import ENTRIES_VERSION
@@ -40,10 +33,16 @@ from .const import (
     CONF_NODE_ID,
     CONF_NO_CLOUD,
     CONF_PRODUCT_KEY,
-    CONF_USER_ID,
     DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
+)
+from .const import (
+    CONF_ENDPOINT, 
+    CONF_USER_CODE, 
+    CONF_TERMINAL_ID, 
+    CONF_TOKEN_INFO, 
+    TUYA_CLIENT_ID
 )
 
 from .discovery import TuyaDiscovery
@@ -297,20 +296,20 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up LocalTuya integration from a config entry."""
-#    if entry.version < ENTRIES_VERSION:
-#        _LOGGER.debug(
-#            "Skipping setup for entry %s since its version (%s) is old",
-#            entry.entry_id,
-#            entry.version,
-#        )
-#        return False
-
-    tuya_api = None
+    if entry.version < ENTRIES_VERSION:
+        _LOGGER.debug(
+            "Skipping setup for entry %s since its version (%s) is old",
+            entry.entry_id,
+            entry.version,
+        )
+        return False
+    
+    tuya_api = TuyaCloudApi()
     no_cloud = entry.data.get(CONF_NO_CLOUD, True)
     if no_cloud:
         _LOGGER.info(f"Cloud API account not configured.")
     else:
-        tuya_api = TuyaCloudApi(
+        tuya_api.configure(
             hass,
             TUYA_CLIENT_ID,
             entry.data[CONF_USER_CODE],

@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import time
+from typing import Any
 
 from tuya_sharing import CustomerApi
 from tuya_sharing.customerapi import CustomerTokenInfo
@@ -23,6 +24,16 @@ class TuyaCloudApi:
     """Class to send API calls."""
 
     def __init__(self, 
+        hass: HomeAssistant = None,
+        client_id: str = None,
+        user_code: str = "None",
+        terminal_id: str = None,
+        end_point: str = None,
+        token_response: dict[str, Any] = None,
+    ):
+        self.configure(hass, client_id, user_code, terminal_id, end_point, token_response)
+
+    def configure(self, 
         hass: HomeAssistant,
         client_id: str,
         user_code: str,
@@ -35,13 +46,15 @@ class TuyaCloudApi:
             logging.getLogger(__name__), {"prefix": user_code[:3] + "..." + user_code[-3:]}
         )
         self.hass = hass
-        self.customer_api = CustomerApi(
-            CustomerTokenInfo(token_response),
-            client_id,
-            user_code,
-            end_point,
-            None
-        )
+        self.customer_api = None
+        if token_response:
+            self.customer_api = CustomerApi(
+                CustomerTokenInfo(token_response),
+                client_id,
+                user_code,
+                end_point,
+                None
+            )
 
         self._client_id = client_id
 
@@ -83,6 +96,9 @@ class TuyaCloudApi:
             and int(time.time()) - (self._last_devices_update + interval) < 0
         ):
             return self._logger.debug(f"Devices has been updated a minutes ago.")
+        
+        if not self.customer_api:
+            return []
 
         for home_id in await self._query_homes():
             if not (
