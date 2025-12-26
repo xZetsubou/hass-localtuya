@@ -1215,7 +1215,7 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ## PHASE X Are probably encrypted values. since it duplicated it probably raw dict data.
         LocalTuyaEntity(
             id=DPCode.PHASE_A,
-            name="Phase C Current",
+            name="Phase A",
             entity_category=EntityCategory.DIAGNOSTIC,
         ),
         LocalTuyaEntity(
