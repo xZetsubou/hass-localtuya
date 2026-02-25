@@ -710,7 +710,13 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         schema = vol.Schema(
             {vol.Required(TEMPLATES): col_to_select(templates_list, custom_value=True)}
         )
-        return self.async_show_form(step_id="choose_template", data_schema=schema)
+        return self.async_show_form(
+            step_id="choose_template",
+            data_schema=schema,
+            description_placeholders={
+                "templates_url": "https://github.com/xZetsubou/hass-localtuya/discussions/13"
+            },
+        )
 
     async def async_step_entity(self, user_input=None):
         """Manage entity settings."""

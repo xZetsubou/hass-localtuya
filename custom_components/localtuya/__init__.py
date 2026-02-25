@@ -59,6 +59,8 @@ SERVICE_SET_DP_SCHEMA = vol.Schema(
     }
 )
 
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the LocalTuya integration component."""

@@ -134,7 +134,7 @@
             },
             "choose_template":{
                 "title": "Importar arquivo de modelo",
-                "description": "Os arquivos de modelo estão localizados no diretório 'templates' ([Mais Informações](https://github.com/xZetsubou/hass-localtuya/discussions/13)).",
+                "description": "Os arquivos de modelo estão localizados no diretório 'templates' ([Mais Informações]({templates_url})).",
                 "data": {
                     "templates": "Escolher modelo"
                 }

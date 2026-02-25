@@ -139,7 +139,7 @@
       },
       "choose_template": {
         "title": "Şablon dosyasını içe aktar",
-        "description": "Şablon dosyaları `templates` dizininde bulunur ([Daha Fazla Bilgi](https://github.com/xZetsubou/hass-localtuya/discussions/13)).",
+        "description": "Şablon dosyaları `templates` dizininde bulunur ([Daha Fazla Bilgi]({templates_url})).",
         "data": {
           "templates": "Şablonu seçin"
         }

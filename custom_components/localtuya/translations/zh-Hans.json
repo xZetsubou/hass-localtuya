@@ -139,7 +139,7 @@
             },
             "choose_template":{
                 "title": "导入模板文件",
-                "description": "模板文件位于`templates`目录下（[更多信息](https://github.com/xZetsubou/hass-localtuya/discussions/13)）。",
+                "description": "模板文件位于`templates`目录下（[更多信息]({templates_url})）。",
                 "data": {
                     "templates": "选择模板"
                 }

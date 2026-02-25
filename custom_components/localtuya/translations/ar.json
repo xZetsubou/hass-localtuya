@@ -135,7 +135,7 @@
       },
       "choose_template": {
         "title": "استيراد ملف القالب",
-        "description": "توجد ملفات القالب في المجلد `templates` ([لمعلومات أكثر](https://github.com/xZetsubou/hass-localtuya/discussions/13)).",
+        "description": "توجد ملفات القالب في المجلد `templates` ([لمعلومات أكثر]({templates_url})).",
         "data": {
           "templates": "اختيار القالب"
         }

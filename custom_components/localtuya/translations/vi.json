@@ -140,7 +140,7 @@
             },
             "choose_template":{
                 "title": "Nhập file template",
-                "description": "File template nằm trong thư mục `templates` ([Xem thêm](https://github.com/xZetsubou/hass-localtuya/discussions/13)).",
+                "description": "File template nằm trong thư mục `templates` ([Xem thêm]({templates_url})).",
                 "data": {
                     "templates": "Chọn template"
                 }
