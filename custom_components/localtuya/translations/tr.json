@@ -248,16 +248,16 @@
           "color_mode_set": "Desteklenen modlar seti (emin değilseniz varsayılanı bırakın)"
         },
         "data_description": {
-          "hvac_mode_set": "Her satır [ hvac_modu: cihaz_değeri ] temsil eder [Desteklenen HVAC Modları](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-modes)",
-          "hvac_action_set": "Her satır [ hvac_eylemi: cihaz_değeri ] temsil eder [Desteklenen HVAC Eylemleri](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-action)",
+          "hvac_mode_set": "Her satır [ hvac_modu: cihaz_değeri ] temsil eder [Desteklenen HVAC Modları]({hvac_modes_url})",
+          "hvac_action_set": "Her satır [ hvac_eylemi: cihaz_değeri ] temsil eder [Desteklenen HVAC Eylemleri]({hvac_actions_url})",
           "preset_set": "Her satır [ cihaz_değeri: dostane ad ] temsil eder",
           "scene_values": "Her satır [ cihaz_değeri: dostane ad ] temsil eder",
           "select_options": "Her satır [ cihaz_değeri: dostane ad ] temsil eder",
-          "alarm_supported_states": "Her satır [ desteklenen durum: cihaz değeri ] temsil eder [Desteklenen Durumlar](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states)",
+          "alarm_supported_states": "Her satır [ desteklenen durum: cihaz değeri ] temsil eder [Desteklenen Durumlar]({alarm_states_url})",
           "humidifier_available_modes": "Her satır [ cihaz_değeri: dostane ad ] temsil eder",
           "fan_speed_list": "Her satır [ cihaz_değeri: dostane ad ] temsil eder",
-          "device_class": "[Cihaz Sınıfları](https://www.home-assistant.io/integrations/homeassistant/#device-class) hakkında daha fazla bilgi edinin",
-          "state_class": "[Durum Sınıfları](https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes) hakkında daha fazla bilgi edinin"
+          "device_class": "[Cihaz Sınıfları]({device_class_url}) hakkında daha fazla bilgi edinin",
+          "state_class": "[Durum Sınıfları]({state_class_url}) hakkında daha fazla bilgi edinin"
         }
       }
     }

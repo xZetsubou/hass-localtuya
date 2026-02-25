@@ -802,6 +802,16 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 "platform": self.selected_platform,
             }
 
+        placeholders.update(
+            {
+                "hvac_modes_url": "https://developers.home-assistant.io/docs/core/entity/climate/#hvac-modes",
+                "hvac_actions_url": "https://developers.home-assistant.io/docs/core/entity/climate/#hvac-action",
+                "alarm_states_url": "https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states",
+                "device_class_url": "https://www.home-assistant.io/integrations/homeassistant/#device-class",
+                "state_class_url": "https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes",
+            }
+        )
+
         return self.async_show_form(
             step_id="configure_entity",
             data_schema=schema,

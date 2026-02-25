@@ -254,18 +254,18 @@
                     "swing_horizontal_modes": "(Tùy chọn) Các chế độ quay ngang"
                 },
                 "data_description": {
-                    "hvac_mode_set":"Mỗi dòng là [ hvac_mode: device_value ] [Các chế độ HVAC hỗ trợ](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-modes)",
-                    "hvac_action_set":"Mỗi dòng là [ hvac_action: device_value ] [Các trạng thái HVAC hỗ trợ](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-action)",
+                    "hvac_mode_set":"Mỗi dòng là [ hvac_mode: device_value ] [Các chế độ HVAC hỗ trợ]({hvac_modes_url})",
+                    "hvac_action_set":"Mỗi dòng là [ hvac_action: device_value ] [Các trạng thái HVAC hỗ trợ]({hvac_actions_url})",
                     "preset_set":"Mỗi dòng là [ device_value: tên thân thiện ]",
                     "scene_values":"Mỗi dòng là [ device_value: tên thân thiện ]",
                     "select_options":"Mỗi dòng là [ device_value: tên thân thiện ]",
                     "swing_modes":"Mỗi dòng là [ device_value: tên thân thiện ]",
                     "swing_horizontal_modes":"Mỗi dòng là [ device_value: tên thân thiện ]",
-                    "alarm_supported_states":"Mỗi dòng là [ trạng thái hỗ trợ: device value ] [Các trạng thái hỗ trợ](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states)",
+                    "alarm_supported_states":"Mỗi dòng là [ trạng thái hỗ trợ: device value ] [Các trạng thái hỗ trợ]({alarm_states_url})",
                     "humidifier_available_modes":"Mỗi dòng là [ device_value: tên thân thiện ]",
                     "fan_speed_list":"Mỗi dòng là [ device_value: tên thân thiện ]",
-                    "device_class": "Tìm hiểu thêm về [Device Classes](https://www.home-assistant.io/integrations/homeassistant/#device-class)",
-                    "state_class": "Tìm hiểu thêm về [State Classes](https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes)"
+                    "device_class": "Tìm hiểu thêm về [Device Classes]({device_class_url})",
+                    "state_class": "Tìm hiểu thêm về [State Classes]({state_class_url})"
                 }
             }
         }
