@@ -47,6 +47,8 @@ _LOGGER = logging.getLogger(__name__)
 RECONNECT_INTERVAL = timedelta(seconds=5)
 # Subdevice: Offline events before disconnecting the device, around 5 minutes
 MIN_OFFLINE_EVENTS = 5 * 60 // HEARTBEAT_INTERVAL
+# How long to wait without receiving data before forcing a reconnect (zombie detection)
+STALE_DATA_TIMEOUT = 120
 
 
 class HassLocalTuyaData(NamedTuple):
@@ -89,6 +91,8 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
         # last_update_time: Sleep timer, a device that reports the status every x seconds then goes into sleep.
         self._last_update_time = time.monotonic() - 5
+        self._last_data_time: float = 0
+        self._unsub_stale_check: CALLBACK_TYPE | None = None
         self._pending_status: dict[str, dict[str, Any]] = {}
 
         self.is_closing = False
@@ -321,6 +325,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 asyncio.create_task(self._connect_subdevices())
 
             self._interface.keep_alive(len(self.sub_devices) > 0)
+            self._start_stale_data_check()
 
         # If not connected try to handle the errors.
         if not self.connected and not self.is_closing:
@@ -374,6 +379,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self._unsub_refresh:
             self._unsub_refresh()
             self._unsub_refresh = None
+
+        if self._unsub_stale_check:
+            self._unsub_stale_check()
+            self._unsub_stale_check = None
 
         await self.abort_connect()
 
@@ -552,6 +561,34 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             k: v for k, v in self.sub_devices.items() if not v.is_closing
         }
 
+    def _start_stale_data_check(self):
+        """Start periodic check for zombie connections (connected but no data)."""
+        if self._unsub_stale_check:
+            self._unsub_stale_check()
+        if self.is_sleep or self.is_subdevice:
+            return
+        self._last_data_time = time.monotonic()
+        self._unsub_stale_check = async_track_time_interval(
+            self.hass,
+            self._check_stale_data,
+            timedelta(seconds=STALE_DATA_TIMEOUT),
+        )
+        self.debug("Started stale data watchdog (%ss)", STALE_DATA_TIMEOUT)
+
+    async def _check_stale_data(self, _now):
+        """Force reconnect if connected but no data received within timeout."""
+        if not self.connected or self.is_closing:
+            return
+        elapsed = time.monotonic() - self._last_data_time
+        if elapsed >= STALE_DATA_TIMEOUT:
+            self.warning(
+                "No data received for %.0fs, forcing reconnect", elapsed
+            )
+            if self._unsub_stale_check:
+                self._unsub_stale_check()
+                self._unsub_stale_check = None
+            self.disconnected("Stale data timeout")
+
     def _dispatch_status(self):
         signal = f"localtuya_{self._device_config.id}"
         dispatcher_send(self.hass, signal, self._status)
@@ -604,6 +641,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             return
 
         self._last_update_time = time.monotonic()
+        self._last_data_time = time.monotonic()
         self._handle_event(self._status, status)
         self._status.update(status)
         self._dispatch_status()
@@ -618,6 +656,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self._unsub_refresh:
             self._unsub_refresh()
             self._unsub_refresh = None
+
+        if self._unsub_stale_check:
+            self._unsub_stale_check()
+            self._unsub_stale_check = None
 
         for subdevice in self.sub_devices.values():
             subdevice.disconnected("Gateway disconnected")

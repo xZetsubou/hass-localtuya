@@ -156,8 +156,10 @@ async def async_setup(hass: HomeAssistant, config: dict):
         # settings triggers a reload of the config entry, which tears down the device
         # so no need to connect in that case.
         if updated:
-            _LOGGER.debug(
-                "Updating keys for device %s: %s %s", device_id, device_ip, product_key
+            _LOGGER.warning(
+                "Discovery: device %s changed (IP: %s, product_key: %s), "
+                "triggering integration reload",
+                device_id, device_ip, product_key,
             )
             new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
             hass.config_entries.async_update_entry(entry, data=new_data)
