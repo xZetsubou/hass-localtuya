@@ -159,7 +159,9 @@ async def async_setup(hass: HomeAssistant, config: dict):
             _LOGGER.warning(
                 "Discovery: device %s changed (IP: %s, product_key: %s), "
                 "triggering integration reload",
-                device_id, device_ip, product_key,
+                device_id,
+                device_ip,
+                product_key,
             )
             new_data[ATTR_UPDATED_AT] = str(int(time.time() * 1000))
             hass.config_entries.async_update_entry(entry, data=new_data)

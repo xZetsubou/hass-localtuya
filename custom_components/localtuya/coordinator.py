@@ -581,9 +581,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             return
         elapsed = time.monotonic() - self._last_data_time
         if elapsed >= STALE_DATA_TIMEOUT:
-            self.warning(
-                "No data received for %.0fs, forcing reconnect", elapsed
-            )
+            self.warning("No data received for %.0fs, forcing reconnect", elapsed)
             if self._unsub_stale_check:
                 self._unsub_stale_check()
                 self._unsub_stale_check = None
