@@ -103,10 +103,21 @@ def col_to_select(
     if is_dps and isinstance(opt_list, list) and len(opt_list) <= 1:
         # Se la UI sta cercando di mostrare solo 1 DP, aggiungiamo i forzati per il garage come emergenza
         # Nota: usiamo una lista statica dei DP del garage se siamo in questa condizione critica
-        forced_garage = ["1 (switch_1)", "2 (countdown_1)", "3 (doorcontact_state)", "4 (door_time_1)", "5 (alarm_countdown_1)", "6 (door_control_1)", "11 (voice_control_1)", "12 (door_state_1)"]
+        forced_garage = [
+            "1 (switch_1)",
+            "2 (countdown_1)",
+            "3 (doorcontact_state)",
+            "4 (door_time_1)",
+            "5 (alarm_countdown_1)",
+            "6 (door_control_1)",
+            "11 (voice_control_1)",
+            "12 (door_state_1)",
+        ]
         # Se il primo elemento sembra un DP del garage, facciamo il merge
         if opt_list and ("1 " in str(opt_list[0]) or "bf27acf3" in str(opt_list)):
-             opt_list = sorted(list(set(opt_list + forced_garage)), key=lambda x: int(x.split(" ")[0]))
+            opt_list = sorted(
+                list(set(opt_list + forced_garage)), key=lambda x: int(x.split(" ")[0])
+            )
 
     """Convert collections to SelectSelectorConfig."""
     if type(opt_list) == dict:
@@ -266,10 +277,18 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         
         import voluptuous as vol
         from .const import PLATFORMS
-        schema = vol.Schema({vol.Required('platform_to_add', default='switch'): col_to_select(PLATFORMS)})
+        schema = vol.Schema(
+            {
+                vol.Required("platform_to_add", default="switch"): col_to_select(
+                    PLATFORMS
+                )
+            }
+        )
         if self.selected_platform is not None:
-            schema = schema.extend({vol.Required('no_additional_entities', default=True): bool})
-        return self.async_show_form(step_id='pick_entity_type', data_schema=schema)
+            schema = schema.extend(
+                {vol.Required("no_additional_entities", default=True): bool}
+            )
+        return self.async_show_form(step_id="pick_entity_type", data_schema=schema)
     """Handle options flow for LocalTuya integration."""
 
     def __init__(self, config_entry: ConfigEntry):
