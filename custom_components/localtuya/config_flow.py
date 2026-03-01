@@ -277,6 +277,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         
         import voluptuous as vol
         from .const import PLATFORMS
+
         schema = vol.Schema(
             {
                 vol.Required("platform_to_add", default="switch"): col_to_select(
@@ -289,6 +290,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 {vol.Required("no_additional_entities", default=True): bool}
             )
         return self.async_show_form(step_id="pick_entity_type", data_schema=schema)
+
     """Handle options flow for LocalTuya integration."""
 
     def __init__(self, config_entry: ConfigEntry):
