@@ -46,6 +46,7 @@ COVER_COMMANDS = {
     "zz, fz and Stop": "zz_fz_stop",
     "1, 2 and 3": "1_2_3",
     "0, 1 and 2": "0_1_2",
+    "Pulse (True/True/True)": "True_True_True",
 }
 
 MODE_NONE = "none"
@@ -269,8 +270,13 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
                 self._close_cmd = self._close_cmd.upper()
                 self._stop_cmd = self._stop_cmd.upper()
             case bool():
-                self._open_cmd = True
-                self._close_cmd = False
+                if self._config.get(CONF_COMMANDS_SET) == "True_True_True":
+                    self._open_cmd = True
+                    self._close_cmd = True
+                    self._stop_cmd = True
+                else:
+                    self._open_cmd = True
+                    self._close_cmd = False
 
     def status_updated(self):
         """Device status was updated."""
@@ -286,7 +292,7 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
                 )
                 curr_pos = 0 if stopped and closed else (100 if stopped else 50)
 
-            if self._position_inverted:
+            if curr_pos is not None and self._position_inverted:
                 curr_pos = 100 - curr_pos
 
             self._current_cover_position = curr_pos

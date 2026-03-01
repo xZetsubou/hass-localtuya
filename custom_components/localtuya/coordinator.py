@@ -252,11 +252,18 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     # Reset the interface
                     await self._interface.reset(reset_dpids, cid=self._node_id)
 
-                self.debug("Retrieving initial state")
-                status = await self._interface.status(cid=self._node_id)
-                if status is None:
-                    raise Exception("Failed to retrieve status")
-
+                self.debug("Retrieving initial state (v1.0.26 - Ultra Wake-up)")
+                try:
+                    await self._interface.heartbeat()
+                    await asyncio.sleep(0.5)
+                    await self._interface.update_dps()
+                    await asyncio.sleep(0.5)
+                    status = await self._interface.detect_available_dps(cid=self._node_id)
+                    if not status:
+                        status = await self._interface.status(cid=self._node_id)
+                except Exception as e:
+                    self.warning(f"Wake-up failed for {host}: {e}")
+                    status = {}
                 self.status_updated(status)
             except (UnicodeDecodeError, DecodeError) as e:
                 self.exception(f"Handshake with {host} failed: due to {type(e)}: {e}")
