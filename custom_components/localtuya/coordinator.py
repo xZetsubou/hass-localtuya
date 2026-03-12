@@ -47,8 +47,9 @@ _LOGGER = logging.getLogger(__name__)
 RECONNECT_INTERVAL = timedelta(seconds=5)
 # Subdevice: Offline events before disconnecting the device, around 5 minutes
 MIN_OFFLINE_EVENTS = 5 * 60 // HEARTBEAT_INTERVAL
-# How long to wait without receiving data before forcing a reconnect (zombie detection)
-STALE_DATA_TIMEOUT = 120
+# How long to wait without receiving data before probing the device (zombie detection).
+# 15 minutes is safe for devices like switches that only push on state change.
+STALE_DATA_TIMEOUT = 900
 
 
 class HassLocalTuyaData(NamedTuple):
@@ -562,7 +563,11 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         }
 
     def _start_stale_data_check(self):
-        """Start periodic check for zombie connections (connected but no data)."""
+        """Start periodic check for zombie connections.
+
+        When no data is received within STALE_DATA_TIMEOUT, probes the device
+        with update_dps. Only forces a reconnect if the probe gets no response.
+        """
         if self._unsub_stale_check:
             self._unsub_stale_check()
         if self.is_sleep or self.is_subdevice:
@@ -576,12 +581,37 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self.debug("Started stale data watchdog (%ss)", STALE_DATA_TIMEOUT)
 
     async def _check_stale_data(self, _now):
-        """Force reconnect if connected but no data received within timeout."""
+        """Probe device if no data received within timeout, reconnect if probe fails."""
         if not self.connected or self.is_closing:
             return
         elapsed = time.monotonic() - self._last_data_time
-        if elapsed >= STALE_DATA_TIMEOUT:
-            self.warning("No data received for %.0fs, forcing reconnect", elapsed)
+        if elapsed < STALE_DATA_TIMEOUT:
+            return
+
+        self.debug("No data received for %.0fs, probing device", elapsed)
+        before_probe = self._last_data_time
+        try:
+            await self._interface.update_dps(cid=self._node_id)
+            # Give the device a moment to respond with pushed data
+            await asyncio.sleep(5)
+        except (TimeoutError, Exception) as e:
+            self.warning("Stale data probe failed (%s), forcing reconnect", e)
+            if self._unsub_stale_check:
+                self._unsub_stale_check()
+                self._unsub_stale_check = None
+            self.disconnected("Stale data timeout")
+            return
+
+        if not self.connected or self.is_closing:
+            return
+
+        if self._last_data_time > before_probe:
+            self.debug("Device responded to probe, connection is healthy")
+        else:
+            self.warning(
+                "No data after probe (no update for %.0fs), forcing reconnect",
+                time.monotonic() - self._last_data_time,
+            )
             if self._unsub_stale_check:
                 self._unsub_stale_check()
                 self._unsub_stale_check = None
