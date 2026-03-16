@@ -916,7 +916,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
             # v1.0.28 Fix: Force full DP scan for all device types
             # if self.dev_type == "type_0a" and not cid:
-                # return self.dps_cache.get("parent", {})
+            # return self.dps_cache.get("parent", {})
 
         return self.dps_cache.get(cid or "parent", {})
 

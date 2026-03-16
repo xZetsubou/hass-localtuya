@@ -160,7 +160,11 @@ class TuyaCloudApi:
                     async with session.get(
                         full_url, headers=dict(default_par, **headers)
                     ) as resp:
-                        self._logger.debug("CLOUD API RESP - Status: %s - Body: %s", resp.status, await resp.text())
+                        self._logger.debug(
+                            "CLOUD API RESP - Status: %s - Body: %s",
+                            resp.status,
+                            await resp.text(),
+                        )
                         return await resp.json()
 
                 if method == "POST":
@@ -169,7 +173,11 @@ class TuyaCloudApi:
                         headers=dict(default_par, **headers),
                         data=json.dumps(body),
                     ) as resp:
-                        self._logger.debug("CLOUD API RESP - Status: %s - Body: %s", resp.status, await resp.text())
+                        self._logger.debug(
+                            "CLOUD API RESP - Status: %s - Body: %s",
+                            resp.status,
+                            await resp.text(),
+                        )
                         return await resp.json()
 
                 if method == "PUT":
@@ -178,7 +186,11 @@ class TuyaCloudApi:
                         headers=dict(default_par, **headers),
                         data=json.dumps(body),
                     ) as resp:
-                        self._logger.debug("CLOUD API RESP - Status: %s - Body: %s", resp.status, await resp.text())
+                        self._logger.debug(
+                            "CLOUD API RESP - Status: %s - Body: %s",
+                            resp.status,
+                            await resp.text(),
+                        )
                         return await resp.json()
             except (aiohttp.ClientConnectionError, TimeoutError) as ex:
                 self._logger.debug(f"Failed to send request to tuya cloud: {ex}")
