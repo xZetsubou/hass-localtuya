@@ -258,9 +258,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     await asyncio.sleep(0.5)
                     await self._interface.update_dps()
                     await asyncio.sleep(0.5)
-                    status = await self._interface.detect_available_dps(
-                        cid=self._node_id
-                    )
+                    status = await self._interface.detect_available_dps(cid=self._node_id)
                     if not status:
                         status = await self._interface.status(cid=self._node_id)
                 except Exception as e:

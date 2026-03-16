@@ -1,9 +1,9 @@
 """
-This a file contains available tuya data
-https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
+    This a file contains available tuya data
+    https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
 
-Credits: official HA Tuya integration.
-Modified by: xZetsubou
+    Credits: official HA Tuya integration.
+    Modified by: xZetsubou
 """
 
 from homeassistant.components.sensor import SensorStateClass, SensorDeviceClass
@@ -585,6 +585,13 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
             custom_configs=localtuya_sensor(UnitOfEnergy.KILO_WATT_HOUR, 0.001),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_VALUE,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
         ),
     ),
     # Luminance Sensor
@@ -1333,6 +1340,13 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             name="Direction C",
             icon="mdi:arrow-up-down",
             entity_category=EntityCategory.DIAGNOSTIC,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.TEMP_VALUE,
+            name="Temperature",
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            custom_configs=localtuya_sensor(UnitOfTemperature.CELSIUS),
         ),
     ),
     # Robot Vacuum

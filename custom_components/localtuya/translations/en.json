@@ -5,6 +5,8 @@
             "device_updated": "Device configuration has been updated."
         },
         "error": {
+            "auto_configure_progress": "Discovering entities automatically...",
+            "connecting": "Connecting to device and detecting DPS. Please wait...",
             "authentication_failed": "Failed to authenticate.\n{msg}",
             "cannot_connect": "Cannot connect to device. Confirm the IP Address is correct then try again.",
             "device_list_failed": "Failed to retrieve device list.\n{msg}",
@@ -37,6 +39,8 @@
             "no_entities": "Cannot remove all entities from a device.\nIf you want to delete a device: Browse to `Devices & services` menu, search for your device in `Devices` tab, click the 3 dots in the `Device info` frame, and press the `Delete` button."
         },
         "error": {
+            "auto_configure_progress": "Discovering entities automatically...",
+            "connecting": "Connecting to device and detecting DPS. Please wait...",
             "authentication_failed": "Failed to authenticate.\n{msg}",
             "cannot_connect": "Cannot connect to device. Confirm the IP Address is correct then try again.",
             "device_list_failed": "Failed to retrieve device list.\n{msg}",
@@ -139,7 +143,7 @@
             },
             "choose_template": {
                 "title": "Import template file",
-                "description": "Template files are located in the `templates` directory. See documentation for more info: {more_info}",
+                "description": "Template files are located in the `templates` directory ([More Info](https://github.com/xZetsubou/hass-localtuya/discussions/13)).",
                 "data": {
                     "templates": "Choose template"
                 }
@@ -253,18 +257,18 @@
                     "swing_horizontal_modes": "(Optional) Available horizontal swing options"
                 },
                 "data_description": {
-                    "hvac_mode_set": "Each line represents [ hvac_mode: device_value ]. See documentation for supported HVAC modes: {supported_hvac_modes}",
-                    "hvac_action_set": "Each line represents [ hvac_action: device_value ]. See documentation for supported HVAC actions: {supported_hvac_actions}",
+                    "hvac_mode_set": "Each line represents [ hvac_mode: device_value ] [Supported HVAC Modes](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-modes)",
+                    "hvac_action_set": "Each line represents [ hvac_action: device_value ] [Supported HVAC Actions](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-action)",
                     "preset_set": "Each line represents [ device_value: friendly name ]",
                     "scene_values": "Each line represents [ device_value: friendly name ]",
                     "select_options": "Each line represents [ device_value: friendly name ]",
                     "swing_modes": "Each line represents [ device_value: friendly name ]",
                     "swing_horizontal_modes": "Each line represents [ device_value: friendly name ]",
-                    "alarm_supported_states": "Each line represents [ supported state: device value ]. See documentation for supported states: {supported_states}",
+                    "alarm_supported_states": "Each line represents [ supported state: device value ] [Supported States](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states)",
                     "humidifier_available_modes": "Each line represents [ device_value: friendly name ]",
                     "fan_speed_list": "Each line represents [ device_value: friendly name ]",
-                    "device_class": "See documentation for device classes: {device_class_info}",
-                    "state_class": "See documentation for state classes: {state_class_info}"
+                    "device_class": "Find out more about [Device Classes](https://www.home-assistant.io/integrations/homeassistant/#device-class)",
+                    "state_class": "Find out more about [State Classes](https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes)"
                 }
             }
         }

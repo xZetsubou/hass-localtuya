@@ -1,27 +1,27 @@
 """
-Tuya Devices: https://xzetsubou.github.io/hass-localtuya/auto_configure/
+    Tuya Devices: https://xzetsubou.github.io/hass-localtuya/auto_configure/
 
-This functionality is similar to HA Tuya, as it retrieves the category and searches for the corresponding categories.
-The categories data has been improved & modified to work seamlessly with localtuya
+    This functionality is similar to HA Tuya, as it retrieves the category and searches for the corresponding categories. 
+    The categories data has been improved & modified to work seamlessly with localtuya
 
-Device Data: You can obtain all the data for your device from Home Assistant by directly downloading the diagnostics or using entry diagnostics.
-    Alternative: Use Tuya IoT.
+    Device Data: You can obtain all the data for your device from Home Assistant by directly downloading the diagnostics or using entry diagnostics.
+        Alternative: Use Tuya IoT.
 
-Add a new device or modify an existing one:
-    1. Make sure the device category doesn't already exist. If you are creating a new one, you can modify existing categories.
-    2. In order to add a device, you need to specify the category of the device you want to add inside the entity type dictionary.
+    Add a new device or modify an existing one:
+        1. Make sure the device category doesn't already exist. If you are creating a new one, you can modify existing categories.
+        2. In order to add a device, you need to specify the category of the device you want to add inside the entity type dictionary.
+    
+    Add entities to devices:
+        1. Open the file with the name of the entity type on which you want to make changes [e.g. switches.py] and search for your device category.
+        2. You can add entities inside the tuple value of the dictionary by including LocalTuyaEntity and passing the parameters for the entity configurations.
+        3. These configurations include "id" (required), "icon" (optional), "device_class" (optional), "state_class" (optional), and "name" (optional) [Using COVERS as an example]
+            Example: "3 ( code: percent_state , value: 0 )" - Refer to the Device Data section above for more details.
+                current_state_dp = DPCode.PERCENT_STATE < This maps the "percent_state" code DP to the current_state_dp configuration.
 
-Add entities to devices:
-    1. Open the file with the name of the entity type on which you want to make changes [e.g. switches.py] and search for your device category.
-    2. You can add entities inside the tuple value of the dictionary by including LocalTuyaEntity and passing the parameters for the entity configurations.
-    3. These configurations include "id" (required), "icon" (optional), "device_class" (optional), "state_class" (optional), and "name" (optional) [Using COVERS as an example]
-        Example: "3 ( code: percent_state , value: 0 )" - Refer to the Device Data section above for more details.
-            current_state_dp = DPCode.PERCENT_STATE < This maps the "percent_state" code DP to the current_state_dp configuration.
-
-        If the configuration is not DPS, it will be inserted through "custom_configs". This is used to inject any configuration into the entity configuration
-            Example: custom_configs={"positioning_mode": "position"}. I hope that clarifies the concept
-
-    Check URL above for more details.
+            If the configuration is not DPS, it will be inserted through "custom_configs". This is used to inject any configuration into the entity configuration
+                Example: custom_configs={"positioning_mode": "position"}. I hope that clarifies the concept
+                
+        Check URL above for more details. 
 """
 
 import json
@@ -30,6 +30,13 @@ from enum import Enum
 from homeassistant.const import Platform, CONF_FRIENDLY_NAME, CONF_PLATFORM, CONF_ID
 
 import logging
+from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfPower,
+    UnitOfElectricPotential,
+    UnitOfTemperature,
+)
 
 # Supported files
 from .alarm_control_panels import ALARMS  # not added yet
@@ -79,11 +86,23 @@ DEVICE_CLOUD_DATA = "device_cloud_data"
 
 def gen_localtuya_entities(localtuya_data: dict, tuya_category: str) -> list[dict]:
     """Return localtuya entities using the data that provided from TUYA"""
-    detected_dps: list = localtuya_data.get(CONF_DPS_STRINGS)
+    detected_dps_list: list = localtuya_data.get(CONF_DPS_STRINGS)
 
-    if not tuya_category or not detected_dps:
-        _LOGGER.debug(f"Missing category: {tuya_category} or DPS: {detected_dps}")
-        return
+    if not tuya_category or not detected_dps_list:
+        _LOGGER.debug(f"Missing category: {tuya_category} or DPS: {detected_dps_list}")
+        return []
+
+    # Create a mapping of DP ID -> Value
+    dps_dict = {}
+    for dp_str in detected_dps_list:
+        try:
+            # Format is usually "ID ( code: CODE , value: VALUE )"
+            parts = dp_str.split(' ')
+            dp_id = parts[0]
+            val_part = dp_str.split('value: ')[1].rsplit(' )', 1)[0]
+            dps_dict[dp_id] = val_part
+        except Exception:
+            continue
 
     device_name: str = localtuya_data.get(CONF_FRIENDLY_NAME).strip()
     device_cloud_data: dict = localtuya_data.get(DEVICE_CLOUD_DATA, {})
@@ -110,13 +129,13 @@ def gen_localtuya_entities(localtuya_data: dict, tuya_category: str) -> list[dic
                     # If there's multi possible codes.
                     if isinstance(code, tuple):
                         for _code in code:
-                            if any(_code in dp.lower().split() for dp in detected_dps):
+                            if any(_code in dp.lower().split() for dp in detected_dps_list):
                                 code = parse_enum(_code)
                                 break
                             else:
                                 code = None
 
-                    for dp_data in detected_dps:
+                    for dp_data in detected_dps_list:
                         dp_data: str = dp_data.lower()
                         # Same method we use in config_flow to get dp.
                         dp_id = dp_data.split(" ")[0]
@@ -141,40 +160,82 @@ def gen_localtuya_entities(localtuya_data: dict, tuya_category: str) -> list[dic
                         config_dp = entity.get(v.dp_config)
                         dp_values = get_dp_values(config_dp, dps_data, v) or {}
 
-                        # special case for lights
-                        # if v.value_key in dp_values and "kelvin" in k:
-                        #     value = dp_values.get(v.value_key)
-                        #     dp_values[v.value_key] = convert_to_kelvin(value)
-
-                        entity[k] = dp_values.get(v.value_key, v.default_value)
-                    else:
-                        entity[k] = v
+                        if dp_values:
+                            entity.update(dp_values)
 
                 if entity:
-                    # Entity most contains ID
-                    if not entity.get(CONF_ID):
-                        continue
-                    # Workaround to Prevent duplicated id.
-                    if entity[CONF_ID] in entities:
-                        _LOGGER.debug(f"{device_name}: Duplicated ID: {entity}")
-                        continue
-
+                    # Update more configs.
                     entity.update(main_confs)
                     entity[CONF_PLATFORM] = platform
-                    entities[entity.get(CONF_ID)] = entity
-                    _LOGGER.debug(f"{device_name}: Entity configured: {entity}")
+                    # If the entity is a sensor and it has a device_class, add it to the entity.
+                    if platform == Platform.SENSOR and (
+                        d_class := ent_data.data.get("device_class")
+                    ):
+                        entity["device_class"] = d_class
 
-    # sort entities by id
-    sorted_ids = sorted(entities, key=int)
+                    # Check if the entity is already configured.
+                    # Note: We using ID as key to avoid duplicate entities.
+                    # but if there is multiple entities with same ID? (e.g. climate and sensor)
+                    # we should use platform + ID as key?
+                    ent_id = entity.get(CONF_ID)
+                    if ent_id not in entities:
+                        entities[ent_id] = entity
 
-    # convert to list of configs
-    list_entities = [entities.get(id) for id in sorted_ids]
+    # ULTIMATE INTEGRATION: Force Power/Temp sensors if in cloud schema but not in auto-gen
+    cloud_dps_raw = localtuya_data.get(DEVICE_CLOUD_DATA, {}).get("dps_data", {})
+    _LOGGER.info(f"[TUYA-DEBUG] [ENTITY-GEN] Cloud schema DPs: {list(cloud_dps_raw)}")
 
-    _LOGGER.debug(f"{device_name}: Configured entities: {list_entities}")
-    # return []
-    return list_entities
+    # ID mapping for forced sensors
+    forced_mappings = {
+        "18": {"name": "Current", "device_class": SensorDeviceClass.CURRENT, "scaling": 0.001, "unit": "mA"},
+        "19": {"name": "Power", "device_class": SensorDeviceClass.POWER, "scaling": 0.1, "unit": "W"},
+        "20": {"name": "Voltage", "device_class": SensorDeviceClass.VOLTAGE, "scaling": 0.1, "unit": "V"},
+        "47": {"name": "Temperature", "device_class": SensorDeviceClass.TEMPERATURE, "scaling": 1.0, "unit": "°C"},
+    }
+    
+    for dp_id, config in forced_mappings.items():
+        if dp_id in dps_dict or dp_id in cloud_dps_raw:
+            if dp_id not in entities:
+                # ADVANCED CHECK: Use Cloud Schema Metadata (typeSpec)
+                dp_schema = cloud_dps_raw.get(dp_id, {})
+                type_spec_str = dp_schema.get("values", "")
+                is_numeric = False
+                
+                # Check type in metadata
+                if "Integer" in type_spec_str or "Value" in type_spec_str:
+                    is_numeric = True
+                    _LOGGER.info(f"[TUYA-DEBUG] DP {dp_id} confirmed numeric via Cloud Metadata (typeSpec)")
+                else:
+                    # Fallback to current value check if metadata is unclear
+                    raw_val = dps_dict.get(dp_id)
+                    if raw_val is None:
+                        raw_val = dp_schema.get("value")
+                    
+                    try:
+                        if raw_val is not None:
+                            float(str(raw_val))
+                            is_numeric = True
+                            _LOGGER.info(f"[TUYA-DEBUG] DP {dp_id} confirmed numeric via Value fallback: {raw_val}")
+                    except (ValueError, TypeError):
+                        pass
 
+                if not is_numeric:
+                    _LOGGER.info(f"[TUYA-DEBUG] Skipping forced DP {dp_id} for {device_name}: not a numeric type")
+                    continue
 
+                _LOGGER.info(f"[TUYA-DEBUG] [ENTITY-FORCE] Forcing creation of sensor for DP {dp_id} for {device_name}")
+                forced_entity = {
+                    CONF_PLATFORM: Platform.SENSOR,
+                    CONF_ID: int(dp_id),
+                    CONF_FRIENDLY_NAME: f"{device_name} {config['name']}",
+                    "device_class": config["device_class"],
+                    "scaling": config["scaling"],
+                    "unit_of_measurement": config["unit"],
+                }
+                entities[dp_id] = forced_entity
+
+    _LOGGER.info(f"[TUYA-DEBUG] [ENTITY-GEN] Generated {len(entities)} entities for {device_name}")
+    return list(entities.values())
 def parse_enum(dp_code: Enum) -> str:
     """Get enum value if code type is enum"""
     try:
