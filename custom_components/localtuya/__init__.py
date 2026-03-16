@@ -47,6 +47,9 @@ from .discovery import TuyaDiscovery
 
 _LOGGER = logging.getLogger(__name__)
 
+# The integration is configured via config entries (UI). No YAML configuration.
+CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
+
 CONF_DP = "dp"
 CONF_VALUE = "value"
 
