@@ -78,6 +78,7 @@ CONF_DEFAULT_VALUE = "dps_default_value"
 CONF_RESET_DPIDS = "reset_dpids"
 CONF_PASSIVE_ENTITY = "is_passive_entity"
 CONF_DEVICE_SLEEP_TIME = "device_sleep_time"
+CONF_DEVICE_EVENT_DRIVEN = "device_event_driven"
 
 # ALARM
 CONF_ALARM_SUPPORTED_STATES = "alarm_supported_states"
@@ -282,6 +283,9 @@ class DeviceConfig:
         self.entities: list = self.device_config[CONF_ENTITIES]
         self.protocol_version: str = self.device_config[CONF_PROTOCOL_VERSION]
         self.sleep_time: int = self.device_config.get(CONF_DEVICE_SLEEP_TIME, 0)
+        self.event_driven: bool = self.device_config.get(
+            CONF_DEVICE_EVENT_DRIVEN, False
+        )
         self.scan_interval: int = self.device_config.get(CONF_SCAN_INTERVAL, 0)
         self.enable_debug: bool = self.device_config.get(CONF_ENABLE_DEBUG, False)
         self.name: str = self.device_config.get(CONF_FRIENDLY_NAME)
