@@ -253,11 +253,11 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     @property
     def entity_category(self) -> EntityCategory | None:
         """Return the category of the entity.
-
-        Home Assistant does not allow read-only sensor and binary_sensor
-        entities to use EntityCategory.CONFIG. Older LocalTuya config entries
-        may still contain that invalid combination, so normalize it here to
-        keep existing installations working.
+        
+        Home Assistant does not allow sensor and binary_sensor entities to use
+        EntityCategory.CONFIG. Older LocalTuya config entries may still contain
+        that invalid combination, so normalize it here to keep existing
+        installations working.
         """
         platform = self._config.get(CONF_PLATFORM)
         category = self._config.get(CONF_ENTITY_CATEGORY)
