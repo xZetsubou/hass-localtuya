@@ -50,6 +50,7 @@ from .const import (
     ATTR_UPDATED_AT,
     CONF_ADD_DEVICE,
     CONF_CONFIGURE_CLOUD,
+    CONF_DEBUG_UNREACHABLE_ERRORS,
     CONF_DPS_STRINGS,
     CONF_EDIT_DEVICE,
     CONF_ENABLE_ADD_ENTITIES,
@@ -150,6 +151,7 @@ DEVICE_SCHEMA = vol.Schema(
             ["auto"] + sorted(SUPPORTED_PROTOCOL_VERSIONS)
         ),
         vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
+        vol.Required(CONF_DEBUG_UNREACHABLE_ERRORS, default=False): bool,
         vol.Optional(CONF_SCAN_INTERVAL): int,
         vol.Optional(CONF_MANUAL_DPS): cv.string,
         vol.Optional(CONF_RESET_DPIDS): str,
@@ -580,6 +582,9 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             defaults[CONF_LOCAL_KEY] = user_in.get(CONF_LOCAL_KEY, "")
             defaults[CONF_FRIENDLY_NAME] = user_in.get(CONF_FRIENDLY_NAME, "")
             defaults[CONF_NODE_ID] = user_in.get(CONF_NODE_ID, "")
+            defaults[CONF_DEBUG_UNREACHABLE_ERRORS] = user_in.get(
+                CONF_DEBUG_UNREACHABLE_ERRORS, False
+            )
 
             if defaults[CONF_DEVICE_ID] in [cloud_devs, self.selected_device]:
                 dev_id = defaults[CONF_DEVICE_ID]
@@ -906,6 +911,7 @@ async def setup_localtuya_devices(
                 CONF_LOCAL_KEY: dev_cloud_data.get(CONF_LOCAL_KEY),
                 CONF_PROTOCOL_VERSION: data[CONF_TUYA_VERSION],
                 CONF_ENABLE_DEBUG: False,
+                CONF_DEBUG_UNREACHABLE_ERRORS: False,
                 CONF_NODE_ID: dev_cloud_data.get(CONF_NODE_ID),
                 CONF_MODEL: dev_cloud_data.get(CONF_MODEL),
                 CONF_PRODUCT_KEY: data.get("productKey"),
@@ -1051,6 +1057,7 @@ def options_schema(entities):
                 sorted(SUPPORTED_PROTOCOL_VERSIONS)
             ),
             vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
+            vol.Required(CONF_DEBUG_UNREACHABLE_ERRORS, default=False): bool,
             vol.Optional(CONF_SCAN_INTERVAL): int,
             vol.Optional(CONF_MANUAL_DPS): cv.string,
             vol.Optional(CONF_RESET_DPIDS): cv.string,
