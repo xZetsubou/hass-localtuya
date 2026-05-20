@@ -58,6 +58,7 @@ RESTORE_STATES = {"0": "restore"}
 # config flow
 CONF_LOCAL_KEY = "local_key"
 CONF_ENABLE_DEBUG = "enable_debug"
+CONF_DEBUG_UNREACHABLE_ERRORS = "debug_unreachable_errors"
 CONF_PROTOCOL_VERSION = "protocol_version"
 CONF_NODE_ID = "node_id"
 CONF_GATEWAY_ID = "gateway_id"
@@ -284,6 +285,9 @@ class DeviceConfig:
         self.sleep_time: int = self.device_config.get(CONF_DEVICE_SLEEP_TIME, 0)
         self.scan_interval: int = self.device_config.get(CONF_SCAN_INTERVAL, 0)
         self.enable_debug: bool = self.device_config.get(CONF_ENABLE_DEBUG, False)
+        self.debug_unreachable_errors: bool = self.device_config.get(
+            CONF_DEBUG_UNREACHABLE_ERRORS, False
+        )
         self.name: str = self.device_config.get(CONF_FRIENDLY_NAME)
         self.node_id: str | None = self.device_config.get(CONF_NODE_ID)
         self.model: str = self.device_config.get(CONF_MODEL, "Tuya generic")
