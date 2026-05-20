@@ -1142,9 +1142,19 @@ async def platform_schema(
     if allow_id:
         schema[vol.Required(CONF_ID)] = col_to_select(dps_strings, is_dps=True)
     schema[vol.Optional(CONF_FRIENDLY_NAME, default="")] = vol.Any(None, cv.string)
+
+    entity_categories = ENTITY_CATEGORY
+    if platform in ("sensor", "binary_sensor"):
+        # Home Assistant rejects CONFIG on read-only sensor platforms.
+        entity_categories = {
+            label: category
+            for label, category in ENTITY_CATEGORY.items()
+            if category != EntityCategory.CONFIG
+        }
+
     schema[
         vol.Required(CONF_ENTITY_CATEGORY, default=str(default_category(platform)))
-    ] = col_to_select(ENTITY_CATEGORY)
+    ] = col_to_select(entity_categories)
 
     plat_schema = await hass.async_add_import_executor_job(
         flow_schema, platform, dps_strings
