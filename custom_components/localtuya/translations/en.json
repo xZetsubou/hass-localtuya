@@ -109,7 +109,8 @@
                     "manual_dps_strings": "(Optional) Manual DPS's, if not detected automatically (separated by commas)",
                     "reset_dpids": "(Optional) DPIDs to send in RESET command, if device does not respond to status requests after turning on (separated by commas)",
                     "device_sleep_time": "(Optional) Device sleep time in seconds: If the device reports its state, then it goes into sleep",
-                    "export_config": "Save entity configuration as template"
+                    "export_config": "Save entity configuration as template",
+                    "debug_unreachable_errors": "Log unreachable-device connection failures at DEBUG level"
                 }
             },
             "device_setup_method": {
