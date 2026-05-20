@@ -251,19 +251,38 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         return (len(self._status) > 0) or self._device.connected
 
     @property
-    def entity_category(self) -> str:
-        """Return the category of the entity."""
-        if category := self._config.get(CONF_ENTITY_CATEGORY):
-            return EntityCategory(category) if category != "None" else None
-        else:
-            # Set Default values for unconfigured devices.
-            if platform := self._config.get(CONF_PLATFORM):
-                # Call default_category from config_flow  to set default values!
-                # This will be removed after a while, this is only made to convert who came from main integration.
-                # new users will be forced to choose category from config_flow.
-                from .config_flow import default_category
+    def entity_category(self) -> EntityCategory | None:
+        """Return the category of the entity.
 
-                return default_category(platform)
+        Home Assistant does not allow read-only sensor and binary_sensor
+        entities to use EntityCategory.CONFIG. Older LocalTuya config entries
+        may still contain that invalid combination, so normalize it here to
+        keep existing installations working.
+        """
+        platform = self._config.get(CONF_PLATFORM)
+        category = self._config.get(CONF_ENTITY_CATEGORY)
+
+        if category and category != "None":
+            entity_category = EntityCategory(category)
+
+            if (
+                entity_category == EntityCategory.CONFIG
+                and platform in ("sensor", "binary_sensor")
+            ):
+                return EntityCategory.DIAGNOSTIC
+
+            return entity_category
+
+        # Set default values for unconfigured devices.
+        if platform:
+            # Call default_category from config_flow to set default values.
+            # This will be removed after a while; it only converts users coming
+            # from the main integration. New users are forced to choose a
+            # category from the config flow.
+            from .config_flow import default_category
+
+            return default_category(platform)
+
         return None
 
     @property
