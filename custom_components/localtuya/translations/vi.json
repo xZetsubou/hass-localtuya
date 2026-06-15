@@ -165,6 +165,7 @@
                     "device_class": "(Tùy chọn) Device Class",
                     "state_class": "(Tùy chọn) State Class",
                     "scaling": "(Tùy chọn) Hệ số scale",
+                    "offset": "(Tùy chọn) Offset",
                     "state_on": "Giá trị Bật (cách nhau bằng dấu phẩy)",
                     "state_off": "Giá trị Tắt",
                     "powergo_dp": "DP công suất (thường là 25 hoặc 2)",
