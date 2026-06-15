@@ -74,7 +74,9 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
 
         self._min_value = self.scale(self._config.get(CONF_MIN_VALUE, DEFAULT_MIN))
         self._max_value = self.scale(self._config.get(CONF_MAX_VALUE, DEFAULT_MAX))
-        self._step_size = self.scale(self._config.get(CONF_STEPSIZE, DEFAULT_STEP), scale_only=True)
+        self._step_size = self.scale(
+            self._config.get(CONF_STEPSIZE, DEFAULT_STEP), scale_only=True
+        )
 
         # Override standard default value handling to cast to a float
         default_value = self._config.get(CONF_DEFAULT_VALUE)
