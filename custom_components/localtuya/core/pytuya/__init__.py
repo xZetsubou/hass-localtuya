@@ -693,7 +693,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
     def clean_up_session(self):
         """Clean up session."""
         self.debug(f"Cleaning up session.")
-        self.real_local_key = self.local_key
+        self.local_key = self.real_local_key
 
         if self.heartbeater:
             self.heartbeater.cancel()
@@ -1026,7 +1026,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
     async def _negotiate_session_key(self):
         self.remote_nonce = b""
         self.local_key = self.real_local_key
+        self.dispatcher.local_key = self.real_local_key
 
+        rkey = None
         try:
             rkey = await self.exchange_quick(
                 MessagePayload(CMDType.SESS_KEY_NEG_START, self.local_nonce), 2
