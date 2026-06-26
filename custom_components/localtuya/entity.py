@@ -40,6 +40,7 @@ from .const import (
     CONF_PASSIVE_ENTITY,
     CONF_RESTORE_ON_RECONNECT,
     CONF_SCALING,
+    CONF_OFFSET,
     DOMAIN,
     RESTORE_STATES,
     DeviceConfig,
@@ -371,11 +372,16 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         """
         return 0
 
-    def scale(self, value):
+    def scale(self, value, scale_only=False):
         """Return the scaled factor of the value, else same value."""
         scale_factor = self._config.get(CONF_SCALING)
-        if scale_factor is not None and isinstance(value, (int, float)):
-            value = round(value * scale_factor, 2)
+        offset = self._config.get(CONF_OFFSET)
+        if isinstance(value, (int, float)):
+            if scale_factor is not None:
+                value = value * scale_factor
+            if not scale_only and offset is not None:
+                value = value + offset
+            value = round(value, 2)
 
         return value
 
