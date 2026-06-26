@@ -145,12 +145,15 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
                     percentage_to_ordered_list_item(self._ordered_list, percentage),
                 )
             else:
+                value = int(
+                    math.ceil(
+                        percentage_to_ranged_value(self._speed_range, percentage)
+                    )
+                )
+                if self._config.get(CONF_FAN_DPS_TYPE, "int") == "str":
+                    value = str(value)
                 await self._device.set_dp(
-                    int(
-                        math.ceil(
-                            percentage_to_ranged_value(self._speed_range, percentage)
-                        )
-                    ),
+                    value,
                     self._config.get(CONF_FAN_SPEED_CONTROL),
                 )
                 _LOGGER.debug(
