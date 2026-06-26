@@ -79,7 +79,6 @@ VACUUMS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             ),
             clean_area_dp=DPCode.CLEAN_AREA,
             clean_record_dp=DPCode.CLEAN_RECORD,
-            fault_dp=DPCode.FAULT,
             custom_configs=localtuya_vaccuums(
                 modes=DEFAULT_MODES,
                 returning_status_value=DEFAULT_RETURNING_STATUS,

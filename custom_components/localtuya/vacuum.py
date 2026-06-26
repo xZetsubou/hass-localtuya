@@ -249,8 +249,6 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
 
         if self.has_config(CONF_FAULT_DP):
             self._attrs[FAULT] = self.dp_value(CONF_FAULT_DP)
-            if self._attrs[FAULT] != 0:
-                self._state = VacuumActivity.ERROR
 
 
 async_setup_entry = partial(async_setup_entry, DOMAIN, LocalTuyaVacuum, flow_schema)
