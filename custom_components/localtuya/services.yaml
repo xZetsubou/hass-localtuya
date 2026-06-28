@@ -43,7 +43,7 @@ remote_add_code:
           entity:
             domain: "remote"
           filter:
-            integration: "localtuya"
+            integration: "localtuyasene"
     device_name:
       name: "Device Name"
       description: The name of the device to store the code in
