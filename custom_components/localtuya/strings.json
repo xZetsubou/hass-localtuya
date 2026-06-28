@@ -48,6 +48,14 @@
                     "setup_cloud": "Reconfigure Cloud API account"
                 }
             },
+            "discovering_devices": {
+                "title": "Scanning for devices",
+                "description": "Searching the network for Local Tuya devices.\n\nProgress: {progress}\n\nLog:\n{log}",
+                "data": {
+                    "restart_discovery": "Reiniciar varredura",
+                    "continue_discovery": "Continuar"
+                }
+            },
             "entity": {
                 "title": "Entity Configuration",
                 "description": "Editing entity with DPS `{id}` and platform `{platform}`.",

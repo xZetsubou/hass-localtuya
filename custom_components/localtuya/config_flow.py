@@ -88,6 +88,8 @@ TEMPLATES = "templates"
 NO_ADDITIONAL_ENTITIES = "no_additional_entities"
 SELECTED_DEVICE = "selected_device"
 EXPORT_CONFIG = "export_config"
+RESTART_DISCOVERY = "restart_discovery"
+CONTINUE_DISCOVERY = "continue_discovery"
 
 TUYA_CATEGORY = "category"
 DEVICE_CLOUD_DATA = "device_cloud_data"
@@ -254,6 +256,14 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         self.entities = []
         self.use_template = False
         self.template_device = None
+        self.discovery_log = ""
+        self.discovery_progress = 0
+        self.discovery_errors = {}
+        self._discovery_task = None
+        self._discovery_started = False
+        self._discovery_found_count = 0
+        self._discovery_events = []
+        self._discovery_max_events = 20
 
     @property
     def localtuya_data(self) -> HassLocalTuyaData:
@@ -357,13 +367,18 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
 
             return await self.async_step_configure_device()
 
-        self.discovered_devices = {}
+        if self._discovery_started and self.discovered_devices is not None:
+            pass
+        elif self._discovery_task is None and not self._discovery_started:
+            return await self.async_step_discovering_devices()
+
+        self.discovered_devices = self.discovered_devices or {}
         data = self.hass.data.get(DOMAIN)
 
-        if data and DATA_DISCOVERY in data:
+        if data and DATA_DISCOVERY in data and not self.discovered_devices:
             self.discovered_devices = data[DATA_DISCOVERY].devices
-        else:
-            self.discovered_devices, errors = await discover_devices()
+        elif not self.discovered_devices and not self.discovery_errors:
+            self.discovered_devices, self.discovery_errors = await discover_devices()
 
         allDevices = mergeDevicesList(
             self.discovered_devices, self.cloud_data.device_list
@@ -389,6 +404,44 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             step_id="add_device",
             data_schema=devices_schema(devices, self.cloud_data.device_list),
             errors=errors,
+            description_placeholders=self._discovery_placeholders(),
+        )
+
+    async def async_step_discovering_devices(self, user_input=None):
+        """Show discovery progress while devices are being searched."""
+        if user_input is not None:
+            if user_input == RESTART_DISCOVERY:
+                self.discovery_log = "Reiniciando a busca por dispositivos..."
+                self.discovery_progress = 0
+                self.discovery_errors = {}
+                self._discovery_events = []
+                self._discovery_found_count = 0
+                self._discovery_started = True
+                if self._discovery_task is not None and not self._discovery_task.done():
+                    self._discovery_task.cancel()
+                self._discovery_task = self.hass.async_create_task(
+                    self._async_discover_devices()
+                )
+                return self.async_show_menu(
+                    step_id="discovering_devices",
+                    menu_options=[RESTART_DISCOVERY, CONTINUE_DISCOVERY],
+                    description_placeholders=self._discovery_placeholders(),
+                )
+            return await self.async_step_add_device()
+
+        if self._discovery_task is None and not self._discovery_started:
+            self._discovery_started = True
+            self._discovery_task = self.hass.async_create_task(
+                self._async_discover_devices()
+            )
+
+        if self.discovered_devices is not None and self._discovery_task is None:
+            return await self.async_step_add_device()
+
+        return self.async_show_menu(
+            step_id="discovering_devices",
+            menu_options=[RESTART_DISCOVERY, CONTINUE_DISCOVERY],
+            description_placeholders=self._discovery_placeholders(),
         )
 
     async def async_step_edit_device(self, user_input=None):
@@ -420,6 +473,71 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             ),
             errors=errors,
         )
+
+    def _discovery_placeholders(self) -> dict[str, str]:
+        """Build the description placeholders used in the discovery step."""
+        bar_width = 20
+        filled = int(self.discovery_progress / 100 * bar_width)
+        progress_bar = "█" * filled + "░" * (bar_width - filled)
+        log_text = self.discovery_log or "Aguardando resposta dos dispositivos..."
+        return {
+            "progress": f"[{progress_bar}] {self.discovery_progress}%",
+            "log": log_text,
+        }
+
+    async def _async_discover_devices(self):
+        """Run network discovery and update the flow UI with progress."""
+        self.discovery_log = "Iniciando a busca por dispositivos na rede..."
+        self.discovery_progress = 10
+        self.discovery_errors = {}
+        self._discovery_found_count = 0
+        self._discovery_events = []
+
+        self.hass.async_create_task(self._async_refresh_discovery_step())
+
+        try:
+            self.discovered_devices, self.discovery_errors = await discover_devices(
+                callback=self._handle_discovery_update
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            _LOGGER.debug("Discovery failed: %s", ex)
+            self.discovery_errors = {"base": "discovery_failed"}
+            self.discovered_devices = {}
+            self._append_discovery_event("Falha na busca da rede.", is_error=True)
+        finally:
+            self.discovery_progress = 100
+            self._append_discovery_event("Busca concluída.", is_error=False)
+            self.hass.async_create_task(self._async_refresh_discovery_step())
+            self._discovery_task = None
+
+    def _handle_discovery_update(self, device: dict):
+        """Update the discovery log and progress as devices are found."""
+        self._discovery_found_count += 1
+        device_id = device.get("gwId", "unknown")
+        device_ip = device.get("ip", "unknown")
+        self.discovery_progress = min(95, 20 + self._discovery_found_count * 10)
+        self._append_discovery_event(f"Dispositivo encontrado: {device_id} ({device_ip})")
+        self.hass.async_create_task(self._async_refresh_discovery_step())
+
+    def _append_discovery_event(self, message: str, is_error: bool = False):
+        """Append a discovery event while keeping the log trimmed to the latest entries."""
+        self._discovery_events.append((message, is_error))
+        if len(self._discovery_events) > self._discovery_max_events:
+            self._discovery_events = self._discovery_events[-self._discovery_max_events :]
+
+        log_lines = []
+        for event_message, event_is_error in self._discovery_events:
+            prefix = "🔴 ERRO:" if event_is_error else "•"
+            log_lines.append(f"{prefix} {event_message}")
+        self.discovery_log = "\n".join(log_lines)
+
+    async def _async_refresh_discovery_step(self):
+        """Refresh the current config flow step so the log is visible."""
+        try:
+            if self.flow_id:
+                self.hass.config_entries.flow.async_configure(self.flow_id, user_input={})
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.debug("Unable to refresh discovery progress UI", exc_info=True)
 
     async def async_step_device_setup_method(self, user_input=None):
         """Manage basic options."""
