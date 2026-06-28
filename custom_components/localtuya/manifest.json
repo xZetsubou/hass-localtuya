@@ -1,6 +1,6 @@
 {
-  "domain": "localtuyasene",
-  "name": "Local Tuya Sene",
+  "domain": "localtuya_test",
+  "name": "Local Tuya Test",
   "codeowners": [],
   "config_flow": true,
   "dependencies": [],
