@@ -206,12 +206,10 @@ class TuyaCloudApi:
 
     async def async_get_devices_list(self, force_update=False) -> str | None:
         """Obtain the list of devices associated to a user. - force_update will ignore last update check."""
-        interval = (
-            DEVICES_UPDATE_INTERVAL_FORCED if force_update else DEVICES_UPDATE_INTERVAL
-        )
         if (
-            self.device_list
-            and int(time.time()) - (self._last_devices_update + interval) < 0
+            not force_update
+            and self.device_list
+            and int(time.time()) < self._last_devices_update + DEVICES_UPDATE_INTERVAL
         ):
             return self._logger.debug(f"Devices has been updated a minutes ago.")
 
@@ -225,7 +223,11 @@ class TuyaCloudApi:
         if not resp["success"]:
             return f"Error {resp['code']}: {resp['msg']}"
 
-        self.device_list.update({dev["id"]: dev for dev in resp["result"]})
+        devices = {dev["id"]: dev for dev in resp["result"]}
+        if force_update:
+            self.device_list = devices
+        else:
+            self.device_list.update(devices)
 
         self._last_devices_update = int(time.time())
         return "ok"
