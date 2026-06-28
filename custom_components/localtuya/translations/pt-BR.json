@@ -17,7 +17,7 @@
         },
         "step": {
             "user": {
-                "title": "Configuração da conta da API de Nuvem",
+                "title": "Configuração da conta da API de Nuvem (debug Sene 02)",
                 "description": "Configure as credenciais usadas para se conectar à API de Nuvem Tuya.",
                 "data": {
                     "region": "Região do Centro de Dados",
