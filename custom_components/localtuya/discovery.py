@@ -58,11 +58,22 @@ def decrypt_udp(message):
 class TuyaDiscovery(asyncio.DatagramProtocol):
     """Datagram handler listening for Tuya broadcast messages."""
 
-    def __init__(self, callback=None):
+    def __init__(self, callback=None, progress_callback=None):
         """Initialize a new BaseDiscovery."""
         self.devices = {}
         self._listeners = []
         self._callback = callback
+        self._progress_callback = progress_callback
+        self.log_messages = []
+
+    def _record_progress(self, message, progress=None):
+        """Store and forward progress messages while scanning."""
+        self.log_messages.append(message)
+        if self._progress_callback:
+            try:
+                self._progress_callback(message, progress)
+            except TypeError:
+                self._progress_callback(message)
 
     async def start(self):
         """Start discovery by listening to broadcasts."""
@@ -78,6 +89,7 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
         #     lambda: self, local_addr=("0.0.0.0", 7000), **op_reuse_port
         # )
         self._listeners = await asyncio.gather(listener, encrypted_listener)
+        self._record_progress("Aguardando broadcasts...", 0.0)
         _LOGGER.debug("Listening to broadcasts on UDP port 6666, 6667")
 
     def close(self):
@@ -116,17 +128,32 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
             )
             self.devices = dict(sort_devices)
 
+            self._record_progress(
+                f"Dispositivo encontrado: {device.get('gwId')} em {device.get('ip')}"
+            )
             _LOGGER.debug("Discovered device: %s", device)
         if self._callback:
             self._callback(device)
 
 
-async def discover():
+async def discover(progress_callback=None):
     """Discover and return devices on local network."""
-    discovery = TuyaDiscovery()
+    discovery = TuyaDiscovery(progress_callback=progress_callback)
     try:
+        discovery._record_progress("Iniciando varredura Tuya", 0.0)
         await discovery.start()
-        await asyncio.sleep(DEFAULT_TIMEOUT)
+        started_at = asyncio.get_running_loop().time()
+        while True:
+            elapsed = asyncio.get_running_loop().time() - started_at
+            remaining = max(DEFAULT_TIMEOUT - elapsed, 0)
+            progress = min(elapsed / DEFAULT_TIMEOUT, 1.0)
+            discovery._record_progress(
+                f"Aguardando broadcasts por {remaining:.0f}s", progress
+            )
+            if elapsed >= DEFAULT_TIMEOUT:
+                break
+            await asyncio.sleep(min(1.0, remaining))
     finally:
+        discovery._record_progress("Varredura concluída", 1.0)
         discovery.close()
-    return discovery.devices
+    return discovery.devices, discovery.log_messages

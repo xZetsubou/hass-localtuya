@@ -64,6 +64,7 @@ from .const import (
     CONF_PRODUCT_NAME,
     CONF_PROTOCOL_VERSION,
     CONF_RESET_DPIDS,
+    CONF_RESTART_SCAN,
     CONF_TUYA_GWID,
     CONF_TUYA_IP,
     CONF_TUYA_VERSION,
@@ -93,7 +94,12 @@ TUYA_CATEGORY = "category"
 DEVICE_CLOUD_DATA = "device_cloud_data"
 
 # Using list method so we can translate options.
-CONFIGURE_MENU = [CONF_ADD_DEVICE, CONF_EDIT_DEVICE, CONF_CONFIGURE_CLOUD]
+CONFIGURE_MENU = [
+    CONF_ADD_DEVICE,
+    CONF_EDIT_DEVICE,
+    CONF_CONFIGURE_CLOUD,
+    CONF_RESTART_SCAN,
+]
 
 
 def col_to_select(
@@ -254,6 +260,11 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         self.entities = []
         self.use_template = False
         self.template_device = None
+        self._scan_logs: list[str] = []
+        self._scan_devices: dict[str, dict] = {}
+        self._scan_errors: dict[str, str] = {}
+        self._scan_progress_message = "Aguardando broadcasts..."
+        self._last_progress_result = None
 
     @property
     def localtuya_data(self) -> HassLocalTuyaData:
@@ -262,6 +273,42 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
     @property
     def cloud_data(self) -> TuyaCloudApi:
         return self.localtuya_data.cloud_data
+
+    @callback
+    def _set_scan_progress(self, message: str, progress: float | None = None) -> None:
+        """Store the latest scan message for display."""
+        self._scan_progress_message = message
+        self._scan_logs.append(message)
+        if progress is not None:
+            self.async_update_progress(progress)
+        _LOGGER.debug("Scan progress: %s", message)
+
+    async def _async_run_discovery_scan(self) -> tuple[dict[str, dict], list[str], dict[str, str]]:
+        """Run a local Tuya discovery scan and collect progress logs."""
+        self._scan_logs = []
+        self._scan_devices = {}
+        self._scan_errors = {}
+        self._scan_progress_message = "Aguardando broadcasts..."
+
+        def _progress(message: str, progress: float | None = None) -> None:
+            self._set_scan_progress(message, progress)
+
+        try:
+            discovered_devices, scan_logs = await discover(progress_callback=_progress)
+            self._scan_logs = scan_logs or self._scan_logs
+            self._scan_devices = mergeDevicesList(
+                discovered_devices, self.cloud_data.device_list
+            )
+        except OSError as ex:
+            if ex.errno == errno.EADDRINUSE:
+                self._scan_errors["base"] = "address_in_use"
+            else:
+                self._scan_errors["base"] = "discovery_failed"
+        except Exception as ex:  # pylint: disable=broad-except
+            _LOGGER.exception("discovery failed: %s", ex)
+            self._scan_errors["base"] = "discovery_failed"
+
+        return self._scan_devices, self._scan_logs, self._scan_errors
 
     async def async_step_init(self, user_input=None):
         """Manage basic options."""
@@ -274,6 +321,54 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             self.hass.async_create_task(self.cloud_data.async_get_devices_list())
 
         return self.async_show_menu(step_id="init", menu_options=configure_menu)
+
+    async def async_step_restart_scan(self, user_input=None):
+        """Run a local discovery scan and show a loading screen while it executes."""
+        if user_input is not None:
+            return await self.async_step_init()
+
+        if not getattr(self, "_scan_task", None):
+            self._scan_task = self.hass.async_create_task(self._async_run_discovery_scan())
+
+        if self._scan_task.done():
+            return self.async_show_progress_done(next_step_id="restart_scan_result")
+
+        return self.async_show_progress(
+            step_id="restart_scan",
+            progress_action="scan_network",
+            progress_task=self._scan_task,
+        )
+
+    async def async_step_restart_scan_result(self, user_input=None):
+        """Show the result of the latest discovery scan."""
+        if user_input is not None:
+            self._scan_task = None
+            return await self.async_step_init()
+
+        discovered_devices = self._scan_devices
+        self.discovered_devices = discovered_devices
+
+        summary_lines = [f"Varredura concluída. Encontrados {len(discovered_devices)} dispositivo(s)."]
+        if discovered_devices:
+            summary_lines.extend(
+                f"- {dev_id} ({dev.get(CONF_TUYA_IP, 'desconhecido')})"
+                for dev_id, dev in sorted(discovered_devices.items())
+            )
+        else:
+            summary_lines.append("- Nenhum dispositivo encontrado na rede local.")
+
+        log_lines = self._scan_logs if self._scan_logs else ["Nenhum log de descoberta foi coletado."]
+        placeholders = {
+            "message": "\n".join(summary_lines),
+            "log": "\n".join(log_lines),
+        }
+
+        return self.async_show_form(
+            step_id="restart_scan_result",
+            data_schema=vol.Schema({}),
+            errors=self._scan_errors,
+            description_placeholders=placeholders,
+        )
 
     async def async_step_configure_cloud(self, user_input=None):
         """Handle the initial step."""
@@ -953,7 +1048,7 @@ async def discover_devices() -> tuple[dict[str, dict], dict[str, str]]:
     errors = {}
     discovered_devices = {}
     try:
-        discovered_devices = await discover()
+        discovered_devices, _ = await discover()
     except OSError as ex:
         if ex.errno == errno.EADDRINUSE:
             errors["base"] = "address_in_use"
