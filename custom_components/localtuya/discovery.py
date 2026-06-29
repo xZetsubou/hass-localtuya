@@ -121,12 +121,12 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
             self._callback(device)
 
 
-async def discover(callback=None, timeout=DEFAULT_TIMEOUT):
+async def discover():
     """Discover and return devices on local network."""
-    discovery = TuyaDiscovery(callback=callback)
+    discovery = TuyaDiscovery()
     try:
         await discovery.start()
-        await asyncio.sleep(timeout)
+        await asyncio.sleep(DEFAULT_TIMEOUT)
     finally:
         discovery.close()
     return discovery.devices
