@@ -90,6 +90,7 @@ TEMPLATES = "templates"
 NO_ADDITIONAL_ENTITIES = "no_additional_entities"
 SELECTED_DEVICE = "selected_device"
 EXPORT_CONFIG = "export_config"
+AUTO_ENTITY_SELECTION = "auto_entity_selection"
 
 TUYA_CATEGORY = "category"
 DEVICE_CLOUD_DATA = "device_cloud_data"
@@ -731,9 +732,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         # Process to add the device to localtuya HA Config.
         if dev_data:
             self.entities = dev_data
-            return await self.async_step_pick_entity_type(
-                {NO_ADDITIONAL_ENTITIES: True}
-            )
+            return await self.async_step_review_auto_entities()
 
         if not is_cloud:
             err_msg = f"This feature requires cloud API setup for now"
@@ -752,21 +751,39 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             description_placeholders=placeholders,
         )
 
+    async def async_step_review_auto_entities(self, user_input=None):
+        """Let the user review the entities suggested by auto-configure."""
+
+        if user_input is not None:
+            selected_entities = user_input.get(AUTO_ENTITY_SELECTION, [])
+            self.entities = filter_auto_entities(self.entities, selected_entities)
+
+            if not self.entities:
+                return self.async_abort(reason="no_entities")
+
+            return self._save_auto_configured_device()
+
+        entity_options = auto_entity_labels(self.entities)
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    AUTO_ENTITY_SELECTION,
+                    description={"suggested_value": entity_options},
+                ): cv.multi_select(entity_options)
+            }
+        )
+
+        return self.async_show_form(
+            step_id="review_auto_entities",
+            data_schema=schema,
+            description_placeholders={"entity_count": len(entity_options)},
+        )
+
     async def async_step_pick_entity_type(self, user_input=None):
         """Handle asking if user wants to add another entity."""
         if user_input is not None:
             if user_input.get(NO_ADDITIONAL_ENTITIES):
-                config = {
-                    **self.device_data,
-                    CONF_DPS_STRINGS: self.dps_strings,
-                    CONF_ENTITIES: self.entities,
-                }
-
-                dev_id = self.device_data.get(CONF_DEVICE_ID)
-
-                new_data = self.config_entry.data.copy()
-                new_data[CONF_DEVICES].update({dev_id: config})
-                return self._update_entry(new_data)
+                return self._save_auto_configured_device()
 
             if user_input.get(USE_TEMPLATE):
                 return await self.async_step_choose_template()
@@ -783,6 +800,21 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             )
 
         return self.async_show_form(step_id="pick_entity_type", data_schema=schema)
+
+    @callback
+    def _save_auto_configured_device(self):
+        """Persist the auto-configured device with the selected entities."""
+
+        config = {
+            **self.device_data,
+            CONF_DPS_STRINGS: self.dps_strings,
+            CONF_ENTITIES: self.entities,
+        }
+
+        dev_id = self.device_data.get(CONF_DEVICE_ID)
+        new_data = self.config_entry.data.copy()
+        new_data[CONF_DEVICES].update({dev_id: config})
+        return self._update_entry(new_data)
 
     async def async_step_choose_template(self, user_input=None):
         """Handle asking which templates to use"""
@@ -1180,6 +1212,26 @@ def schema_suggested_values(schema: vol.Schema, **defaults):
 
         new_schema[new_field] = field_type
     return vol.Schema(new_schema)
+
+
+def auto_entity_labels(entities: list[dict]) -> list[str]:
+    """Return stable human-readable labels for the auto-generated entities."""
+
+    return [
+        f"{entity.get(CONF_ID)}: {entity.get(CONF_FRIENDLY_NAME)} ({entity.get(CONF_PLATFORM)})"
+        for entity in entities
+    ]
+
+
+def filter_auto_entities(entities: list[dict], selected_labels: list[str]) -> list[dict]:
+    """Keep only the entities selected in the review step."""
+
+    selected = set(selected_labels)
+    return [
+        entity
+        for entity, label in zip(entities, auto_entity_labels(entities))
+        if label in selected
+    ]
 
 
 def dps_string_list(dps_data: dict[str, dict], cloud_dp_codes: dict[str, dict]) -> list:
