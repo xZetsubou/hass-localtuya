@@ -91,6 +91,7 @@ NO_ADDITIONAL_ENTITIES = "no_additional_entities"
 SELECTED_DEVICE = "selected_device"
 EXPORT_CONFIG = "export_config"
 AUTO_ENTITY_SELECTION = "auto_entity_selection"
+AUTO_ENTITY_REVIEW = "auto_entity_review"
 
 TUYA_CATEGORY = "category"
 DEVICE_CLOUD_DATA = "device_cloud_data"
@@ -267,6 +268,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         self._scan_errors: dict[str, str] = {}
         self._scan_progress_message = "Aguardando broadcasts..."
         self._last_progress_result = None
+        self.auto_entity_dps_data: dict[str, dict] = {}
 
     @property
     def localtuya_data(self) -> HassLocalTuyaData:
@@ -718,6 +720,9 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         device_data = self.cloud_data.device_list.get(dev_id)
         if device_data:
             category = self.cloud_data.device_list[dev_id].get(TUYA_CATEGORY, "")
+            self.auto_entity_dps_data = device_data.get("dps_data", {}) or {}
+        else:
+            self.auto_entity_dps_data = {}
 
         localtuya_data = {
             DEVICE_CLOUD_DATA: device_data,
@@ -752,18 +757,40 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         )
 
     async def async_step_review_auto_entities(self, user_input=None):
-        """Let the user review the entities suggested by auto-configure."""
+        """Ask whether the user wants to review the suggested entities."""
+
+        if user_input is not None:
+            if user_input.get(AUTO_ENTITY_REVIEW):
+                return await self.async_step_select_auto_entities()
+
+            return self._save_auto_configured_device()
+
+        schema = vol.Schema(
+            {
+                vol.Required(AUTO_ENTITY_REVIEW, default=True): bool,
+            }
+        )
+
+        return self.async_show_form(
+            step_id="review_auto_entities",
+            data_schema=schema,
+        )
+
+    async def async_step_select_auto_entities(self, user_input=None):
+        """Let the user select which auto-detected entities to keep."""
 
         if user_input is not None:
             selected_entities = user_input.get(AUTO_ENTITY_SELECTION, [])
-            self.entities = filter_auto_entities(self.entities, selected_entities)
+            self.entities = filter_auto_entities(
+                self.entities, selected_entities, self.auto_entity_dps_data
+            )
 
             if not self.entities:
                 return self.async_abort(reason="no_entities")
 
             return self._save_auto_configured_device()
 
-        entity_options = auto_entity_labels(self.entities)
+        entity_options = auto_entity_labels(self.entities, self.auto_entity_dps_data)
         schema = vol.Schema(
             {
                 vol.Required(
@@ -774,7 +801,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         )
 
         return self.async_show_form(
-            step_id="review_auto_entities",
+            step_id="select_auto_entities",
             data_schema=schema,
             description_placeholders={"entity_count": len(entity_options)},
         )
@@ -812,8 +839,11 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         }
 
         dev_id = self.device_data.get(CONF_DEVICE_ID)
-        new_data = self.config_entry.data.copy()
-        new_data[CONF_DEVICES].update({dev_id: config})
+        entry_data = dict(getattr(self.config_entry, "data", {}) or {})
+        new_data = dict(entry_data)
+        devices = dict(new_data.get(CONF_DEVICES, {}))
+        devices[dev_id] = config
+        new_data[CONF_DEVICES] = devices
         return self._update_entry(new_data)
 
     async def async_step_choose_template(self, user_input=None):
@@ -1214,22 +1244,51 @@ def schema_suggested_values(schema: vol.Schema, **defaults):
     return vol.Schema(new_schema)
 
 
-def auto_entity_labels(entities: list[dict]) -> list[str]:
-    """Return stable human-readable labels for the auto-generated entities."""
+def auto_entity_labels(
+    entities: list[dict], dps_data: dict[str, dict] | None = None
+) -> list[str]:
+    """Return human-readable labels for the auto-generated entities."""
 
+    dps_data = dps_data or {}
     return [
-        f"{entity.get(CONF_ID)}: {entity.get(CONF_FRIENDLY_NAME)} ({entity.get(CONF_PLATFORM)})"
+        auto_entity_label(entity, dps_data.get(str(entity.get(CONF_ID)), {}))
         for entity in entities
     ]
 
 
-def filter_auto_entities(entities: list[dict], selected_labels: list[str]) -> list[dict]:
+def auto_entity_label(entity: dict, dp_data: dict[str, Any]) -> str:
+    """Build a detailed preview label for one auto-generated entity."""
+
+    dp_id = str(entity.get(CONF_ID, "?"))
+    friendly_name = str(entity.get(CONF_FRIENDLY_NAME) or dp_data.get("name") or "")
+    code = str(dp_data.get("code") or friendly_name or dp_id)
+    dp_type = str(dp_data.get("type") or entity.get(CONF_PLATFORM) or "unknown")
+    access_mode = str(dp_data.get("accessMode") or "unknown")
+    current_value = _format_preview_value(dp_data.get("value", entity.get("value")))
+
+    return f"{dp_id} | {friendly_name} | {code} | {dp_type} | {access_mode} | value: {current_value}"
+
+
+def _format_preview_value(value: Any) -> str:
+    """Format cloud values for compact display in the review step."""
+
+    if isinstance(value, bool):
+        return str(value).lower()
+    if value is None:
+        return "-"
+    return str(value)
+
+
+def filter_auto_entities(
+    entities: list[dict], selected_labels: list[str], dps_data: dict[str, dict] | None = None
+) -> list[dict]:
     """Keep only the entities selected in the review step."""
 
+    dps_data = dps_data or {}
     selected = set(selected_labels)
     return [
         entity
-        for entity, label in zip(entities, auto_entity_labels(entities))
+        for entity, label in zip(entities, auto_entity_labels(entities, dps_data))
         if label in selected
     ]
 
@@ -1468,12 +1527,10 @@ async def validate_input(entry_runtime: HassLocalTuyaData, data):
     # won't work in this case
     if not bypass_connection and error:
         raise error
-    # If bypass handshake. otherwise raise failed to make handshake with device.
-    # --- Cloud: We will use the DPS found on cloud if exists.
-    # --- No cloud: user will have to input the DPS manually.
-    if not detected_dps_device and not (
-        (cloud_dp_codes or detected_dps) and bypass_handshake
-    ):
+    # If neither the local scan nor the cloud returned any DPS, fail early.
+    # The cloud result should be enough to continue even when the local scan
+    # cannot discover any datapoints.
+    if not detected_dps_device and not (cloud_dp_codes or detected_dps or bypass_handshake):
         raise EmptyDpsList
 
     logger.info("Total DPS: %s", detected_dps)

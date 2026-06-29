@@ -1,9 +1,18 @@
 from . import *
+from custom_components.localtuya.config_flow import auto_entity_labels, validate_input
 from custom_components.localtuya.core.ha_entities import (
     gen_localtuya_entities,
     DATA_PLATFORMS,
 )
-from custom_components.localtuya.const import PLATFORMS
+from custom_components.localtuya.const import (
+    PLATFORMS,
+    CONF_DEVICE_SLEEP_TIME,
+    CONF_ENABLE_DEBUG,
+    CONF_FRIENDLY_NAME,
+    CONF_LOCAL_KEY,
+    CONF_PROTOCOL_VERSION,
+)
+from homeassistant.const import CONF_DEVICE_ID, CONF_HOST
 
 
 COVER_DEVICE_DATA = {
@@ -213,3 +222,81 @@ async def test_auto_configure():
     category = COVER_DEVICE_DATA["device_cloud_info"]["category"]
     entities = gen_localtuya_entities(COVER_DEVICE_DATA["device_config"], category)
     assert len(entities) > 4
+
+
+def test_auto_configure_review_labels_show_cloud_metadata():
+    category = COVER_DEVICE_DATA["device_cloud_info"]["category"]
+    entities = gen_localtuya_entities(COVER_DEVICE_DATA["device_config"], category)
+    labels = auto_entity_labels(
+        entities,
+        COVER_DEVICE_DATA["device_cloud_info"]["dps_data"],
+    )
+
+    assert any("|" in label for label in labels)
+    assert any("| control |" in label.lower() for label in labels)
+    assert any("| enum |" in label.lower() for label in labels)
+    assert any("| rw |" in label.lower() for label in labels)
+    assert any("value: open" in label.lower() for label in labels)
+
+
+async def test_validate_input_accepts_cloud_dps_when_local_scan_is_empty():
+    class DummyInterface:
+        connected = False
+        is_connecting = False
+
+        async def detect_available_dps(self, cid=None):
+            return {}
+
+        async def close(self):
+            return None
+
+    class DummyCloudData:
+        def __init__(self):
+            self.device_list = {
+                "dev1": {
+                    "dps_data": {
+                        "1": {
+                            "code": "switch",
+                            "type": "bool",
+                            "values": '{"type":"bool"}',
+                            "accessMode": "rw",
+                            "value": True,
+                        }
+                    }
+                }
+            }
+
+        async def async_get_device_functions(self, device_id):
+            return self.device_list[device_id]["dps_data"]
+
+    class DummyEntryRuntime:
+        def __init__(self):
+            self.devices = {}
+            self.cloud_data = DummyCloudData()
+
+    import custom_components.localtuya.config_flow as config_flow_module
+
+    original_connect = config_flow_module.pytuya.connect
+
+    async def fake_connect(*args, **kwargs):
+        return DummyInterface()
+
+    config_flow_module.pytuya.connect = fake_connect
+    try:
+        result = await validate_input(
+            DummyEntryRuntime(),
+            {
+                CONF_DEVICE_ID: "dev1",
+                CONF_HOST: "192.168.1.10",
+                CONF_LOCAL_KEY: "abc123",
+                CONF_PROTOCOL_VERSION: "3.3",
+                CONF_ENABLE_DEBUG: False,
+                CONF_FRIENDLY_NAME: "Device 1",
+                CONF_DEVICE_SLEEP_TIME: 0,
+            },
+        )
+
+        assert result[CONF_PROTOCOL_VERSION] == "3.3"
+        assert any("1" in dps for dps in result["dps_strings"])
+    finally:
+        config_flow_module.pytuya.connect = original_connect
