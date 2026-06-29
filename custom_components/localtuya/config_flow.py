@@ -44,6 +44,7 @@ from homeassistant.const import (
 
 from .coordinator import HassLocalTuyaData
 from .core import pytuya
+from .core.entity_generator import gen_cloud_entities
 from .core.cloud_api import TUYA_ENDPOINTS, TuyaCloudApi
 from .core.helpers import templates, get_gateway_by_deviceid, gen_localtuya_entities
 from .const import (
@@ -723,7 +724,9 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             CONF_FRIENDLY_NAME: self.device_data.get(CONF_FRIENDLY_NAME),
         }
 
-        dev_data = gen_localtuya_entities(localtuya_data, category)
+        dev_data = gen_localtuya_entities(localtuya_data, category) or []
+        used_ids = {str(entity.get(CONF_ID)) for entity in dev_data}
+        dev_data.extend(gen_cloud_entities(localtuya_data, used_ids))
 
         # Process to add the device to localtuya HA Config.
         if dev_data:
@@ -1028,8 +1031,11 @@ async def setup_localtuya_devices(
     for dev_id, dev_data in copy.deepcopy(devices).items():
         category = devices_cloud_data[dev_id].get("category")
         dev_data[DEVICE_CLOUD_DATA] = devices_cloud_data[dev_id]
-        if category and (dps_strings := dev_data.get(CONF_DPS_STRINGS, False)):
-            dev_entites = gen_localtuya_entities(dev_data, category)
+        dev_entites = []
+        if category and dev_data.get(CONF_DPS_STRINGS):
+            dev_entites = gen_localtuya_entities(dev_data, category) or []
+        used_ids = {str(entity.get(CONF_ID)) for entity in dev_entites}
+        dev_entites.extend(gen_cloud_entities(dev_data, used_ids))
 
         # Configure entities fails
         if not dev_entites:
