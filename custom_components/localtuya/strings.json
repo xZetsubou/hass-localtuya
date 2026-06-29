@@ -37,6 +37,9 @@
         }
     },
     "options": {
+        "progress": {
+            "scan_network": "Scanning the local network for Tuya devices..."
+        },
         "step": {
             "init": {
                 "title": "LocalTuya Configuration",
@@ -44,6 +47,7 @@
                 "data": {
                     "add_device": "Add a new device",
                     "edit_device": "Edit a device",
+                    "restart_scan": "Restart scan",
                     "delete_device": "Delete a device",
                     "setup_cloud": "Reconfigure Cloud API account"
                 }
@@ -132,6 +136,14 @@
                     "max_value": "Maximum Value",
                     "step_size": "Minimum increment between numbers"
                 }
+            },
+            "restart_scan": {
+                "title": "Restart scan",
+                "description": "Scanning the local network for Tuya devices..."
+            },
+            "restart_scan_result": {
+                "title": "Restart scan",
+                "description": "Scan result:\n{message}\n\nDiscovery log:\n{log}"
             },
             "yaml_import": {
                 "title": "Not Supported",

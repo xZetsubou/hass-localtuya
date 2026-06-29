@@ -31,6 +31,9 @@
         }
     },
     "options": {
+        "progress": {
+            "scan_network": "Procurando dispositivos Tuya na rede local..."
+        },
         "abort": {
             "already_configured": "Esta conta já foi configurada.",
             "device_success": "Dispositivo {dev_name} configurado com sucesso {action}.",
@@ -58,8 +61,11 @@
                 "menu_options": {
                     "add_device": "Adicionar novo dispositivo",
                     "edit_device": "Reconfigurar dispositivo existente",
+                    "restart_scan": "Reiniciar varredura",
+                    "delete_device": "Excluir dispositivo",
                     "configure_cloud": "Gerenciar conta da API de Nuvem"
                 }
+
             },
             "add_device": {
                 "title": "Escolha o dispositivo para configurar",
@@ -86,6 +92,14 @@
                     "username": "Nome de Usuário",
                     "no_cloud": "Desativar a API de Nuvem?"
                 }
+            },
+            "restart_scan": {
+                "title": "Reiniciar varredura",
+                "description": "Procurando dispositivos Tuya na rede local..."
+            },
+            "restart_scan_result": {
+                "title": "Reiniciar varredura",
+                "description": "Resultado da varredura:\n{message}\n\nLog da descoberta:\n{log}"
             },
             "configure_device": {
                 "title": "Configurar conectividade do dispositivo",

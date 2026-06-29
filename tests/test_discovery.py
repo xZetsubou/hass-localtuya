@@ -1,5 +1,7 @@
 """Test for localtuya."""
 
+from unittest.mock import Mock
+
 from . import *
 from custom_components.localtuya.discovery import TuyaDiscovery
 
@@ -10,7 +12,7 @@ DEVICE3_5 = b"\x00\x00f\x99\x00\x00\x00\x00\x00\x00\x00\x00\x00\x13\x00\x00\x00\
 
 
 async def test_dsicovery():
-    mock_callback = AsyncMock()
+    mock_callback = Mock()
     discovery = TuyaDiscovery(mock_callback)
 
     discovery.datagram_received(DEVICE3_3, None)
@@ -19,3 +21,13 @@ async def test_dsicovery():
 
     mock_callback.assert_called()
     assert len(discovery.devices) == 3
+
+
+def test_discovery_logs_progress_messages():
+    discovery = TuyaDiscovery()
+
+    discovery.device_found({"gwId": "gw-test", "ip": "192.168.1.10", "productKey": "pk-test"})
+
+    assert len(discovery.log_messages) == 1
+    assert "gw-test" in discovery.log_messages[0]
+    assert "192.168.1.10" in discovery.log_messages[0]
