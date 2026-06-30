@@ -61,7 +61,7 @@
                 "menu_options": {
                     "add_device": "Adicionar novo dispositivo",
                     "edit_device": "Reconfigurar dispositivo existente",
-                    "restart_scan": "Reiniciar varredura",
+                    "restart_scan": "Buscar Dispositivos novamente",
                     "delete_device": "Excluir dispositivo",
                     "configure_cloud": "Gerenciar conta da API de Nuvem"
                 }
@@ -94,12 +94,12 @@
                 }
             },
             "restart_scan": {
-                "title": "Reiniciar varredura",
+                "title": "Buscar Dispositivos novamente",
                 "description": "Procurando dispositivos Tuya na rede local..."
             },
             "restart_scan_result": {
-                "title": "Reiniciar varredura",
-                "description": "Resultado da varredura:\n{message}\n\nLog da descoberta:\n{log}"
+                "title": "Buscar Dispositivos novamente",
+                "description": "Resumo da varredura e comparação local x app:\n{message}\n\nLog da descoberta:\n{log}"
             },
             "configure_device": {
                 "title": "Configurar conectividade do dispositivo",

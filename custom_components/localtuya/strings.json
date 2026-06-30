@@ -143,7 +143,7 @@
             },
             "restart_scan_result": {
                 "title": "Restart scan",
-                "description": "Scan result:\n{message}\n\nDiscovery log:\n{log}"
+                "description": "Scan summary and local vs app comparison:\n{message}\n\nDiscovery log:\n{log}"
             },
             "yaml_import": {
                 "title": "Not Supported",

@@ -26,7 +26,7 @@ PREFIX_55AA_BIN = b"\x00\x00U\xaa"
 PREFIX_6699_BIN = b"\x00\x00\x66\x99"
 UDP_COMMAND = b"\x00\x00\x00\x00"
 
-DEFAULT_TIMEOUT = 15.0
+DEFAULT_TIMEOUT = 25.0
 
 
 def decrypt(msg, key):

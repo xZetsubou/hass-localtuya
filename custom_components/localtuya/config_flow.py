@@ -301,9 +301,9 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         try:
             discovered_devices, scan_logs = await discover(progress_callback=_progress)
             self._scan_logs = scan_logs or self._scan_logs
-            self._scan_devices = mergeDevicesList(
-                discovered_devices, self.cloud_data.device_list
-            )
+            # Keep only raw local discovery here; merge with cloud is done later
+            # using a freshly refreshed cloud list in restart_scan_result.
+            self._scan_devices = discovered_devices
         except OSError as ex:
             if ex.errno == errno.EADDRINUSE:
                 self._scan_errors["base"] = "address_in_use"
@@ -351,7 +351,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             return await self.async_step_init()
 
         discovered_devices = self._scan_devices
-        self.discovered_devices = discovered_devices
+        local_scan_count = len(discovered_devices)
         cloud_devices = {}
 
         if not self.config_entry.data.get(CONF_NO_CLOUD, True):
@@ -361,31 +361,36 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 _LOGGER.debug("Unable to refresh cloud devices for scan result: %s", ex)
             cloud_devices = self.cloud_data.device_list or {}
 
-        local_ids = set(discovered_devices)
-        cloud_ids = set(cloud_devices)
-        matched_ids = local_ids & cloud_ids
-        local_only_ids = local_ids - cloud_ids
-        cloud_only_ids = cloud_ids - local_ids
+            # Use fresh cloud data for the same merge strategy as add_device step.
+            discovered_devices = mergeDevicesList(discovered_devices, cloud_devices)
 
-        summary_lines = [f"Varredura concluída. Encontrados {len(discovered_devices)} dispositivo(s)."]
-        if discovered_devices:
-            summary_lines.extend(
-                f"- {dev_id} ({dev.get(CONF_TUYA_IP, 'desconhecido')})"
-                for dev_id, dev in sorted(discovered_devices.items())
-            )
-        else:
-            summary_lines.append("- Nenhum dispositivo encontrado na rede local.")
+        self.discovered_devices = discovered_devices
+
+        local_codes, local_ips_by_code = _local_device_index(discovered_devices)
+        cloud_ids = set(cloud_devices)
+        matched_ids = local_codes & cloud_ids
+        local_only_ids = local_codes - cloud_ids
+        cloud_only_ids = cloud_ids - local_codes
+
+        merged_count = len(discovered_devices)
+
+        summary_lines = [f"Varredura concluída. Encontrados {local_scan_count} dispositivo(s) na rede local."]
+        if not local_scan_count:
+            summary_lines.append("Nenhum dispositivo encontrado na rede local.")
 
         if cloud_devices:
             summary_lines.extend(
                 [
                     "",
-                    f"Comparativo local x app: {len(matched_ids)} em ambos, {len(local_only_ids)} só na rede local, {len(cloud_only_ids)} só no app.",
+                    f"Comparativo local x app (por código): {len(matched_ids)} em ambos, {len(local_only_ids)} só na rede local, {len(cloud_only_ids)} só no app.",
+                    f"Itens na listagem após merge local+nuvem: {merged_count}.",
                     "",
                     "Dispositivos cadastrados no app Tuya (API):",
                 ]
             )
-            summary_lines.extend(cloud_devices_table(cloud_devices, local_ids))
+            summary_lines.extend(
+                cloud_devices_table(cloud_devices, local_codes, local_ips_by_code)
+            )
         elif not self.config_entry.data.get(CONF_NO_CLOUD, True):
             summary_lines.extend(
                 [
@@ -1246,28 +1251,56 @@ def mergeDevicesList(localList: dict, cloudList: dict, addSubDevices=True) -> di
     return newList
 
 
-def cloud_devices_table(cloud_devices: dict[str, dict], local_ids: set[str]) -> list[str]:
-    """Return a text-table summary for cloud devices with local match status."""
+def cloud_devices_table(
+    cloud_devices: dict[str, dict],
+    local_codes: set[str],
+    local_ips_by_code: dict[str, str],
+) -> list[str]:
+    """Return a markdown-table summary for cloud devices with local match status."""
 
-    headers = "ID                   | Nome                    | Cat | Modelo       | On | Key        | Local"
-    divider = "---------------------+-------------------------+-----+-------------+----+------------+------"
-    rows = [headers, divider]
+    rows = [
+        "| Nome | Codigo | IP local | Cat | Modelo | On | Key | Local |",
+        "| --- | --- | --- | --- | --- | :---: | --- | :---: |",
+    ]
 
     for dev_id, dev in sorted(
         cloud_devices.items(), key=lambda item: _device_display_name(item[1]).lower()
     ):
         rows.append(
-            " | ".join(
+            "| "
+            + " | ".join(
                 [
-                    _clip(dev_id, 21),
-                    _clip(_device_display_name(dev), 25),
-                    _clip(dev.get("category", "-"), 3),
-                    _clip(dev.get("model", "-"), 11),
-                    _clip("sim" if dev.get("online") else "nao", 2),
-                    _clip(mask_secret(dev.get(CONF_LOCAL_KEY)), 10),
-                    "sim" if dev_id in local_ids else "nao",
+                    _md_table_cell(_device_display_name(dev)),
+                    _md_table_cell(dev_id),
+                    _md_table_cell(local_ips_by_code.get(dev_id, "-")),
+                    _md_table_cell(dev.get("category", "-")),
+                    _md_table_cell(dev.get("model", "-")),
+                    _md_table_cell("sim" if dev.get("online") else "nao"),
+                    _md_table_cell(dev.get(CONF_LOCAL_KEY, "-")),
+                    _md_table_cell("sim" if dev_id in local_codes else "nao"),
                 ]
             )
+            + " |"
+        )
+
+    # Also show devices discovered locally that are not present in cloud API.
+    local_only_codes = sorted(local_codes - set(cloud_devices))
+    for dev_id in local_only_codes:
+        rows.append(
+            "| "
+            + " | ".join(
+                [
+                    _md_table_cell("(somente local)"),
+                    _md_table_cell(dev_id),
+                    _md_table_cell(local_ips_by_code.get(dev_id, "-")),
+                    _md_table_cell("-"),
+                    _md_table_cell("-"),
+                    _md_table_cell("-"),
+                    _md_table_cell("-"),
+                    _md_table_cell("sim"),
+                ]
+            )
+            + " |"
         )
 
     return rows
@@ -1277,6 +1310,21 @@ def _device_display_name(device: dict) -> str:
     """Return the best available display name for a cloud device."""
 
     return str(device.get("customName") or device.get("custom_name") or device.get(CONF_NAME) or "-")
+
+
+def _local_device_index(discovered_devices: dict[str, dict]) -> tuple[set[str], dict[str, str]]:
+    """Build local indexes using device code and corresponding discovered IP."""
+
+    local_codes: set[str] = set()
+    local_ips_by_code: dict[str, str] = {}
+
+    for dev_id, dev in discovered_devices.items():
+        code = str(dev.get(CONF_TUYA_GWID) or dev_id)
+        ip = str(dev.get(CONF_TUYA_IP) or "-")
+        local_codes.add(code)
+        local_ips_by_code.setdefault(code, ip)
+
+    return local_codes, local_ips_by_code
 
 
 def mask_secret(value: str | None, visible=3) -> str:
@@ -1290,13 +1338,14 @@ def mask_secret(value: str | None, visible=3) -> str:
     return f"{value[:visible]}...{value[-visible:]}"
 
 
-def _clip(value: Any, width: int) -> str:
-    """Clip and pad a value for table-like text rendering."""
+def _md_table_cell(value: Any) -> str:
+    """Escape and normalize values for markdown-table rendering."""
 
     text = str(value) if value is not None else "-"
-    if len(text) > width:
-        text = f"{text[: max(width - 1, 0)]}~"
-    return text.ljust(width)
+    text = text.replace("\n", " ").replace("\r", " ").strip()
+    if not text:
+        text = "-"
+    return text.replace("|", "\\|")
 
 
 def options_schema(entities):
