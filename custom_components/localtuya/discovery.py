@@ -85,12 +85,19 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
         encrypted_listener = loop.create_datagram_endpoint(
             lambda: self, local_addr=("0.0.0.0", 6667), **op_reuse_port
         )
-        # tuyaApp_encrypted_listener = loop.create_datagram_endpoint(
-        #     lambda: self, local_addr=("0.0.0.0", 7000), **op_reuse_port
-        # )
         self._listeners = await asyncio.gather(listener, encrypted_listener)
+
+        # Some Tuya app broadcasts can arrive on UDP 7000.
+        try:
+            tuya_app_listener = await loop.create_datagram_endpoint(
+                lambda: self, local_addr=("0.0.0.0", 7000), **op_reuse_port
+            )
+            self._listeners.append(tuya_app_listener)
+        except OSError as ex:
+            _LOGGER.debug("Could not listen on UDP 7000: %s", ex)
+
         self._record_progress("Aguardando broadcasts...", 0.0)
-        _LOGGER.debug("Listening to broadcasts on UDP port 6666, 6667")
+        _LOGGER.debug("Listening to broadcasts on UDP port 6666, 6667, 7000")
 
     def close(self):
         """Stop discovery."""
