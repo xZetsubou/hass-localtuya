@@ -39,7 +39,7 @@ async def init(config: dict[str, dict[str, Any]], entity_domain, entity_class):
     entry = ConfigEntry(**create_entry(config))
     tuya_api = TuyaCloudApi("EU", "test_client_id", "test_secret", "test_user_id")
 
-    hass.data.setdefault("localtuya", {entry.entry_id: {}})
+    hass.data.setdefault(DOMAIN, {entry.entry_id: {}})
 
     dump_device = coordinator.TuyaDevice(hass, entry, config[DEVICE_NAME])
     dump_device.status_updated = lambda x: [

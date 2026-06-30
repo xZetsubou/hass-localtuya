@@ -232,11 +232,14 @@ def test_auto_configure_review_labels_show_cloud_metadata():
         COVER_DEVICE_DATA["device_cloud_info"]["dps_data"],
     )
 
-    assert any("|" in label for label in labels)
-    assert any("| control |" in label.lower() for label in labels)
-    assert any("| enum |" in label.lower() for label in labels)
-    assert any("| rw |" in label.lower() for label in labels)
+    assert labels[0].startswith("DP 101:")
+    assert "\ncode:" in labels[0]
+    assert "\ntype:" in labels[0]
+    assert "| access:" in labels[0]
     assert any("value: open" in label.lower() for label in labels)
+    assert labels.index(next(label for label in labels if label.startswith("DP 101:"))) < labels.index(
+        next(label for label in labels if label.startswith("DP 12:"))
+    )
 
 
 async def test_validate_input_accepts_cloud_dps_when_local_scan_is_empty():

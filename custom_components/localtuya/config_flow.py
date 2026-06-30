@@ -92,6 +92,7 @@ SELECTED_DEVICE = "selected_device"
 EXPORT_CONFIG = "export_config"
 AUTO_ENTITY_SELECTION = "auto_entity_selection"
 AUTO_ENTITY_REVIEW = "auto_entity_review"
+AUTO_ENTITY_REVIEW_EACH = "auto_entity_review_each"
 
 TUYA_CATEGORY = "category"
 DEVICE_CLOUD_DATA = "device_cloud_data"
@@ -788,6 +789,18 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             if not self.entities:
                 return self.async_abort(reason="no_entities")
 
+            if user_input.get(AUTO_ENTITY_REVIEW_EACH):
+                self.editing_device = True
+                self.device_data.update(
+                    {
+                        CONF_DEVICE_ID: self.selected_device,
+                        CONF_NODE_ID: self.nodeID,
+                        CONF_DPS_STRINGS: self.dps_strings,
+                        CONF_ENTITIES: [],
+                    }
+                )
+                return await self.async_step_configure_entity()
+
             return self._save_auto_configured_device()
 
         entity_options = auto_entity_labels(self.entities, self.auto_entity_dps_data)
@@ -796,7 +809,8 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
                 vol.Required(
                     AUTO_ENTITY_SELECTION,
                     description={"suggested_value": entity_options},
-                ): cv.multi_select(entity_options)
+                ): cv.multi_select(entity_options),
+                vol.Required(AUTO_ENTITY_REVIEW_EACH, default=False): bool,
             }
         )
 
@@ -1250,10 +1264,25 @@ def auto_entity_labels(
     """Return human-readable labels for the auto-generated entities."""
 
     dps_data = dps_data or {}
+    sorted_entities = sorted(
+        entities,
+        key=lambda entity: auto_entity_sort_key(
+            entity, dps_data.get(str(entity.get(CONF_ID)), {})
+        ),
+    )
     return [
         auto_entity_label(entity, dps_data.get(str(entity.get(CONF_ID)), {}))
-        for entity in entities
+        for entity in sorted_entities
     ]
+
+
+def auto_entity_sort_key(entity: dict, dp_data: dict[str, Any]) -> tuple:
+    """Sort auto-generated entities by access mode, type and dp id."""
+
+    access_mode = str(dp_data.get("accessMode") or "").lower()
+    dp_type = str(dp_data.get("type") or entity.get(CONF_PLATFORM) or "").lower()
+    dp_id = _sort_dp_id(entity.get(CONF_ID))
+    return (_access_priority(access_mode), _type_priority(dp_type), dp_id)
 
 
 def auto_entity_label(entity: dict, dp_data: dict[str, Any]) -> str:
@@ -1266,7 +1295,47 @@ def auto_entity_label(entity: dict, dp_data: dict[str, Any]) -> str:
     access_mode = str(dp_data.get("accessMode") or "unknown")
     current_value = _format_preview_value(dp_data.get("value", entity.get("value")))
 
-    return f"{dp_id} | {friendly_name} | {code} | {dp_type} | {access_mode} | value: {current_value}"
+    return (
+        f"DP {dp_id}: {friendly_name}\n"
+        f"code: {code}\n"
+        f"type: {dp_type} | access: {access_mode}\n"
+        f"value: {current_value}"
+    )
+
+
+def _access_priority(access_mode: str) -> int:
+    """Return a deterministic ordering for access mode."""
+
+    priorities = {
+        "rw": 0,
+        "ro": 1,
+        "": 2,
+    }
+    return priorities.get(access_mode, 2)
+
+
+def _type_priority(dp_type: str) -> int:
+    """Return a deterministic ordering for DP type."""
+
+    priorities = {
+        "bool": 0,
+        "boolean": 0,
+        "enum": 1,
+        "integer": 2,
+        "value": 2,
+        "bitmap": 3,
+        "string": 4,
+    }
+    return priorities.get(dp_type, 5)
+
+
+def _sort_dp_id(dp_id: Any) -> tuple[int, str]:
+    """Sort DP ids numerically when possible and lexicographically otherwise."""
+
+    try:
+        return (0, f"{int(dp_id):06d}")
+    except (TypeError, ValueError):
+        return (1, str(dp_id))
 
 
 def _format_preview_value(value: Any) -> str:
