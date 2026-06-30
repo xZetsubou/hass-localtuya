@@ -145,6 +145,21 @@
                 "title": "Restart scan",
                 "description": "Scan summary and local vs app comparison:\n{message}\n\nDiscovery log:\n{log}"
             },
+            "review_auto_entities": {
+                "title": "Review suggested entities",
+                "description": "LocalTuya found entities for this device. Do you want to review the list before saving?",
+                "data": {
+                    "auto_entity_review": "Review suggested entities before saving"
+                }
+            },
+            "select_auto_entities": {
+                "title": "Select suggested entities",
+                "description": "Choose which entities to keep ({entity_count} suggested).",
+                "data": {
+                    "auto_entity_selection": "Suggested entities",
+                    "auto_entity_review_each": "Open detailed review for each selected entity"
+                }
+            },
             "yaml_import": {
                 "title": "Not Supported",
                 "description": "Options cannot be edited when configured via YAML."

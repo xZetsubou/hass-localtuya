@@ -128,6 +128,21 @@
                     "device_setup_method":"回到配置设备实体界面"
                 }
             },
+            "review_auto_entities": {
+                "title": "检查建议实体",
+                "description": "LocalTuya 已为该设备发现实体。是否在保存前先检查列表？",
+                "data": {
+                    "auto_entity_review": "保存前检查建议实体"
+                }
+            },
+            "select_auto_entities": {
+                "title": "选择建议实体",
+                "description": "请选择要保留的实体（共建议 {entity_count} 个）。",
+                "data": {
+                    "auto_entity_selection": "建议实体",
+                    "auto_entity_review_each": "为每个已选实体打开详细检查"
+                }
+            },
             "pick_entity_type": {
                 "title": "选择实体类型",
                 "description": "请选择你想要添加的实体类型。",

@@ -128,6 +128,21 @@
           "device_setup_method": "Kurulum yöntemine geri dön"
         }
       },
+      "review_auto_entities": {
+        "title": "Önerilen varlıkları gözden geçir",
+        "description": "LocalTuya bu cihaz için varlıklar buldu. Kaydetmeden önce listeyi gözden geçirmek ister misiniz?",
+        "data": {
+          "auto_entity_review": "Kaydetmeden önce önerilen varlıkları gözden geçir"
+        }
+      },
+      "select_auto_entities": {
+        "title": "Önerilen varlıkları seç",
+        "description": "Hangi varlıkların korunacağını seçin ({entity_count} önerildi).",
+        "data": {
+          "auto_entity_selection": "Önerilen varlıklar",
+          "auto_entity_review_each": "Seçilen her varlık için ayrıntılı inceleme aç"
+        }
+      },
       "pick_entity_type": {
         "title": "Varlık türü seçimi",
         "description": "Eklemek istediğiniz varlık türünü seçin.",

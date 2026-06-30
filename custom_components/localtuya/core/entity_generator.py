@@ -48,9 +48,27 @@ TYPE_VALUE = "value"
 READ_ONLY = "ro"
 
 ENERGY_CODES = {"add_ele", "energy", "total_energy", "total_forward_energy"}
-CURRENT_CODES = {"cur_current", "current", "phase_a_current"}
-POWER_CODES = {"cur_power", "power", "phase_a_power"}
-VOLTAGE_CODES = {"cur_voltage", "voltage", "phase_a_voltage"}
+CURRENT_CODES = {
+    "cur_current",
+    "current",
+    "phase_a_current",
+    "phase_b_current",
+    "phase_c_current",
+}
+POWER_CODES = {
+    "cur_power",
+    "power",
+    "phase_a_power",
+    "phase_b_power",
+    "phase_c_power",
+}
+VOLTAGE_CODES = {
+    "cur_voltage",
+    "voltage",
+    "phase_a_voltage",
+    "phase_b_voltage",
+    "phase_c_voltage",
+}
 
 
 def gen_cloud_entities(localtuya_data: dict, used_ids: set[str] | None = None) -> list[dict]:

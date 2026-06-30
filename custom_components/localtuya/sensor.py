@@ -115,9 +115,10 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
             if not self._has_sub_entities:
                 self.hass.add_job(self.__create_sub_sensors())
 
+            decoded_state = self.decode_base64(state)
             if None not in (
                 sub_sensor := getattr(self, "_attr_sub_sensor", None),
-                sub_sensor_state := self.decode_base64(state).get(sub_sensor),
+                sub_sensor_state := decoded_state.get(sub_sensor),
             ):
                 self._state = sub_sensor_state
             else:
@@ -147,11 +148,17 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
 
     def decode_base64(self, data):
         """Decode data base64 such as DPS phase_a."""
-        buf = base64.b64decode(data)
-        voltage = (buf[1] | buf[0] << 8) / 10
-        current = (buf[4] | buf[3] << 8) / 1000
-        power = (buf[7] | buf[6] << 8) / 1000
-        return {ATTR_VOLTAGE: voltage, ATTR_CURRENT: current, ATTR_POWER: power}
+        try:
+            buf = base64.b64decode(data)
+            if len(buf) < 8:
+                raise ValueError("decoded payload too short")
+            voltage = (buf[1] | buf[0] << 8) / 10
+            current = (buf[4] | buf[3] << 8) / 1000
+            power = (buf[7] | buf[6] << 8) / 1000
+            return {ATTR_VOLTAGE: voltage, ATTR_CURRENT: current, ATTR_POWER: power}
+        except Exception as ex:  # pylint: disable=broad-except
+            self.debug("Failed to decode base64 sensor payload: %s", ex)
+            return {}
 
     async def __create_sub_sensors(self):
         """Create sub entities for voltage, current and power and hide this parent sensor."""

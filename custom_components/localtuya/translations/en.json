@@ -140,6 +140,21 @@
                     "device_setup_method":"Return to Setup method"
                 }
             },
+            "review_auto_entities": {
+                "title": "Review suggested entities",
+                "description": "LocalTuya found entities for this device. Do you want to review the list before saving?",
+                "data": {
+                    "auto_entity_review": "Review suggested entities before saving"
+                }
+            },
+            "select_auto_entities": {
+                "title": "Select suggested entities",
+                "description": "Choose which entities to keep ({entity_count} suggested).",
+                "data": {
+                    "auto_entity_selection": "Suggested entities",
+                    "auto_entity_review_each": "Open detailed review for each selected entity"
+                }
+            },
             "pick_entity_type": {
                 "title": "Entity type selection",
                 "description": "Choose the type of entity you want to add.",

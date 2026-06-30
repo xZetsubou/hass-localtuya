@@ -129,6 +129,21 @@
                     "device_setup_method":"Quay lại chọn phương thức cấu hình"
                 }
             },
+            "review_auto_entities": {
+                "title": "Xem lại các thực thể đề xuất",
+                "description": "LocalTuya đã tìm thấy các thực thể cho thiết bị này. Bạn có muốn xem lại danh sách trước khi lưu không?",
+                "data": {
+                    "auto_entity_review": "Xem lại các thực thể đề xuất trước khi lưu"
+                }
+            },
+            "select_auto_entities": {
+                "title": "Chọn các thực thể đề xuất",
+                "description": "Chọn các thực thể cần giữ lại ({entity_count} thực thể được đề xuất).",
+                "data": {
+                    "auto_entity_selection": "Các thực thể đề xuất",
+                    "auto_entity_review_each": "Mở phần xem chi tiết cho từng thực thể đã chọn"
+                }
+            },
             "pick_entity_type": {
                 "title": "Chọn loại thực thể",
                 "description": "Chọn loại thực thể bạn muốn thêm.",

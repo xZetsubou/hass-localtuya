@@ -4,6 +4,7 @@ from homeassistant.const import (
     CONF_FRIENDLY_NAME,
     CONF_ID,
     CONF_PLATFORM,
+    UnitOfElectricCurrent,
     CONF_UNIT_OF_MEASUREMENT,
     EntityCategory,
     Platform,
@@ -104,3 +105,51 @@ def test_gen_cloud_entities_skips_used_ids():
     entities = gen_cloud_entities(SOCKET_DATA, used_ids={"1", "19", "20"})
 
     assert [entity[CONF_ID] for entity in entities] == ["38"]
+
+
+def test_gen_cloud_entities_maps_phase_b_c_codes():
+    phase_data = {
+        CONF_FRIENDLY_NAME: "Three Phase Device",
+        CONF_DPS_STRINGS: [
+            "21 ( code: phase_b_current , value: 1000 )",
+            "22 ( code: phase_c_power , value: 500 )",
+            "23 ( code: phase_b_voltage , value: 2300 )",
+        ],
+        DEVICE_CLOUD_DATA: {
+            "dps_data": {
+                "21": {
+                    "code": "phase_b_current",
+                    "dp_id": 21,
+                    "type": "value",
+                    "value": 1000,
+                    "accessMode": "ro",
+                    "values": '{"type": "value", "max": 20000, "min": 0, "scale": 0, "step": 1, "unit": "mA"}',
+                },
+                "22": {
+                    "code": "phase_c_power",
+                    "dp_id": 22,
+                    "type": "value",
+                    "value": 500,
+                    "accessMode": "ro",
+                    "values": '{"type": "value", "max": 20000, "min": 0, "scale": 0, "step": 1, "unit": "W"}',
+                },
+                "23": {
+                    "code": "phase_b_voltage",
+                    "dp_id": 23,
+                    "type": "value",
+                    "value": 2300,
+                    "accessMode": "ro",
+                    "values": '{"type": "value", "max": 3000, "min": 0, "scale": 1, "step": 1, "unit": "V"}',
+                },
+            }
+        },
+    }
+
+    entities = {entity[CONF_ID]: entity for entity in gen_cloud_entities(phase_data)}
+
+    assert entities["21"][CONF_DEVICE_CLASS] == SensorDeviceClass.CURRENT
+    assert entities["21"][CONF_UNIT_OF_MEASUREMENT] == UnitOfElectricCurrent.MILLIAMPERE
+    assert entities["22"][CONF_DEVICE_CLASS] == SensorDeviceClass.POWER
+    assert entities["22"][CONF_UNIT_OF_MEASUREMENT] == UnitOfPower.WATT
+    assert entities["23"][CONF_DEVICE_CLASS] == SensorDeviceClass.VOLTAGE
+    assert entities["23"][CONF_UNIT_OF_MEASUREMENT] == UnitOfElectricPotential.VOLT

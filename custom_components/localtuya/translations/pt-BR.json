@@ -137,6 +137,21 @@
                     "device_setup_method":"Voltar ao método de configuração"
                 }
             },
+            "review_auto_entities": {
+                "title": "Revisar entidades sugeridas",
+                "description": "O LocalTuya encontrou entidades para este dispositivo. Deseja revisar a lista antes de salvar?",
+                "data": {
+                    "auto_entity_review": "Revisar entidades sugeridas antes de salvar"
+                }
+            },
+            "select_auto_entities": {
+                "title": "Selecionar entidades sugeridas",
+                "description": "Escolha quais entidades manter ({entity_count} sugeridas).",
+                "data": {
+                    "auto_entity_selection": "Entidades sugeridas",
+                    "auto_entity_review_each": "Abrir revisão detalhada para cada entidade selecionada"
+                }
+            },
             "pick_entity_type": {
                 "title": "Seleção do tipo de entidade",
                 "description": "Escolha o tipo de entidade que deseja adicionar.",

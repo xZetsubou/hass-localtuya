@@ -128,6 +128,21 @@
                     "device_setup_method":"Wróć do metody konfiguracji"
                 }
             },
+            "review_auto_entities": {
+                "title": "Przejrzyj sugerowane encje",
+                "description": "LocalTuya wykrył encje dla tego urządzenia. Czy chcesz przejrzeć listę przed zapisaniem?",
+                "data": {
+                    "auto_entity_review": "Przejrzyj sugerowane encje przed zapisaniem"
+                }
+            },
+            "select_auto_entities": {
+                "title": "Wybierz sugerowane encje",
+                "description": "Wybierz encje, które chcesz zachować ({entity_count} sugerowanych).",
+                "data": {
+                    "auto_entity_selection": "Sugerowane encje",
+                    "auto_entity_review_each": "Otwórz szczegółowy przegląd dla każdej wybranej encji"
+                }
+            },
             "pick_entity_type": {
                 "title": "Wybór typu encji",
                 "description": "Wybierz typ encji, którą chcesz dodać.",

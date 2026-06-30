@@ -124,6 +124,21 @@
           "device_setup_method": "العودة إلى طريقة الإعداد"
         }
       },
+      "review_auto_entities": {
+        "title": "مراجعة الكيانات المقترحة",
+        "description": "عثر LocalTuya على كيانات لهذا الجهاز. هل تريد مراجعة القائمة قبل الحفظ؟",
+        "data": {
+          "auto_entity_review": "مراجعة الكيانات المقترحة قبل الحفظ"
+        }
+      },
+      "select_auto_entities": {
+        "title": "اختيار الكيانات المقترحة",
+        "description": "اختر الكيانات التي تريد الاحتفاظ بها ({entity_count} مقترحة).",
+        "data": {
+          "auto_entity_selection": "الكيانات المقترحة",
+          "auto_entity_review_each": "فتح مراجعة تفصيلية لكل كيان محدد"
+        }
+      },
       "pick_entity_type": {
         "title": "اختيار نوع الكيان",
         "description": "اختر نوع الكيان الذي تريد إضافته.",

@@ -157,8 +157,18 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
         except OSError as ex:
             _LOGGER.debug("Could not listen on UDP 7000: %s", ex)
 
+        # Some devices/apps also broadcast on UDP 53115.
+        try:
+            tuya_alt_listener = await loop.create_datagram_endpoint(
+                lambda: self,
+                sock=self._socket_for_port(53115),
+            )
+            self._listeners.append(tuya_alt_listener)
+        except OSError as ex:
+            _LOGGER.debug("Could not listen on UDP 53115: %s", ex)
+
         self._record_progress("Aguardando broadcasts...", 0.0)
-        _LOGGER.debug("Listening to broadcasts on UDP port 6666, 6667, 7000")
+        _LOGGER.debug("Listening to broadcasts on UDP port 6666, 6667, 7000, 53115")
 
     def close(self):
         """Stop discovery."""

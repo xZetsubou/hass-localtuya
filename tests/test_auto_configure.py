@@ -1,5 +1,9 @@
 from . import *
-from custom_components.localtuya.config_flow import auto_entity_labels, validate_input
+from custom_components.localtuya.config_flow import (
+    auto_entity_labels,
+    filter_auto_entities,
+    validate_input,
+)
 from custom_components.localtuya.core.ha_entities import (
     gen_localtuya_entities,
     DATA_PLATFORMS,
@@ -240,6 +244,30 @@ def test_auto_configure_review_labels_show_cloud_metadata():
     assert labels.index(next(label for label in labels if label.startswith("DP 101:"))) < labels.index(
         next(label for label in labels if label.startswith("DP 12:"))
     )
+
+
+def test_filter_auto_entities_uses_the_same_sorted_order_as_labels():
+    entities = [
+        {"id": "12", "friendly_name": "Fault", "platform": "sensor"},
+        {"id": "101", "friendly_name": "Remote Register", "platform": "switch"},
+    ]
+    dps_data = {
+        "12": {"type": "bitmap", "accessMode": "ro", "code": "fault", "value": 0},
+        "101": {
+            "type": "bool",
+            "accessMode": "rw",
+            "code": "remote_register",
+            "value": False,
+        },
+    }
+
+    selected_label = next(
+        label for label in auto_entity_labels(entities, dps_data) if label.startswith("DP 101:")
+    )
+
+    filtered = filter_auto_entities(entities, [selected_label], dps_data)
+
+    assert [entity["id"] for entity in filtered] == ["101"]
 
 
 async def test_validate_input_accepts_cloud_dps_when_local_scan_is_empty():

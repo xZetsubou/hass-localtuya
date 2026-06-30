@@ -1414,6 +1414,14 @@ def auto_entity_labels(
 ) -> list[str]:
     """Return human-readable labels for the auto-generated entities."""
 
+    return [label for _, label in auto_entities_with_labels(entities, dps_data)]
+
+
+def auto_entities_with_labels(
+    entities: list[dict], dps_data: dict[str, dict] | None = None
+) -> list[tuple[dict, str]]:
+    """Return sorted entity/label pairs used by review and filtering steps."""
+
     dps_data = dps_data or {}
     sorted_entities = sorted(
         entities,
@@ -1422,7 +1430,10 @@ def auto_entity_labels(
         ),
     )
     return [
-        auto_entity_label(entity, dps_data.get(str(entity.get(CONF_ID)), {}))
+        (
+            entity,
+            auto_entity_label(entity, dps_data.get(str(entity.get(CONF_ID)), {})),
+        )
         for entity in sorted_entities
     ]
 
@@ -1504,11 +1515,10 @@ def filter_auto_entities(
 ) -> list[dict]:
     """Keep only the entities selected in the review step."""
 
-    dps_data = dps_data or {}
     selected = set(selected_labels)
     return [
         entity
-        for entity, label in zip(entities, auto_entity_labels(entities, dps_data))
+        for entity, label in auto_entities_with_labels(entities, dps_data)
         if label in selected
     ]
 
