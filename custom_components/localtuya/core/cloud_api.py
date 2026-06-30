@@ -11,6 +11,7 @@ import time
 
 DEVICES_UPDATE_INTERVAL = 300
 DEVICES_UPDATE_INTERVAL_FORCED = 10
+PROJECT_DEVICES_PAGE_SIZE = 75
 
 TUYA_ENDPOINTS = {
     # Regions code
@@ -215,6 +216,14 @@ class TuyaCloudApi:
         ):
             return self._logger.debug(f"Devices has been updated a minutes ago.")
 
+        # Prefer the v2 endpoint that returns project devices with pagination.
+        if (res := await self.async_get_devices_list_project()) == "ok":
+            self._last_devices_update = int(time.time())
+            return "ok"
+
+        # Fallback to legacy user devices endpoint.
+        self._logger.debug("Project devices endpoint failed, falling back to v1 users/devices")
+
         if not (
             resp := await self.async_make_request(
                 "GET", url=f"/v1.0/users/{self._user_id}/devices"
@@ -225,10 +234,98 @@ class TuyaCloudApi:
         if not resp["success"]:
             return f"Error {resp['code']}: {resp['msg']}"
 
-        self.device_list.update({dev["id"]: dev for dev in resp["result"]})
+        self.device_list.update(
+            {dev["id"]: self._normalize_device_payload(dev) for dev in resp["result"]}
+        )
 
         self._last_devices_update = int(time.time())
         return "ok"
+
+    async def async_get_devices_list_project(self, page_size=PROJECT_DEVICES_PAGE_SIZE) -> str | None:
+        """Obtain all devices for the current cloud project using paginated v2 API."""
+        devices: dict[str, dict] = {}
+        last_id = ""
+
+        while True:
+            url = f"/v2.0/cloud/thing/device?page_size={page_size}"
+            if last_id:
+                url = f"{url}&last_id={last_id}"
+
+            if not (resp := await self.async_make_request("GET", url=url)):
+                return self._logger.debug("Failed to retrieve project devices list")
+
+            if not resp["success"]:
+                return f"Error {resp['code']}: {resp['msg']}"
+
+            raw_result = resp.get("result", [])
+            next_last_id = None
+            has_more = None
+            if isinstance(raw_result, dict):
+                batch = (
+                    raw_result.get("list")
+                    or raw_result.get("devices")
+                    or raw_result.get("result")
+                    or []
+                )
+                next_last_id = raw_result.get("last_id") or raw_result.get("lastId")
+                has_more = raw_result.get("has_more")
+                if has_more is None:
+                    has_more = raw_result.get("hasMore")
+            else:
+                batch = raw_result
+
+            if not isinstance(batch, list):
+                batch = []
+
+            for device in batch:
+                normalized = self._normalize_device_payload(device)
+                if normalized.get("id"):
+                    devices[normalized["id"]] = normalized
+
+            if not batch:
+                break
+
+            if has_more is False:
+                break
+
+            candidate_last_id = next_last_id or str(batch[-1].get("id") or "")
+            if not candidate_last_id or candidate_last_id == last_id:
+                break
+            last_id = candidate_last_id
+
+            if has_more is None and len(batch) < page_size:
+                break
+
+        if devices:
+            self.device_list.update(devices)
+            return "ok"
+
+        return "Error: empty_result"
+
+    def _normalize_device_payload(self, device: dict) -> dict:
+        """Normalize cloud device payload keys across v1/v2 endpoints."""
+        normalized = dict(device)
+
+        custom_name = device.get("customName") or device.get("custom_name")
+        local_key = device.get("localKey") or device.get("local_key")
+        product_id = device.get("productId") or device.get("product_id")
+        product_name = device.get("productName") or device.get("product_name")
+        online = device.get("online")
+        if online is None:
+            online = device.get("isOnline")
+
+        normalized["customName"] = custom_name
+        normalized["custom_name"] = custom_name
+        normalized["localKey"] = local_key
+        normalized["local_key"] = local_key
+        normalized["productId"] = product_id
+        normalized["product_id"] = product_id
+        normalized["productName"] = product_name
+        normalized["product_name"] = product_name
+        normalized["isOnline"] = online
+        normalized["online"] = online
+
+        return normalized
 
     async def async_get_devices_dps_query(self):
         """Update All the devices dps_data."""

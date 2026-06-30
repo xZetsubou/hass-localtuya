@@ -352,6 +352,20 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
 
         discovered_devices = self._scan_devices
         self.discovered_devices = discovered_devices
+        cloud_devices = {}
+
+        if not self.config_entry.data.get(CONF_NO_CLOUD, True):
+            try:
+                await self.cloud_data.async_get_devices_list(force_update=True)
+            except Exception as ex:  # pylint: disable=broad-except
+                _LOGGER.debug("Unable to refresh cloud devices for scan result: %s", ex)
+            cloud_devices = self.cloud_data.device_list or {}
+
+        local_ids = set(discovered_devices)
+        cloud_ids = set(cloud_devices)
+        matched_ids = local_ids & cloud_ids
+        local_only_ids = local_ids - cloud_ids
+        cloud_only_ids = cloud_ids - local_ids
 
         summary_lines = [f"Varredura concluída. Encontrados {len(discovered_devices)} dispositivo(s)."]
         if discovered_devices:
@@ -361,6 +375,24 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             )
         else:
             summary_lines.append("- Nenhum dispositivo encontrado na rede local.")
+
+        if cloud_devices:
+            summary_lines.extend(
+                [
+                    "",
+                    f"Comparativo local x app: {len(matched_ids)} em ambos, {len(local_only_ids)} só na rede local, {len(cloud_only_ids)} só no app.",
+                    "",
+                    "Dispositivos cadastrados no app Tuya (API):",
+                ]
+            )
+            summary_lines.extend(cloud_devices_table(cloud_devices, local_ids))
+        elif not self.config_entry.data.get(CONF_NO_CLOUD, True):
+            summary_lines.extend(
+                [
+                    "",
+                    "Comparativo local x app indisponível: nenhum dispositivo retornado pela API de nuvem.",
+                ]
+            )
 
         log_lines = self._scan_logs if self._scan_logs else ["Nenhum log de descoberta foi coletado."]
         placeholders = {
@@ -1212,6 +1244,59 @@ def mergeDevicesList(localList: dict, cloudList: dict, addSubDevices=True) -> di
             _LOGGER.debug(f"An error occurred while trying to pull sub-devices {ex}")
             continue
     return newList
+
+
+def cloud_devices_table(cloud_devices: dict[str, dict], local_ids: set[str]) -> list[str]:
+    """Return a text-table summary for cloud devices with local match status."""
+
+    headers = "ID                   | Nome                    | Cat | Modelo       | On | Key        | Local"
+    divider = "---------------------+-------------------------+-----+-------------+----+------------+------"
+    rows = [headers, divider]
+
+    for dev_id, dev in sorted(
+        cloud_devices.items(), key=lambda item: _device_display_name(item[1]).lower()
+    ):
+        rows.append(
+            " | ".join(
+                [
+                    _clip(dev_id, 21),
+                    _clip(_device_display_name(dev), 25),
+                    _clip(dev.get("category", "-"), 3),
+                    _clip(dev.get("model", "-"), 11),
+                    _clip("sim" if dev.get("online") else "nao", 2),
+                    _clip(mask_secret(dev.get(CONF_LOCAL_KEY)), 10),
+                    "sim" if dev_id in local_ids else "nao",
+                ]
+            )
+        )
+
+    return rows
+
+
+def _device_display_name(device: dict) -> str:
+    """Return the best available display name for a cloud device."""
+
+    return str(device.get("customName") or device.get("custom_name") or device.get(CONF_NAME) or "-")
+
+
+def mask_secret(value: str | None, visible=3) -> str:
+    """Mask secret values while preserving short edge context."""
+
+    if not value:
+        return "-"
+    value = str(value)
+    if len(value) <= visible * 2:
+        return "*" * len(value)
+    return f"{value[:visible]}...{value[-visible:]}"
+
+
+def _clip(value: Any, width: int) -> str:
+    """Clip and pad a value for table-like text rendering."""
+
+    text = str(value) if value is not None else "-"
+    if len(text) > width:
+        text = f"{text[: max(width - 1, 0)]}~"
+    return text.ljust(width)
 
 
 def options_schema(entities):
