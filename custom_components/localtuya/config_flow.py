@@ -350,8 +350,17 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             self._scan_task = None
             return await self.async_step_init()
 
-        discovered_devices = self._scan_devices
+        discovered_devices = dict(self._scan_devices)
         local_scan_count = len(discovered_devices)
+        continuous_cache_count = 0
+        cached_devices = {}
+        domain_data = self.hass.data.get(DOMAIN) or {}
+        if DATA_DISCOVERY in domain_data:
+            cached_devices = dict(domain_data[DATA_DISCOVERY].devices)
+            continuous_cache_count = len(cached_devices)
+            discovered_devices.update(cached_devices)
+
+        combined_local_count = len(discovered_devices)
         cloud_devices = {}
 
         if not self.config_entry.data.get(CONF_NO_CLOUD, True):
@@ -375,6 +384,14 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         merged_count = len(discovered_devices)
 
         summary_lines = [f"Varredura concluída. Encontrados {local_scan_count} dispositivo(s) na rede local."]
+        if continuous_cache_count:
+            summary_lines.append(
+                f"Cache continuo de descoberta: {continuous_cache_count} dispositivo(s)."
+            )
+        if combined_local_count != local_scan_count:
+            summary_lines.append(
+                f"Total local combinado (snapshot + cache): {combined_local_count} dispositivo(s)."
+            )
         if not local_scan_count:
             summary_lines.append("Nenhum dispositivo encontrado na rede local.")
 

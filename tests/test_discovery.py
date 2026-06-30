@@ -1,6 +1,7 @@
 """Test for localtuya."""
 
 from unittest.mock import Mock
+import json
 
 from . import *
 from custom_components.localtuya.discovery import TuyaDiscovery
@@ -31,3 +32,35 @@ def test_discovery_logs_progress_messages():
     assert len(discovery.log_messages) == 1
     assert "gw-test" in discovery.log_messages[0]
     assert "192.168.1.10" in discovery.log_messages[0]
+
+
+def test_discovery_sorted_devices_by_ip():
+    discovery = TuyaDiscovery()
+
+    discovery.device_found({"gwId": "gw-c", "ip": "192.168.1.30"})
+    discovery.device_found({"gwId": "gw-a", "ip": "192.168.1.10"})
+    discovery.device_found({"gwId": "gw-b", "ip": "192.168.1.20"})
+
+    sorted_ids = list(discovery.sorted_devices().keys())
+    assert sorted_ids == ["gw-a", "gw-b", "gw-c"]
+
+
+def test_discovery_stats_for_plain_json_packet():
+    discovery = TuyaDiscovery()
+    payload = json.dumps({"gwId": "gw-plain", "ip": "192.168.1.50"}).encode()
+
+    discovery.datagram_received(payload, ("192.168.1.50", 6666))
+
+    assert discovery.stats["packets_total"] == 1
+    assert discovery.stats["decode_failures"] == 1
+    assert discovery.stats["packets_json"] == 1
+    assert discovery.stats["devices_new"] == 1
+
+
+def test_discovery_stats_for_invalid_json_packet():
+    discovery = TuyaDiscovery()
+
+    discovery.datagram_received(b"not-a-json-packet", ("192.168.1.51", 6666))
+
+    assert discovery.stats["packets_total"] == 1
+    assert discovery.stats["json_failures"] == 1
