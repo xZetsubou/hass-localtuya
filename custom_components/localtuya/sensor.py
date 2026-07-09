@@ -92,6 +92,17 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
             self._config.get(CONF_UNIT_OF_MEASUREMENT),
         )
 
+    @property
+    def extra_state_attributes(self):
+        attributes = super().extra_state_attributes or {}
+        # Only expose 'timestamp' for energy increment DPs
+        energy_dps = {"17"}
+        if str(self._dp_id) in energy_dps:
+            ts = self.dp_timestamp(self._dp_id)
+            if ts is not None:
+                attributes["timestamp"] = ts
+        return attributes
+
     def status_updated(self):
         """Device status was updated."""
 
