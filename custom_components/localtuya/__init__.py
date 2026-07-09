@@ -59,6 +59,14 @@ SERVICE_SET_DP_SCHEMA = vol.Schema(
     }
 )
 
+SERVICE_UPDATE_DPS = "update_dps"
+SERVICE_UPDATE_DPS_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_DEVICE_ID): cv.string,
+        vol.Optional("dps"): list,
+    }
+)
+
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the LocalTuya integration component."""
@@ -97,6 +105,26 @@ async def async_setup(hass: HomeAssistant, config: dict):
             await device.set_dps(value)
         else:
             await device.set_dp(value, event.data[CONF_DP])
+
+    async def _handle_update_dps(event: ServiceCall):
+        """Handle update_dps service call - sends UPDATEDPS (0x12) command."""
+        dev_id = event.data[CONF_DEVICE_ID]
+        entry: ConfigEntry = async_config_entry_by_device_id(hass, dev_id)
+        if not entry or not entry.entry_id:
+            raise HomeAssistantError("unknown device id")
+
+        host = entry.data[CONF_DEVICES][dev_id].get(CONF_HOST)
+        if node_id := entry.data[CONF_DEVICES][dev_id].get(CONF_NODE_ID):
+            host = f"{host}_{node_id}"
+        device: TuyaDevice = hass.data[DOMAIN][entry.entry_id].devices[host]
+        if not device.connected:
+            raise HomeAssistantError("not connected to device")
+
+        dps = event.data.get("dps")
+        try:
+            await device._interface.update_dps(dps=dps, cid=device._node_id)
+        except TimeoutError:
+            pass
 
     def _device_discovered(device: dict):
         """Update address of device if it has changed."""
@@ -170,6 +198,13 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
     hass.services.async_register(
         DOMAIN, SERVICE_SET_DP, _handle_set_dp, schema=SERVICE_SET_DP_SCHEMA
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_UPDATE_DPS,
+        _handle_update_dps,
+        schema=SERVICE_UPDATE_DPS_SCHEMA,
     )
 
     discovery = TuyaDiscovery(_device_discovered)
