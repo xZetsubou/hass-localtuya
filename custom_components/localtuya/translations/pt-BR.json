@@ -164,6 +164,7 @@
                     "device_class": "(Opcional) Classe de dispositivo",
                     "state_class": "(Opcional) Classe de estado",
                     "scaling": "(Opcional) Fator de escala",
+                    "offset": "(Opcional) Offset",
                     "state_on": "Valores de ligado (opcionalmente separados por vírgulas)",
                     "state_off": "Valor de desligado",
                     "powergo_dp": "DP de energia (geralmente 25 ou 2)",

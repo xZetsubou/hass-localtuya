@@ -164,6 +164,7 @@
                     "device_class": "(Optional) Device Class",
                     "state_class": "(Optional) State Class",
                     "scaling": "(Optional) Scaling Factor",
+                    "offset": "(Optional) Offset",
                     "state_on": "On Values (optionally comma-separated)",
                     "state_off": "Off Value",
                     "powergo_dp": "Power DP (usually 25 or 2)",
