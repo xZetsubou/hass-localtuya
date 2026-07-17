@@ -102,7 +102,9 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
 
         if self.is_base64(state):
             if not self._has_sub_entities:
-                self.hass.add_job(self.__create_sub_sensors())
+                self.hass.loop.call_soon_threadsafe(
+                    self.hass.async_create_task, self.__create_sub_sensors()
+                )
 
             if None not in (
                 sub_sensor := getattr(self, "_attr_sub_sensor", None),
