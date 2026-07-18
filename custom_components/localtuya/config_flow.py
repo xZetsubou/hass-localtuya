@@ -75,6 +75,7 @@ from .const import (
     PLATFORMS,
     SUPPORTED_PROTOCOL_VERSIONS,
     CONF_DEVICE_SLEEP_TIME,
+    CONF_DEVICE_EVENT_DRIVEN,
 )
 from .discovery import discover
 
@@ -154,6 +155,7 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Optional(CONF_MANUAL_DPS): cv.string,
         vol.Optional(CONF_RESET_DPIDS): str,
         vol.Optional(CONF_DEVICE_SLEEP_TIME): int,
+        vol.Required(CONF_DEVICE_EVENT_DRIVEN, default=False): bool,
         vol.Optional(CONF_NODE_ID, default=None): vol.Any(None, cv.string),
     }
 )
@@ -1055,6 +1057,7 @@ def options_schema(entities):
             vol.Optional(CONF_MANUAL_DPS): cv.string,
             vol.Optional(CONF_RESET_DPIDS): cv.string,
             vol.Optional(CONF_DEVICE_SLEEP_TIME): int,
+            vol.Required(CONF_DEVICE_EVENT_DRIVEN, default=False): bool,
             vol.Required(
                 CONF_ENTITIES, description={"suggested_value": entity_names}
             ): cv.multi_select(entity_names),
@@ -1238,7 +1241,10 @@ async def validate_input(entry_runtime: HassLocalTuyaData, data):
                 except:
                     continue
                 finally:
-                    if not auto_protocol and data.get(CONF_DEVICE_SLEEP_TIME, 0) > 0:
+                    if not auto_protocol and (
+                        data.get(CONF_DEVICE_SLEEP_TIME, 0) > 0
+                        or data.get(CONF_DEVICE_EVENT_DRIVEN, False)
+                    ):
                         logger.info("Low-power device configured — handshake skipped")
                         bypass_connection = True
                     if not error and not interface:

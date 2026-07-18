@@ -65,6 +65,10 @@ Go to hub `Configure` (1) a menu will show up (2) Choose `Add new device`
         Only needed if the device has low-power mode and is disconnected from the network. [FAQ](../faq/index.md) <br>
         If the device is disconnected and exceeds this time, it will be considered offline
 
+    ??? info "(optional) Event-driven low-power device"
+        Enable this for devices that do not report on a predictable schedule and only wake up when an event occurs, such as motion or open/close sensors. <br>
+        LocalTuya will keep the last known state and skip heartbeat and refresh loops so the device can sleep normally.
+
 
     ??? info "(Optional) Node ID or CID"
         `Node ID` also known as `CID` only for sub devices that work through `Gateways` e.g. `ZigBee` and `BLE` Devices. 
@@ -184,4 +188,3 @@ There are two ways to create templates
         platform: binary_sensor
         state_on: '1'
     ```
-
