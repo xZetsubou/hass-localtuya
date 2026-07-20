@@ -47,7 +47,6 @@ def _field_suggested_value(schema, field_name):
 
 def _make_options_flow(config_entry, cloud_data, discovered_devices):
     handler = LocalTuyaOptionsFlowHandler(config_entry)
-    handler.config_entry = config_entry
     handler.hass = SimpleNamespace(
         data={
             DOMAIN: {
@@ -55,8 +54,12 @@ def _make_options_flow(config_entry, cloud_data, discovered_devices):
                 DATA_DISCOVERY: SimpleNamespace(devices=discovered_devices),
             }
         },
-        config_entries=SimpleNamespace(async_entries=lambda domain: []),
+        config_entries=SimpleNamespace(
+            async_entries=lambda domain: [],
+            async_get_known_entry=lambda entry_id: config_entry,
+        ),
     )
+    handler.handler = config_entry.entry_id
     handler.async_show_form = lambda **kwargs: kwargs
     return handler
 
