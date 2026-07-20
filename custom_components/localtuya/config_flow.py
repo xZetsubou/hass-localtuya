@@ -322,6 +322,11 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         self.editing_device = False
         self.selected_device = None
         errors = {}
+        if not self.config_entry.data.get(CONF_NO_CLOUD, True):
+            res = await self.cloud_data.async_get_devices_list(force_update=True)
+            if res and res != "ok":
+                _LOGGER.warning("Failed to refresh Tuya cloud device list: %s", res)
+
         if user_input is not None:
             if user_input[SELECTED_DEVICE] != CUSTOM_DEVICE["Add Device Manually"]:
                 self.selected_device = user_input[SELECTED_DEVICE]
@@ -367,6 +372,12 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
 
         allDevices = mergeDevicesList(
             self.discovered_devices, self.cloud_data.device_list
+        )
+        _LOGGER.debug(
+            "Merged device list: local/discovered=%s cloud=%s merged=%s",
+            len(self.discovered_devices),
+            len(self.cloud_data.device_list),
+            len(allDevices),
         )
 
         self.discovered_devices = allDevices
@@ -581,7 +592,10 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             defaults[CONF_FRIENDLY_NAME] = user_in.get(CONF_FRIENDLY_NAME, "")
             defaults[CONF_NODE_ID] = user_in.get(CONF_NODE_ID, "")
 
-            if defaults[CONF_DEVICE_ID] in [cloud_devs, self.selected_device]:
+            if (
+                defaults[CONF_DEVICE_ID] in cloud_devs
+                or defaults[CONF_DEVICE_ID] == self.selected_device
+            ):
                 dev_id = defaults[CONF_DEVICE_ID]
 
             if dev_id is not None and dev_id in self.discovered_devices:
