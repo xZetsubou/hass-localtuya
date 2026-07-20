@@ -6,7 +6,6 @@ from homeassistant.const import (
     CONF_DEVICES,
     CONF_FRIENDLY_NAME,
     CONF_HOST,
-    CONF_LOCAL_KEY,
     CONF_NAME,
 )
 
@@ -14,6 +13,7 @@ from custom_components.localtuya import config_flow
 from custom_components.localtuya.config_flow import LocalTuyaOptionsFlowHandler
 from custom_components.localtuya.const import (
     CONF_GATEWAY_ID,
+    CONF_LOCAL_KEY,
     CONF_NODE_ID,
     CONF_NO_CLOUD,
     CONF_PROTOCOL_VERSION,
@@ -108,9 +108,7 @@ async def test_add_device_refreshes_cloud_before_merging_subdevices(caplog):
         CONF_NODE_ID: "node_1",
         CONF_GATEWAY_ID: "gateway_id",
     }
-    assert (
-        "Merged device list: local/discovered=1 cloud=2 merged=2" in caplog.text
-    )
+    assert "Merged device list: local/discovered=1 cloud=2 merged=2" in caplog.text
 
 
 async def test_add_device_logs_cloud_refresh_failure(caplog):
