@@ -30,3 +30,27 @@ async def test_device_list_includes_gateway_sub_devices():
     assert cloud.device_list["timer"]["gateway_id"] == "gateway"
     assert cloud.device_list["timer"]["node_id"] == "timer-node"
     assert cloud.device_list["timer"]["local_key"] == "gateway-key"
+
+
+@pytest.mark.asyncio
+async def test_device_list_ignores_devices_without_sub_device_support():
+    """Devices without sub-device support remain in the device list."""
+    cloud = TuyaCloudApi("EU", "client", "secret", "user")
+
+    responses = {
+        "/v1.0/users/user/devices": {
+            "success": True,
+            "result": [{"id": "outlet", "local_key": "outlet-key"}],
+        },
+        "/v1.0/iot-03/devices/outlet/sub-devices": {
+            "success": False,
+            "code": 1106,
+            "msg": "permission deny",
+        },
+    }
+    cloud.async_make_request = AsyncMock(
+        side_effect=lambda _method, url: responses[url]
+    )
+
+    assert await cloud.async_get_devices_list(force_update=True) == "ok"
+    assert cloud.device_list == {"outlet": {"id": "outlet", "local_key": "outlet-key"}}
