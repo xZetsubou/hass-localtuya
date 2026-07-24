@@ -295,7 +295,7 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
             self._config[CONF_POSITIONING_MODE] == MODE_TIME_BASED
             and self._state != self._previous_state
         ):
-            if self._previous_state != self._stop_cmd:
+            if self._previous_state is not None and self._previous_state != self._stop_cmd:
                 # the state has changed, and the cover was moving
                 time_diff = time.time() - self._timer_start
                 pos_diff = round(time_diff / self._config[CONF_SPAN_TIME] * 100.0)
