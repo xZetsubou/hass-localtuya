@@ -26,7 +26,7 @@ from homeassistant.const import (
 from homeassistant.helpers import entity_registry as er
 
 from .entity import LocalTuyaEntity, async_setup_entry
-from .const import CONF_SCALING, CONF_STATE_CLASS
+from .const import CONF_SCALING, CONF_OFFSET, CONF_STATE_CLASS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,6 +51,9 @@ def flow_schema(dps):
             [sc.value for sc in SensorStateClass]
         ),
         vol.Optional(CONF_SCALING): vol.All(
+            vol.Coerce(float), vol.Range(min=-1000000.0, max=1000000.0)
+        ),
+        vol.Optional(CONF_OFFSET): vol.All(
             vol.Coerce(float), vol.Range(min=-1000000.0, max=1000000.0)
         ),
     }
@@ -99,7 +102,9 @@ class LocalTuyaSensor(LocalTuyaEntity, SensorEntity):
 
         if self.is_base64(state):
             if not self._has_sub_entities:
-                self.hass.add_job(self.__create_sub_sensors())
+                self.hass.loop.call_soon_threadsafe(
+                    self.hass.async_create_task, self.__create_sub_sensors()
+                )
 
             if None not in (
                 sub_sensor := getattr(self, "_attr_sub_sensor", None),

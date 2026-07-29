@@ -126,6 +126,7 @@ CONF_FAN_DPS_TYPE = "fan_dps_type"
 
 # sensor
 CONF_SCALING = "scaling"
+CONF_OFFSET = "offset"
 CONF_STATE_CLASS = "state_class"
 
 # climate

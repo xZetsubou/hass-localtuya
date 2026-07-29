@@ -1862,7 +1862,7 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.LIQUID_DEPTH,
             name="Depth",
             icon="mdi:altimeter",
-            custom_configs=localtuya_sensor(UnitOfLength.METERS, 1),
+            custom_configs=localtuya_sensor(UnitOfLength.METERS, 0.01),
         ),
         LocalTuyaEntity(
             id=DPCode.LIQUID_LEVEL_PERCENT,
