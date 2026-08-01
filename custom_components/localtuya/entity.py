@@ -43,6 +43,7 @@ from .const import (
     DOMAIN,
     RESTORE_STATES,
     DeviceConfig,
+    normalize_entity_category,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -253,37 +254,29 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     @property
     def entity_category(self) -> EntityCategory | None:
         """Return the category of the entity.
-        
-        Home Assistant does not allow sensor and binary_sensor entities to use
+
+        Home Assistant does not allow read-only platforms to use
         EntityCategory.CONFIG. Older LocalTuya config entries may still contain
-        that invalid combination, so normalize it here to keep existing
-        installations working.
+        that invalid combination, so the configured category and the platform
+        default alike are normalized before they are returned.
         """
         platform = self._config.get(CONF_PLATFORM)
         category = self._config.get(CONF_ENTITY_CATEGORY)
 
-        if category and category != "None":
-            entity_category = EntityCategory(category)
+        if not category or category == "None":
+            if not platform:
+                return None
 
-            if (
-                entity_category == EntityCategory.CONFIG
-                and platform in ("sensor", "binary_sensor")
-            ):
-                return EntityCategory.DIAGNOSTIC
-
-            return entity_category
-
-        # Set default values for unconfigured devices.
-        if platform:
+            # Set default values for unconfigured devices.
             # Call default_category from config_flow to set default values.
             # This will be removed after a while; it only converts users coming
             # from the main integration. New users are forced to choose a
             # category from the config flow.
             from .config_flow import default_category
 
-            return default_category(platform)
+            category = default_category(platform)
 
-        return None
+        return normalize_entity_category(platform, category)
 
     @property
     def device_class(self):

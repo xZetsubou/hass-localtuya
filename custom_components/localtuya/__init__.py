@@ -282,6 +282,25 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry):
                 )
                 current_entity += 1
         hass.config_entries.async_update_entry(config_entry, data=new_data, version=4)
+    # Update to version 5
+    if config_entry.version <= 4:
+        # Home Assistant rejects EntityCategory.CONFIG on read-only platforms.
+        # Rewrite the stored value once instead of coercing it on every load.
+        from copy import deepcopy
+
+        from homeassistant.const import CONF_ENTITY_CATEGORY, EntityCategory
+
+        from .const import READ_ONLY_PLATFORMS
+
+        new_data = deepcopy(dict(config_entry.data))
+        for device in new_data.get(CONF_DEVICES, {}).values():
+            for entity in device.get(CONF_ENTITIES, []):
+                if (
+                    entity.get(CONF_PLATFORM) in READ_ONLY_PLATFORMS
+                    and entity.get(CONF_ENTITY_CATEGORY) == EntityCategory.CONFIG
+                ):
+                    entity[CONF_ENTITY_CATEGORY] = str(EntityCategory.DIAGNOSTIC)
+        hass.config_entries.async_update_entry(config_entry, data=new_data, version=5)
 
     _LOGGER.info(
         "Entry %s successfully migrated to version %s.",

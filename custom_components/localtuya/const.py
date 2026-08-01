@@ -217,6 +217,28 @@ DEFAULT_CATEGORIES = {
     "DIAGNOSTIC": ["sensor", "binary_sensor"],
 }
 
+# Platforms that are read-only for the user: Home Assistant rejects
+# EntityCategory.CONFIG on them, since their state cannot be changed.
+READ_ONLY_PLATFORMS = (Platform.SENSOR, Platform.BINARY_SENSOR)
+
+
+def normalize_entity_category(platform, category) -> EntityCategory | None:
+    """Return an entity category that is valid for the given platform.
+
+    Home Assistant rejects EntityCategory.CONFIG on read-only platforms, but
+    older LocalTuya configurations may still hold that combination, either
+    explicitly or through a platform default. Coerce it to DIAGNOSTIC instead
+    of letting the entity fail to load.
+    """
+    if not category or category == "None":
+        return None
+
+    entity_category = EntityCategory(category)
+    if entity_category is EntityCategory.CONFIG and platform in READ_ONLY_PLATFORMS:
+        return EntityCategory.DIAGNOSTIC
+
+    return entity_category
+
 
 @dataclass
 class DictSelector:
