@@ -1,6 +1,6 @@
 """Constants for localtuya integration."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from homeassistant.const import (
     CONF_DEVICE_ID,
@@ -232,6 +232,11 @@ class DictSelector:
 
     tuya_ha: dict[str, Any]
     reverse: bool = False
+    # Bool-aware lookup used by to_ha()/to_tuya(), see __post_init__ below.
+    # Excluded from init/repr/eq: it's derived from tuya_ha, not user input.
+    _bool_to_ha: dict[bool, Any] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
 
     def __post_init__(self):
         if isinstance(self.tuya_ha, str):
@@ -239,6 +244,34 @@ class DictSelector:
             self.tuya_ha = {v: v for v in self.tuya_ha.split(",")}
         if self.reverse:
             self.tuya_ha = {v: k for k, v in self.tuya_ha.items()}
+
+        # Home Assistant's config-flow ObjectSelector (the widget used to
+        # enter every one of these mappings) can only ever produce string
+        # keys: its object/YAML editor is JS-backed, and JS stringifies any
+        # object key, including the booleans `true`/`false`. So a mapping
+        # entered as `true: "on"` / `false: "off"` always ends up stored
+        # here as {"true": "on", "false": "off"}.
+        #
+        # A datapoint typed as Boolean, however, reports real Python
+        # `True`/`False` values (see pytuya's JSON decoding), never the
+        # strings "true"/"false". Without help, `to_ha(True)` would look up
+        # `True` in a dict keyed by "true" and silently miss.
+        #
+        # Precompute a small bool -> HA-name lookup to bridge that gap.
+        # It intentionally lives outside `tuya_ha` itself (rather than
+        # inserting extra keys into it) so `values`/`names`/`as_dict` keep
+        # listing each configured option exactly once.
+        #
+        # Detection is done with `isinstance(key, bool)`, never `key == 1`
+        # or `key == 0`: Python's `True == 1` and `False == 0`, so an
+        # equality check would wrongly treat an unrelated mapping keyed by
+        # the integers/strings 1/0 as boolean. `isinstance` checks the
+        # actual type instead, so int/str "1"/"0" keys are left untouched.
+        for key, value in self.tuya_ha.items():
+            if isinstance(key, bool):
+                self._bool_to_ha[key] = value
+            elif isinstance(key, str) and key.strip().lower() in ("true", "false"):
+                self._bool_to_ha[key.strip().lower() == "true"] = value
 
     @property
     def as_dict(self):
@@ -257,10 +290,21 @@ class DictSelector:
 
     def to_ha(self, value: str, default=None):
         """Return the friendly name."""
+        # Boolean datapoint values need the bool-aware lookup built in
+        # __post_init__ (see its comment); everything else -- int, str,
+        # enum values -- is unaffected and keeps the plain dict lookup.
+        if isinstance(value, bool) and value in self._bool_to_ha:
+            return self._bool_to_ha[value]
         return self.tuya_ha.get(value, default)
 
     def to_tuya(self, name: str):
         """Return the tuya value."""
+        # Prefer a real True/False for names that came from a boolean
+        # datapoint, so a value written back (e.g. via set_dp) is sent as
+        # an actual boolean instead of the string "true"/"false".
+        for tuya_bool, ha_name in self._bool_to_ha.items():
+            if ha_name == name:
+                return tuya_bool
         reversed_dict = getattr(
             self, "_cached_reverse_tuya_ha", {v: k for k, v in self.tuya_ha.items()}
         )
