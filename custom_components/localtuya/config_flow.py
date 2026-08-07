@@ -168,6 +168,9 @@ MASS_CONFIGURE_SCHEMA = {vol.Optional(CONF_MASS_CONFIGURE, default=False): bool}
 CUSTOM_DEVICE = {"Add Device Manually": "..."}
 
 
+TEMPLATES_INFO_URL = "https://github.com/xZetsubou/hass-localtuya/discussions/13"
+
+
 class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for LocalTuya integration."""
 
@@ -710,7 +713,13 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         schema = vol.Schema(
             {vol.Required(TEMPLATES): col_to_select(templates_list, custom_value=True)}
         )
-        return self.async_show_form(step_id="choose_template", data_schema=schema)
+        return self.async_show_form(
+            step_id="choose_template",
+            data_schema=schema,
+            # hassfest rejects URLs inside translated strings, so the link is
+            # passed as a placeholder -- the same pattern the other steps use.
+            description_placeholders={"templates_info_url": TEMPLATES_INFO_URL},
+        )
 
     async def async_step_entity(self, user_input=None):
         """Manage entity settings."""
