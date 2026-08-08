@@ -170,6 +170,16 @@ CUSTOM_DEVICE = {"Add Device Manually": "..."}
 
 TEMPLATES_INFO_URL = "https://github.com/xZetsubou/hass-localtuya/discussions/13"
 
+# hassfest rejects URLs inside translated strings, so every link the config flow
+# shows is passed as a placeholder instead.
+DOC_URLS = {
+    "hvac_modes_url": "https://developers.home-assistant.io/docs/core/entity/climate/#hvac-modes",
+    "hvac_actions_url": "https://developers.home-assistant.io/docs/core/entity/climate/#hvac-action",
+    "alarm_states_url": "https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states",
+    "device_classes_url": "https://www.home-assistant.io/integrations/homeassistant/#device-class",
+    "state_classes_url": "https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes",
+}
+
 
 class LocaltuyaConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for LocalTuya integration."""
@@ -794,6 +804,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             placeholders = {
                 "entity": f"entity with DP {int(self.current_entity[CONF_ID])}",
                 "platform": self.current_entity[CONF_PLATFORM],
+                **DOC_URLS,
             }
         else:
             available_dps = self.available_dps_strings()
@@ -803,6 +814,7 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             placeholders = {
                 "entity": "an entity",
                 "platform": self.selected_platform,
+                **DOC_URLS,
             }
 
         return self.async_show_form(

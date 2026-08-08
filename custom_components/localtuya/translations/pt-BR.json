@@ -139,7 +139,7 @@
             },
             "choose_template":{
                 "title": "Importar arquivo de modelo",
-                "description": "Os arquivos de modelo ficam no diretório `templates` ([Mais informações](https://github.com/xZetsubou/hass-localtuya/discussions/13)).",
+                "description": "Os arquivos de modelo ficam no diretório `templates` ([Mais informações]({templates_info_url})).",
                 "data": {
                     "templates": "Escolher modelo"
                 }
@@ -254,18 +254,18 @@
                     "swing_horizontal_modes": "(Opcional) Opções de oscilação horizontal disponíveis"
                 },
                 "data_description": {
-                    "hvac_mode_set":"Cada linha representa [ hvac_mode: device_value ] [Modos HVAC suportados](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-modes)",
-                    "hvac_action_set":"Cada linha representa [ hvac_action: device_value ] [Ações HVAC suportadas](https://developers.home-assistant.io/docs/core/entity/climate/#hvac-action)",
+                    "hvac_mode_set":"Cada linha representa [ hvac_mode: device_value ] [Modos HVAC suportados]({hvac_modes_url})",
+                    "hvac_action_set":"Cada linha representa [ hvac_action: device_value ] [Ações HVAC suportadas]({hvac_actions_url})",
                     "preset_set":"Cada linha representa [ device_value: nome amigável ]",
                     "scene_values":"Cada linha representa [ device_value: nome amigável ]",
                     "select_options":"Cada linha representa [ device_value: nome amigável ]",
                     "swing_modes":"Cada linha representa [ device_value: nome amigável ]",
                     "swing_horizontal_modes":"Cada linha representa [ device_value: nome amigável ]",
-                    "alarm_supported_states":"Cada linha representa [ estado suportado: valor do dispositivo ] [Estados suportados](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/#states)",
+                    "alarm_supported_states":"Cada linha representa [ estado suportado: valor do dispositivo ] [Estados suportados]({alarm_states_url})",
                     "humidifier_available_modes":"Cada linha representa [ device_value: nome amigável ]",
                     "fan_speed_list":"Cada linha representa [ device_value: nome amigável ]",
-                    "device_class": "Saiba mais sobre [Classes de dispositivo](https://www.home-assistant.io/integrations/homeassistant/#device-class)",
-                    "state_class": "Saiba mais sobre [Classes de estado](https://developers.home-assistant.io/docs/core/entity/sensor/#available-state-classes)"
+                    "device_class": "Saiba mais sobre [Classes de dispositivo]({device_classes_url})",
+                    "state_class": "Saiba mais sobre [Classes de estado]({state_classes_url})"
                 }
             }
         }
