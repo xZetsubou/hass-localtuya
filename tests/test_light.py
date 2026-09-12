@@ -75,10 +75,14 @@ async def test_light():
 
     device.status_updated({"21": "music"})
     assert entity_1.is_music_mode
+    assert entity_1.color_mode in entity_1.supported_color_modes
+    assert entity_1.brightness is not None
 
     device.status_updated({"21": "scene"})
     assert entity_1.effect is not None
     assert entity_1.is_scene_mode
+    assert entity_1.color_mode in entity_1.supported_color_modes
+    assert entity_1.brightness is not None
 
     # Bluetooth
     # device.status_updated({"21": "colour", "24": "AHhkZA==", "25": ""})
