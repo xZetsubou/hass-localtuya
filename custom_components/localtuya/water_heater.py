@@ -208,15 +208,17 @@ class LocalTuyaWaterHeater(LocalTuyaEntity, WaterHeaterEntity):
 
         # Update target temperature
         if self.has_config(CONF_TARGET_TEMPERATURE_DP):
-            self._target_temperature = (
-                self.dp_value(CONF_TARGET_TEMPERATURE_DP) * self._precision_target
-            )
+            if (
+                val := self.dp_value(CONF_TARGET_TEMPERATURE_DP)
+            ) is not None:
+                self._target_temperature = val * self._precision_target
 
         # Update current temperature
         if self.has_config(CONF_CURRENT_TEMPERATURE_DP):
-            self._current_temperature = (
-                self.dp_value(CONF_CURRENT_TEMPERATURE_DP) * self._precision
-            )
+            if (
+                val := self.dp_value(CONF_CURRENT_TEMPERATURE_DP)
+            ) is not None:
+                self._current_temperature = val * self._precision
 
         # Update modes states
         if not self._state:
