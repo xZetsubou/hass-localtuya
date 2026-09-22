@@ -10,7 +10,13 @@ from homeassistant.const import (
     Platform,
     EntityCategory,
 )
-from ...const import CONF_CLEAN_AREA_DP, CONF_DPS_STRINGS, CONF_STATE_CLASS
+from ...const import (
+    CONF_CLEAN_AREA_DP,
+    CONF_DEVICE_GROUP,
+    CONF_DPS_STRINGS,
+    CONF_PRODUCT_NAME,
+    CONF_STATE_CLASS,
+)
 
 
 # Obtain values from cloud data.
@@ -52,8 +58,10 @@ class LocalTuyaEntity:
         entity_category="None",
         device_class=None,
         state_class=None,
+        device_group=None,
         custom_configs: dict[str, Any | tuple[Any, CLOUD_VALUE]] = {},
         condition_contains_any: list = None,
+        condition_product_names: tuple[str, ...] | None = None,
         **kwargs,
     ):
         # platform, name, icon, entity_category, device_class, *key
@@ -64,6 +72,8 @@ class LocalTuyaEntity:
             CONF_ICON: icon,
             CONF_ENTITY_CATEGORY: entity_category,
         }
+        if device_group:
+            self.data[CONF_DEVICE_GROUP] = device_group
 
         # Optional
         if device_class:
@@ -76,6 +86,7 @@ class LocalTuyaEntity:
         self.entity_configs = custom_configs
 
         self.contains_any = condition_contains_any
+        self.product_names = condition_product_names
 
         # Replace key with id if needed
         if kwargs.get("key", False):
@@ -243,6 +254,7 @@ class DPCode(StrEnum):
     COUNTDOWN_5 = "countdown_5"  # Countdown 5
     COUNTDOWN_6 = "countdown_6"  # Countdown 6
     COUNTDOWN_LEFT = "countdown_left"
+    COUNTDOWN_LEFT_FAN = "countdown_left_fan"
     COUNTDOWN_SET = "countdown_set"  # Countdown setting
     COUNTDOWN_USB = "countdown"  # Countdown
     COUNTDOWN_USB1 = "countdown_usb1"  # Countdown USBS 1
@@ -355,6 +367,7 @@ class DPCode(StrEnum):
     FAN_BEEP = "fan_beep"  # Sound
     FAN_COOL = "fan_cool"  # Cool wind
     FAN_COUNTDOWN = "fan_countdown"
+    FAN_COUNTDOWN_LEFT = "fan_countdown_left"
     FAN_COUNTDOWN_2 = "fan_countdown_2"
     FAN_COUNTDOWN_3 = "fan_countdown_3"
     FAN_COUNTDOWN_4 = "fan_countdown_4"

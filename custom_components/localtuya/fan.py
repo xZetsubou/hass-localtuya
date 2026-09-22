@@ -1,7 +1,6 @@
 """Platform to locally control Tuya-based fan devices."""
 
 import logging
-import math
 from functools import partial
 from .config_flow import col_to_select
 
@@ -145,12 +144,12 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
                     percentage_to_ordered_list_item(self._ordered_list, percentage),
                 )
             else:
+                # Home Assistant rounds a six-speed fan's first step to 17%.
+                # Ceiling the raw value would incorrectly select speed 2.
+                speed = round(percentage_to_ranged_value(self._speed_range, percentage))
+                speed = max(self._speed_range[0], min(speed, self._speed_range[1]))
                 await self._device.set_dp(
-                    int(
-                        math.ceil(
-                            percentage_to_ranged_value(self._speed_range, percentage)
-                        )
-                    ),
+                    speed,
                     self._config.get(CONF_FAN_SPEED_CONTROL),
                 )
                 _LOGGER.debug(

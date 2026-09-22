@@ -14,6 +14,7 @@ from .const import (
     CONF_OPTIONS,
     CONF_PASSIVE_ENTITY,
     CONF_RESTORE_ON_RECONNECT,
+    CONF_SELECT_DPS_TYPE,
     DictSelector,
 )
 
@@ -22,6 +23,9 @@ def flow_schema(dps):
     """Return schema used in config flow."""
     return {
         vol.Required(CONF_OPTIONS, default={}): selector.ObjectSelector(),
+        vol.Optional(CONF_SELECT_DPS_TYPE, default="auto"): vol.In(
+            ["auto", "int", "str"]
+        ),
         vol.Required(CONF_RESTORE_ON_RECONNECT): bool,
         vol.Required(CONF_PASSIVE_ENTITY): bool,
         vol.Optional(CONF_DEFAULT_VALUE): str,
@@ -56,8 +60,16 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
                 + "where each line follows the structure [device_value: friendly name]"
             )
             config_options = {}
+        numeric_options = bool(config_options) and all(
+            str(key).lstrip("-").isdigit() for key in config_options
+        )
+        if numeric_options:
+            config_options = dict(
+                sorted(config_options.items(), key=lambda item: int(item[0]))
+            )
         for k, v in config_options.items():
-            options[k] = str(v) if v else k.replace("_", "").capitalize()
+            key = str(k)
+            options[key] = str(v) if v else key.replace("_", "").capitalize()
 
         self._options = DictSelector(options)
 
@@ -79,7 +91,15 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         """Update the current value."""
         option_value = self._options.to_tuya(option)
-        self.debug("Sending Option: " + option + " -> " + option_value)
+        current_value = self.dp_value(self._dp_id)
+        value_type = self._config.get(CONF_SELECT_DPS_TYPE, "auto")
+        if value_type == "int" or (
+            value_type == "auto"
+            and isinstance(current_value, int)
+            and not isinstance(current_value, bool)
+        ):
+            option_value = int(option_value)
+        self.debug(f"Sending Option: {option} -> {option_value}")
         await self._device.set_dp(option_value, self._dp_id)
 
     def status_updated(self):
@@ -87,7 +107,7 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
         super().status_updated()
 
         if (state := self.dp_value(self._dp_id)) is not None:
-            self._state_friendly = self._options.to_ha(state, state)
+            self._state_friendly = self._options.to_ha(str(state), str(state))
 
     # Default value is the first option
     def entity_default_value(self):

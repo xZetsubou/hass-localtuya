@@ -1,9 +1,9 @@
 """
-    This a file contains available tuya data
-    https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
+This a file contains available tuya data
+https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
 
-    Credits: official HA Tuya integration.
-    Modified by: xZetsubou
+Credits: official HA Tuya integration.
+Modified by: xZetsubou
 """
 
 from .base import (
@@ -45,6 +45,20 @@ COUNT_DOWN_HOURS = {
 }
 
 SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+    # Keep direction visible alongside other device controls. The fan entity
+    # also supports this DP through Home Assistant's native direction feature.
+    "fsd": (
+        LocalTuyaEntity(
+            id=DPCode.FAN_DIRECTION,
+            name="Fan direction",
+            icon="mdi:fan",
+            entity_category=EntityCategory.CONFIG,
+            device_group="fan",
+            custom_configs=localtuya_selector(
+                {"forward": "Forward", "reverse": "Reverse"}
+            ),
+        ),
+    ),
     # Smart panel with switches and zigbee hub ?
     # Not documented
     "dgnzk": (
