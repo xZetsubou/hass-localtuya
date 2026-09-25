@@ -19,9 +19,8 @@ from homeassistant.const import (
     EntityCategory,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
-    ATTR_VIA_DEVICE,
 )
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
@@ -216,7 +215,7 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     def device_info(self):
         """Return device information for the device registry."""
         device_config = self._device_config
-        device_info = DeviceInfo(
+        device_info = dr.DeviceInfo(
             # Serial numbers are unique identifiers within a specific domain
             identifiers={(DOMAIN, f"local_{device_config.id}")},
             name=device_config.name,
@@ -225,7 +224,16 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
             sw_version=device_config.protocol_version,
         )
         if self._device.is_subdevice and self._device.id != self._device.gateway.id:
-            device_info[ATTR_VIA_DEVICE] = (DOMAIN, f"local_{self._device.gateway.id}")
+            gateway_identifier = (DOMAIN, f"local_{self._device.gateway.id}")
+            if hasattr(dr, "async_get_device_id_by_identifier"):
+                device_info["via_device_id"] = dr.async_get_device_id_by_identifier(
+                    self.hass,
+                    gateway_identifier,
+                    config_entry_id=self._device._entry.entry_id,
+                )
+            else:
+                # Backwards compatibility with Home Assistant < 2026.8.
+                device_info["via_device"] = gateway_identifier
         return device_info
 
     @property
