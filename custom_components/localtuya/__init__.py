@@ -2,6 +2,7 @@
 
 import asyncio
 from dataclasses import dataclass
+import json
 import logging
 import time
 from datetime import timedelta
@@ -101,10 +102,14 @@ async def async_setup(hass: HomeAssistant, config: dict):
         if not device.connected:
             raise HomeAssistantError("not connected to device")
         value = event.data[CONF_VALUE]
-        if isinstance(value, dict):
+        if CONF_DP in event.data:
+            if isinstance(value, dict):
+                value = json.dumps(value)
+            await device.set_dp(value, event.data[CONF_DP])
+        elif isinstance(value, dict):
             await device.set_dps(value)
         else:
-            await device.set_dp(value, event.data[CONF_DP])
+            raise HomeAssistantError("dp is required unless value is a mapping of multiple dps")
 
     async def _handle_update_dps(event: ServiceCall):
         """Handle update_dps service call - sends UPDATEDPS (0x12) command."""
