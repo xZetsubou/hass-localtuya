@@ -227,6 +227,27 @@ class TuyaCloudApi:
 
         self.device_list.update({dev["id"]: dev for dev in resp["result"]})
 
+        # Some Tuya gateways do not include their Bluetooth children in the
+        # user device list. Query each possible gateway for its sub-devices;
+        # unsupported devices simply return an unsuccessful response.
+        for gateway_id in tuple(self.device_list):
+            children = await self.async_make_request(
+                "GET", url=f"/v1.0/iot-03/devices/{gateway_id}/sub-devices"
+            )
+            if not children or not children.get("success"):
+                continue
+            for device in children.get("result", []):
+                device.setdefault("gateway_id", gateway_id)
+                self.device_list[device["id"]] = device
+
+        # Tuya LAN sub-devices are authenticated by the gateway's local key.
+        # Normalise that here so the existing gateway matching logic works.
+        for device in self.device_list.values():
+            if gateway_id := device.get("gateway_id"):
+                if gateway := self.device_list.get(gateway_id):
+                    if gateway_key := gateway.get("local_key"):
+                        device["local_key"] = gateway_key
+
         self._last_devices_update = int(time.time())
         return "ok"
 
