@@ -46,7 +46,10 @@ class DiySceneCatalog:
         if not valid_diy_code(code):
             raise HomeAssistantError("Current DP 106 is not a valid 1-6 color DIY mode")
         name = name.strip()
-        if name not in self.saved.get(device_id, {}) and len(self.saved.get(device_id, {})) >= 100:
+        if (
+            name not in self.saved.get(device_id, {})
+            and len(self.saved.get(device_id, {})) >= 100
+        ):
             raise HomeAssistantError("Maximum of 100 saved DIY scenes per device")
         self.saved.setdefault(device_id, {})[name] = code
         await self.store.async_save(self.saved)

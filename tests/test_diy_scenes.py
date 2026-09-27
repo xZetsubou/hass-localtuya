@@ -28,7 +28,9 @@ def test_reject_non_diy(code):
 async def test_save_replace_select_delete_and_disconnect():
     catalog = DiySceneCatalog(Mock(data={}, config=Mock(config_dir="/tmp")))
     catalog.store = Mock(async_save=AsyncMock())
-    device = Mock(id="fixture-id", connected=True, _status={"106": "650001f403e80#0019ff19"})
+    device = Mock(
+        id="fixture-id", connected=True, _status={"106": "650001f403e80#0019ff19"}
+    )
     device.set_dp = AsyncMock()
     select = DiySceneSelect(device, catalog)
     select.async_write_ha_state = Mock()
