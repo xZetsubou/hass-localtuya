@@ -25,7 +25,13 @@
 """
 
 import json
-from .base import LocalTuyaEntity, CONF_DPS_STRINGS, CLOUD_VALUE, DPType
+from .base import (
+    LocalTuyaEntity,
+    CONF_DPS_STRINGS,
+    CONF_PRODUCT_NAME,
+    CLOUD_VALUE,
+    DPType,
+)
 from enum import Enum
 from homeassistant.const import Platform, CONF_FRIENDLY_NAME, CONF_PLATFORM, CONF_ID
 
@@ -95,6 +101,12 @@ def gen_localtuya_entities(localtuya_data: dict, tuya_category: str) -> list[dic
         # TODO: Refactor needed here.
         if cat_data := tuya_data.get(tuya_category):
             for ent_data in cat_data:
+                if (
+                    ent_data.product_names
+                    and device_cloud_data.get(CONF_PRODUCT_NAME)
+                    not in ent_data.product_names
+                ):
+                    continue
                 main_confs = ent_data.data
                 localtuya_conf = ent_data.localtuya_conf
                 localtuya_entity_configs = ent_data.entity_configs

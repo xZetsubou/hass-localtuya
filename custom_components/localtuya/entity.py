@@ -34,6 +34,7 @@ from .coordinator import HassLocalTuyaData, TuyaDevice
 from .const import (
     ATTR_STATE,
     CONF_DEFAULT_VALUE,
+    CONF_DEVICE_GROUP,
     CONF_ID,
     CONF_NODE_ID,
     CONF_PASSIVE_ENTITY,
@@ -46,6 +47,14 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _registry_device_id(
+    hass: HomeAssistant, identifier: str, config_entry_id: str
+) -> str | None:
+    """Find a device by identifier within its config entry."""
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, identifier)})
+    return device.id if device and config_entry_id in device.config_entries else None
 
 
 async def async_setup_entry(
@@ -83,6 +92,25 @@ async def async_setup_entry(
 
         if entities_to_setup:
             device: TuyaDevice = hass_entry_data.devices[device_key]
+            if any(entity.get(CONF_DEVICE_GROUP) for entity in entities_to_setup):
+                # The physical Tuya device must exist before its logical fan and
+                # light devices can refer to it through via_device_id.
+                parent_info = dr.DeviceInfo(
+                    identifiers={(DOMAIN, f"local_{device.id}")},
+                    name=dev_entry[CONF_FRIENDLY_NAME],
+                    manufacturer="Tuya",
+                    model=f"{device._device_config.model} ({device.id})",
+                    sw_version=device._device_config.protocol_version,
+                )
+                if device.is_subdevice and device.gateway:
+                    gateway_id = _registry_device_id(
+                        hass, f"local_{device.gateway.id}", config_entry.entry_id
+                    )
+                    if gateway_id:
+                        parent_info["via_device_id"] = gateway_id
+                dr.async_get(hass).async_get_or_create(
+                    config_entry_id=config_entry.entry_id, **parent_info
+                )
             dps_config_fields = list(get_dps_for_platform(flow_schema))
 
             for entity_config in entities_to_setup:
@@ -215,6 +243,20 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     def device_info(self):
         """Return device information for the device registry."""
         device_config = self._device_config
+        if group := self._config.get(CONF_DEVICE_GROUP):
+            parent_id = _registry_device_id(
+                self.hass, f"local_{device_config.id}", self._device._entry.entry_id
+            )
+            info = dr.DeviceInfo(
+                identifiers={(DOMAIN, f"local_{device_config.id}_{group}")},
+                name=f"{device_config.name} {group.title()}",
+                manufacturer="Tuya",
+                model=f"{device_config.model} ({device_config.id})",
+                sw_version=device_config.protocol_version,
+            )
+            if parent_id:
+                info["via_device_id"] = parent_id
+            return info
         device_info = dr.DeviceInfo(
             # Serial numbers are unique identifiers within a specific domain
             identifiers={(DOMAIN, f"local_{device_config.id}")},

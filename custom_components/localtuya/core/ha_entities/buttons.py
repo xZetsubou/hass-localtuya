@@ -7,8 +7,23 @@
 """
 
 from .base import DPCode, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
+from ...const import CONF_BUTTON_LOG_DP_CHANGES, CONF_BUTTON_PRESS_VALUE
 
 BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+    # The tested CREATE fan cycles light color on DP23 writes; the button sends 1000.
+    "fsd": (
+        LocalTuyaEntity(
+            id=DPCode.TEMP_VALUE,
+            name="Cycle light color",
+            icon="mdi:palette-swatch",
+            device_group="light",
+            condition_product_names=("ceiling fan/Light v2",),
+            custom_configs={
+                CONF_BUTTON_PRESS_VALUE: 1000,
+                CONF_BUTTON_LOG_DP_CHANGES: True,
+            },
+        ),
+    ),
     # Scene Switch
     # https://developer.tuya.com/en/docs/iot/f?id=K9gf7nx6jelo8
     "cjkg": (

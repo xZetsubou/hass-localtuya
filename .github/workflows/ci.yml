@@ -34,7 +34,7 @@ jobs:
         uses: actions/cache@v4.2.0
         with:
           path: ${{env.pythonLocation}}
-          key: ${{ runner.os }}-pip-dependencies-${{ hashFiles('requirements.txt') }}_${{env.CACHE_VERSION}}
+          key: ${{ runner.os }}-pip-dependencies-${{ hashFiles('requirements_test.txt') }}_${{env.CACHE_VERSION}}
 
       - name: "Install dependencies"
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
@@ -55,7 +55,7 @@ jobs:
         with:
           path: ${{needs.base.outputs.PY_PATH}}
           fail-on-cache-miss: true
-          key: ${{ runner.os }}-pip-dependencies-${{ hashFiles('requirements.txt') }}_${{env.CACHE_VERSION}}
+          key: ${{ runner.os }}-pip-dependencies-${{ hashFiles('requirements_test.txt') }}_${{env.CACHE_VERSION}}
 
       - name: "Black codestyle check"
         run: ${{needs.base.outputs.PY_PATH}}/bin/black --check --diff .
@@ -73,7 +73,7 @@ jobs:
         with:
           path: ${{needs.base.outputs.PY_PATH}}
           fail-on-cache-miss: true
-          key: ${{ runner.os }}-pip-dependencies-${{ hashFiles('requirements.txt') }}_${{env.CACHE_VERSION}}
+          key: ${{ runner.os }}-pip-dependencies-${{ hashFiles('requirements_test.txt') }}_${{env.CACHE_VERSION}}
 
       - name: "Codespell check"
         run: ${{needs.base.outputs.PY_PATH}}/bin/codespell
@@ -91,7 +91,7 @@ jobs:
         with:
           path: ${{needs.base.outputs.PY_PATH}}
           fail-on-cache-miss: true
-          key: ${{ runner.os }}-pip-dependencies-${{ hashFiles('requirements.txt') }}_${{env.CACHE_VERSION}}
+          key: ${{ runner.os }}-pip-dependencies-${{ hashFiles('requirements_test.txt') }}_${{env.CACHE_VERSION}}
 
       - name: "Pytest"
         run: |
