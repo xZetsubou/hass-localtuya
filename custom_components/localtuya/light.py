@@ -35,8 +35,10 @@ from .const import (
     CONF_COLOR_TEMP_REVERSE,
     CONF_MUSIC_MODE,
     CONF_SCENE_VALUES,
+    CONF_SCENE_PROFILE,
     DictSelector,
 )
+from .scene_profiles import ETERNITY_EAVE, SCENE_PROFILES, eternity_eave_scenes, scene_for_value
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -198,6 +200,7 @@ def flow_schema(dps):
         vol.Optional(CONF_COLOR_TEMP_REVERSE, default=DEFAULT_COLOR_TEMP_REVERSE): bool,
         vol.Optional(CONF_SCENE): col_to_select(dps, is_dps=True),
         vol.Optional(CONF_SCENE_VALUES, default={}): selector.ObjectSelector(),
+        vol.Optional(CONF_SCENE_PROFILE): col_to_select(SCENE_PROFILES),
         vol.Optional(CONF_MUSIC_MODE, default=False): selector.BooleanSelector(),
     }
 
@@ -237,7 +240,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._scenes = DictSelector({})
         self._cached_status = {}
 
-        if self._config.get(CONF_MUSIC_MODE):
+        if (
+            self._config.get(CONF_MUSIC_MODE)
+            and self._config.get(CONF_SCENE_PROFILE) != ETERNITY_EAVE
+        ):
             self._effect_list.append(SCENE_MUSIC)
 
         self._attr_min_color_temp_kelvin = int(
@@ -256,7 +262,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         is_write_only = self._write_only
 
         if self.has_config(CONF_SCENE):
-            if (cf_scenes := self._config.get(CONF_SCENE_VALUES)) and len(cf_scenes):
+            if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
+                scenes = eternity_eave_scenes()
+            elif (cf_scenes := self._config.get(CONF_SCENE_VALUES)) and len(cf_scenes):
                 scenes = {v: k for k, v in cf_scenes.items()}
             else:
                 scene_value = self.dp_value(CONF_SCENE)
@@ -402,6 +410,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     @property
     def is_scene_mode(self):
         """Return true if the light is in scene mode."""
+        if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
+            return self.has_config(CONF_SCENE)
         color_mode = self.__get_color_mode()
         return color_mode is not None and color_mode.startswith(self._modes.scene)
 
@@ -541,7 +551,9 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             effect = kwargs[ATTR_EFFECT]
             scene = self._scenes.to_tuya(effect)
             if scene is not None:
-                if scene.startswith(self._modes.scene) or scene in (
+                if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
+                    states[self._config[CONF_SCENE]] = scene
+                elif scene.startswith(self._modes.scene) or scene in (
                     self._modes.white,
                     self._modes.color,
                 ):
@@ -640,17 +652,24 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             self._color_temp = self.dp_value(CONF_COLOR_TEMP)
 
         if self.is_scene_mode and supported & LightEntityFeature.EFFECT:
-            color_mode = self.dp_value(CONF_COLOR_MODE)
-            if color_mode != self._modes.scene:
-                self._effect = self.__find_scene_by_scene_data(color_mode)
+            if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
+                self._effect = scene_for_value(self.dp_value(CONF_SCENE))
             else:
-                self._effect = self.__find_scene_by_scene_data(
-                    self.dp_value(CONF_SCENE)
-                )
-                if self._effect is None:
+                color_mode = self.dp_value(CONF_COLOR_MODE)
+                if color_mode != self._modes.scene:
                     self._effect = self.__find_scene_by_scene_data(color_mode)
+                else:
+                    self._effect = self.__find_scene_by_scene_data(
+                        self.dp_value(CONF_SCENE)
+                    )
+                    if self._effect is None:
+                        self._effect = self.__find_scene_by_scene_data(color_mode)
 
-        if self.is_music_mode and supported & LightEntityFeature.EFFECT:
+        if (
+            self._config.get(CONF_SCENE_PROFILE) != ETERNITY_EAVE
+            and self.is_music_mode
+            and supported & LightEntityFeature.EFFECT
+        ):
             self._effect = SCENE_MUSIC
 
     def status_restored(self, stored_state) -> None:

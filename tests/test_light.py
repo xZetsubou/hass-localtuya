@@ -6,6 +6,9 @@ from custom_components.localtuya.light import (
     DOMAIN as PLATFORM_DOMAIN,
     ColorMode,
 )
+from custom_components.localtuya.const import CONF_SCENE_PROFILE
+from custom_components.localtuya.scene_profiles import ETERNITY_EAVE
+from unittest.mock import AsyncMock
 
 CONFIG = {
     DEVICE_NAME: {
@@ -82,3 +85,30 @@ async def test_light():
 
     # Bluetooth
     # device.status_updated({"21": "colour", "24": "AHhkZA==", "25": ""})
+
+
+async def test_eternity_eave_effects_follow_dp106_without_color_mode():
+    config = {
+        DEVICE_NAME: {
+            **DEVICE_CONFIG,
+            "entities": [{
+                "id": "20",
+                "platform": "light",
+                "scene": "106",
+                CONF_SCENE_PROFILE: ETERNITY_EAVE,
+            }],
+        }
+    }
+    device = await init(config, PLATFORM_DOMAIN, LocalTuyaLight)
+    light = get_entites(device)[0]
+    device.status_updated({"20": True, "106": "020f01f403e8"})
+    assert "Halloween" in light.effect_list
+    assert light.effect == "Halloween"
+    device.status_updated({"106": "020f000a000a"})
+    assert light.effect == "Halloween"  # Changed speed and brightness
+    device.status_updated({"106": "650c01f403e81#0019ff19#00ff4600"})
+    assert light.effect is None  # Unknown DIY mode must not be mislabeled
+
+    device.set_dps = AsyncMock()
+    await light.async_turn_on(effect="Bubbly")
+    device.set_dps.assert_awaited_once_with({"106": "3301012c03e8"})
