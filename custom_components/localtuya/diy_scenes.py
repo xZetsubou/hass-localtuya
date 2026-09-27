@@ -13,8 +13,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.storage import Store
 
-from .const import DOMAIN, CONF_NODE_ID, CONF_SCENE_PROFILE
-from .scene_profiles import ETERNITY_EAVE
+from .const import DOMAIN, CONF_NODE_ID
 
 STORAGE_KEY = "localtuya_eternity_eave_diy_scenes"
 # Header: 65 effect(2), speed(4), brightness(4), count-minus-one(1).
@@ -139,7 +138,7 @@ def configured_device(hass, device_id):
         if not any(
             ent.get(CONF_PLATFORM) == "light"
             and str(ent.get("id")) == "20"
-            and ent.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE
+            and ent.get("scene_profile") == "eternity_eave"
             and str(ent.get("scene")) == "106"
             for ent in config.get("entities", [])
         ):
