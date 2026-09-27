@@ -311,7 +311,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def brightness(self):
         """Return the brightness of the light."""
         brightness = self._brightness
-        if brightness is not None:
+        if brightness is not None and (self.is_color_mode or self.is_white_mode):
             return map_range(brightness, self._lower_brightness, self._upper_brightness)
         return None
 
@@ -414,9 +414,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     @property
     def color_mode(self) -> ColorMode:
         """Return the color_mode of the light."""
-        supported = self.supported_color_modes
-        if len(supported) == 1:
-            return next(iter(supported))
+        if len(self.supported_color_modes) == 1:
+            return next(iter(self.supported_color_modes))
 
         if self.is_color_mode:
             return ColorMode.HS
@@ -426,18 +425,18 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             else:
                 return ColorMode.WHITE
 
-        # Scene and music are Tuya work modes, not HA color modes. Returning a
-        # mode that isn't in supported_color_modes violates the light entity
-        # contract and makes the frontend render no controls at all, so fall
-        # back to a mode that is actually advertised.
-        for mode in (
-            ColorMode.HS,
-            ColorMode.COLOR_TEMP,
-            ColorMode.WHITE,
-            ColorMode.BRIGHTNESS,
-        ):
-            if mode in supported:
-                return mode
+        if self.is_scene_mode or self.is_music_mode:
+            # Frontend compatibility while Tuya is running an effect.
+            supported = self.supported_color_modes
+            if ColorMode.HS in supported:
+                return ColorMode.HS
+            if ColorMode.COLOR_TEMP in supported:
+                return ColorMode.COLOR_TEMP
+            if ColorMode.WHITE in supported:
+                return ColorMode.WHITE
+
+        if self._brightness:
+            return ColorMode.BRIGHTNESS
 
         return ColorMode.ONOFF
 
