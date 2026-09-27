@@ -91,12 +91,14 @@ async def test_eternity_eave_effects_follow_dp106_without_color_mode():
     config = {
         DEVICE_NAME: {
             **DEVICE_CONFIG,
-            "entities": [{
-                "id": "20",
-                "platform": "light",
-                "scene": "106",
-                CONF_SCENE_PROFILE: ETERNITY_EAVE,
-            }],
+            "entities": [
+                {
+                    "id": "20",
+                    "platform": "light",
+                    "scene": "106",
+                    CONF_SCENE_PROFILE: ETERNITY_EAVE,
+                }
+            ],
         }
     }
     device = await init(config, PLATFORM_DOMAIN, LocalTuyaLight)

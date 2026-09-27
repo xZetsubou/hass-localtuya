@@ -38,7 +38,12 @@ from .const import (
     CONF_SCENE_PROFILE,
     DictSelector,
 )
-from .scene_profiles import ETERNITY_EAVE, SCENE_PROFILES, eternity_eave_scenes, scene_for_value
+from .scene_profiles import (
+    ETERNITY_EAVE,
+    SCENE_PROFILES,
+    eternity_eave_scenes,
+    scene_for_value,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

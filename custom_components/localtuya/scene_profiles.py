@@ -44,6 +44,10 @@ def scene_for_value(value: str | None) -> str | None:
         return None
     prefix = value[:4].lower()
     return next(
-        (name for name, default in eternity_eave_scenes().items() if default[:4] == prefix),
+        (
+            name
+            for name, default in eternity_eave_scenes().items()
+            if default[:4] == prefix
+        ),
         None,
     )
