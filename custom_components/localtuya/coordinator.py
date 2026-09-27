@@ -136,6 +136,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
     @property
     def is_sleep(self):
         """Return whether the device is sleep or not."""
+        if self._device_config.event_driven:
+            setattr(self, "low_power", True)
+            return True
+
         if (device_sleep := self._device_config.sleep_time) > 0:
             setattr(self, "low_power", True)
             last_update = time.monotonic() - self._last_update_time
@@ -298,7 +302,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     self.hass, signal, _new_entity_handler
                 )
 
-            if (scan_inv := int(self._device_config.scan_interval)) > 0:
+            if (
+                not self._device_config.event_driven
+                and (scan_inv := int(self._device_config.scan_interval)) > 0
+            ):
                 self._unsub_refresh = async_track_time_interval(
                     self.hass, self._async_refresh, timedelta(seconds=scan_inv)
                 )
@@ -320,7 +327,8 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             if self.sub_devices:
                 asyncio.create_task(self._connect_subdevices())
 
-            self._interface.keep_alive(len(self.sub_devices) > 0)
+            if not self._device_config.event_driven:
+                self._interface.keep_alive(len(self.sub_devices) > 0)
 
         # If not connected try to handle the errors.
         if not self.connected and not self.is_closing:
