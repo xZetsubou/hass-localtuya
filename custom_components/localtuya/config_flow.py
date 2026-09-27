@@ -73,14 +73,16 @@ from .const import (
     DOMAIN,
     ENTITY_CATEGORY,
     PLATFORMS,
+    READ_ONLY_PLATFORMS,
     SUPPORTED_PROTOCOL_VERSIONS,
     CONF_DEVICE_SLEEP_TIME,
+    normalize_entity_category,
 )
 from .discovery import discover
 
 _LOGGER = logging.getLogger(__name__)
 
-ENTRIES_VERSION = 4
+ENTRIES_VERSION = 5
 
 PLATFORM_TO_ADD = "platform_to_add"
 USE_TEMPLATE = "use_template"
@@ -748,7 +750,9 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
         return self.async_show_form(
             step_id="entity",
             errors=errors,
-            data_schema=schema_suggested_values(schema, **self.current_entity),
+            data_schema=schema_suggested_values(
+                schema, **entity_suggested_values(self.current_entity)
+            ),
             description_placeholders={
                 "id": int(self.current_entity[CONF_ID]),
                 "platform": self.current_entity[CONF_PLATFORM],
@@ -800,7 +804,9 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             schema = await platform_schema(
                 self.hass, self.current_entity[CONF_PLATFORM], self.dps_strings, False
             )
-            schema = schema_suggested_values(schema, **self.current_entity)
+            schema = schema_suggested_values(
+                schema, **entity_suggested_values(self.current_entity)
+            )
             placeholders = {
                 "entity": f"entity with DP {int(self.current_entity[CONF_ID])}",
                 "platform": self.current_entity[CONF_PLATFORM],
@@ -1086,6 +1092,23 @@ def options_schema(entities):
     )
 
 
+def entity_suggested_values(entity_config: dict) -> dict:
+    """Return the stored entity config with a category valid for its platform.
+
+    A legacy entity may hold a category that is no longer offered for its
+    platform; suggesting it would leave the select field empty and silently
+    force the user to pick a new value.
+    """
+    values = dict(entity_config)
+    if CONF_ENTITY_CATEGORY in values:
+        values[CONF_ENTITY_CATEGORY] = str(
+            normalize_entity_category(
+                values.get(CONF_PLATFORM), values[CONF_ENTITY_CATEGORY]
+            )
+        )
+    return values
+
+
 def schema_suggested_values(schema: vol.Schema, **defaults):
     """Returns a copy of the schema with suggested values added to field descriptions."""
     new_schema = {}
@@ -1163,9 +1186,20 @@ async def platform_schema(
     if allow_id:
         schema[vol.Required(CONF_ID)] = col_to_select(dps_strings, is_dps=True)
     schema[vol.Optional(CONF_FRIENDLY_NAME, default="")] = vol.Any(None, cv.string)
-    schema[
-        vol.Required(CONF_ENTITY_CATEGORY, default=str(default_category(platform)))
-    ] = col_to_select(ENTITY_CATEGORY)
+
+    entity_categories = ENTITY_CATEGORY
+    if platform in READ_ONLY_PLATFORMS:
+        # Home Assistant rejects CONFIG on read-only platforms.
+        entity_categories = {
+            label: category
+            for label, category in ENTITY_CATEGORY.items()
+            if category != EntityCategory.CONFIG
+        }
+
+    default = normalize_entity_category(platform, default_category(platform))
+    schema[vol.Required(CONF_ENTITY_CATEGORY, default=str(default))] = col_to_select(
+        entity_categories
+    )
 
     plat_schema = await hass.async_add_import_executor_job(
         flow_schema, platform, dps_strings
