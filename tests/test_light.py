@@ -82,3 +82,39 @@ async def test_light():
 
     # Bluetooth
     # device.status_updated({"21": "colour", "24": "AHhkZA==", "25": ""})
+
+
+async def test_light_work_mode_written_only_when_it_changes():
+    """work_mode must not ride along on a write that does not change it.
+
+    Some devices acknowledge a CONTROL frame that carries work_mode next to
+    brightness/color_temp and then silently discard the whole payload, so the
+    light never dims. Sending only the DPs that actually change keeps those
+    devices working, and still switches work_mode when the mode really differs.
+    """
+    device = await init(CONFIG, PLATFORM_DOMAIN, LocalTuyaLight)
+    entity_1, *_ = get_entites(device)
+
+    device.status_updated(DPS_STATUS.copy())
+    assert entity_1.is_white_mode
+
+    # Already in white mode: a brightness change must send brightness only.
+    device.set_dps = AsyncMock()
+    await entity_1.async_turn_on(brightness=128)
+    states = device.set_dps.call_args.args[0]
+    assert "22" in states
+    assert "21" not in states
+
+    # Still in white mode: a color temperature change must not re-send work_mode.
+    device.set_dps = AsyncMock()
+    await entity_1.async_turn_on(color_temp_kelvin=4000)
+    states = device.set_dps.call_args.args[0]
+    assert "23" in states
+    assert "21" not in states
+
+    # Coming from another mode, work_mode still has to be written.
+    device.status_updated({"21": "colour"})
+    device.set_dps = AsyncMock()
+    await entity_1.async_turn_on(color_temp_kelvin=4000)
+    states = device.set_dps.call_args.args[0]
+    assert states.get("21") == "white"
