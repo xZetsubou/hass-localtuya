@@ -39,6 +39,7 @@ from .const import (
     DictSelector,
 )
 from .scene_profiles import (
+    valid_diy_code,
     ETERNITY_EAVE,
     SCENE_PROFILES,
     eternity_eave_scenes,
@@ -324,6 +325,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def brightness(self):
         """Return the brightness of the light."""
         brightness = self._brightness
+        if (
+            brightness is not None
+            and self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE
+        ):
+            return map_range(brightness, 0, 1000)
         if brightness is not None and (self.is_color_mode or self.is_white_mode):
             return map_range(brightness, self._lower_brightness, self._upper_brightness)
         return None
@@ -372,6 +378,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     @property
     def supported_color_modes(self) -> set[ColorMode] | set[str] | None:
         """Flag supported color modes."""
+        if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
+            return {ColorMode.HS}
         color_modes: set[ColorMode] = set()
 
         if self.has_config(CONF_COLOR_TEMP):
@@ -409,6 +417,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     @property
     def is_color_mode(self):
         """Return true if the light is in color mode."""
+        if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
+            mode = self.dp_value(CONF_SCENE)
+            return (
+                valid_diy_code(mode) and mode[:4].lower() == "6500" and mode[12] == "0"
+            )
         color_mode = self.__get_color_mode()
         return color_mode is not None and color_mode == self._modes.color
 
@@ -416,7 +429,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def is_scene_mode(self):
         """Return true if the light is in scene mode."""
         if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
-            return self.has_config(CONF_SCENE)
+            mode = self.dp_value(CONF_SCENE)
+            return scene_for_value(mode) is not None or (
+                valid_diy_code(mode) and not self.is_color_mode
+            )
         color_mode = self.__get_color_mode()
         return color_mode is not None and color_mode.startswith(self._modes.scene)
 
@@ -549,6 +565,35 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if not self.is_on or self._write_only:
             states[self._dp_id] = True
         features = self.supported_features
+        if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
+            # DP 106: scene/effect(4), speed(4), brightness(4), optional DIY palette.
+            # DP 104 is a per-lamp layout, not generic Tuya HSV color data.
+            scene = (
+                self._scenes.to_tuya(kwargs[ATTR_EFFECT])
+                if ATTR_EFFECT in kwargs
+                else self.dp_value(CONF_SCENE)
+            )
+            if ATTR_HS_COLOR in kwargs:
+                hs = kwargs[ATTR_HS_COLOR]
+                rgb = color_util.color_hsv_to_RGB(hs[0], hs[1], 100)
+                brightness = self._brightness if self._brightness is not None else 1000
+                scene = (
+                    f"65000000{brightness:04x}0#00{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+                )
+            if scene_for_value(scene) is not None or valid_diy_code(scene):
+                if ATTR_BRIGHTNESS in kwargs:
+                    brightness = max(
+                        1, map_range(int(kwargs[ATTR_BRIGHTNESS]), 0, 255, 0, 1000)
+                    )
+                    scene = scene[:8] + f"{brightness:04x}" + scene[12:]
+                if (
+                    ATTR_EFFECT in kwargs
+                    or ATTR_BRIGHTNESS in kwargs
+                    or ATTR_HS_COLOR in kwargs
+                ):
+                    states[self._config[CONF_SCENE]] = scene
+            await self._device.set_dps(states)
+            return
         color_modes = self.supported_color_modes
         brightness = None
         color_mode = None
@@ -556,9 +601,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             effect = kwargs[ATTR_EFFECT]
             scene = self._scenes.to_tuya(effect)
             if scene is not None:
-                if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
-                    states[self._config[CONF_SCENE]] = scene
-                elif scene.startswith(self._modes.scene) or scene in (
+                if scene.startswith(self._modes.scene) or scene in (
                     self._modes.white,
                     self._modes.color,
                 ):
@@ -642,6 +685,18 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         self._state = self.dp_value(self._dp_id)
         supported = self.supported_features
         self._effect = None
+
+        if self._config.get(CONF_SCENE_PROFILE) == ETERNITY_EAVE:
+            mode = self.dp_value(CONF_SCENE)
+            self._brightness = None
+            self._hs = None
+            if scene_for_value(mode) is not None or valid_diy_code(mode):
+                self._brightness = min(int(mode[8:12], 16), 1000)
+                self._effect = scene_for_value(mode)
+                if self.is_color_mode:
+                    rgb = tuple(int(mode[i : i + 2], 16) for i in (16, 18, 20))
+                    self._hs = list(color_util.color_RGB_to_hs(*rgb))
+            return
 
         if (brightness_dp_value := self.dp_value(CONF_BRIGHTNESS)) is not None:
             self._brightness = brightness_dp_value

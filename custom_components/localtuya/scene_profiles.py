@@ -51,3 +51,15 @@ def scene_for_value(value: str | None) -> str | None:
         ),
         None,
     )
+
+
+# Header: 65 effect(2), speed(4), brightness(4), count-minus-one(1).
+# Each color is #00RRGGBB. Other vendor formats are not accepted blindly.
+DIY_RE = re.compile(r"65[0-9a-f]{10}([0-5])((?:#00[0-9a-f]{6}){1,6})\Z", re.I)
+
+
+def valid_diy_code(value):
+    """Only persist DIY mode values with a consistent 1-6 color count."""
+    if not isinstance(value, str) or not (match := DIY_RE.fullmatch(value)):
+        return False
+    return len(match.group(2).split("#")) - 1 == int(match.group(1)) + 1

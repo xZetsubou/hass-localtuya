@@ -27,8 +27,12 @@ factory scene. The device must be powered and connected for control.
 
 The CSV contains `name,default,speed`: `default` is the full captured mode
 value and `speed` records whether Smart Life allows adjusting that scene's
-speed. This profile only implements factory scene selection, not speed or
-brightness sliders. Factory mode strings observed on the tested device have
+speed. The brightness slider updates the brightness field while preserving
+scene identity and speed. Selecting a scene with `brightness` sets its initial
+brightness; selecting it alone uses the catalog default. Single colors use a
+static one-color DIY mode on DP 106, and retain the current brightness when
+no brightness is specified. DP 104 is per-lamp customization/layout, not a
+generic Tuya color datapoint. Factory mode strings observed on the tested device have
 12 hex characters: four identifying the scene, four for speed, and four for
 brightness. Other firmware could differ. Additional entries should be based
 on observed values, not inferred from adjacent scene numbers.
