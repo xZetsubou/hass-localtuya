@@ -44,6 +44,7 @@ from .const import (
 )
 
 from .discovery import TuyaDiscovery
+from .diy_scenes import DiySceneCatalog, configured_device, valid_diy_code
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,11 +67,19 @@ SERVICE_UPDATE_DPS_SCHEMA = vol.Schema(
         vol.Optional("dps"): list,
     }
 )
+SERVICE_SAVE_DIY_SCENE = "save_diy_scene"
+SERVICE_DELETE_DIY_SCENE = "delete_diy_scene"
+SAVED_SCENE_SCHEMA = vol.Schema(
+    {vol.Required(CONF_DEVICE_ID): cv.string, vol.Required("name"): cv.string}
+)
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the LocalTuya integration component."""
     hass.data.setdefault(DOMAIN, {})
+    catalog = DiySceneCatalog(hass)
+    await catalog.load()
+    hass.data[DOMAIN]["diy_scenes"] = catalog
 
     current_entries = hass.config_entries.async_entries(DOMAIN)
     device_cache = {}
@@ -125,6 +134,21 @@ async def async_setup(hass: HomeAssistant, config: dict):
             await device._interface.update_dps(dps=dps, cid=device._node_id)
         except TimeoutError:
             pass
+
+    async def _save_diy_scene(event: ServiceCall):
+        device_id = event.data[CONF_DEVICE_ID]
+        device, _ = configured_device(hass, device_id)
+        if not device.connected:
+            raise HomeAssistantError("Device is not connected")
+        value = device._status.get("106")
+        if not valid_diy_code(value):
+            raise HomeAssistantError("Current mode is not a 1-6 color DIY scene")
+        await catalog.save(device_id, event.data["name"], value)
+
+    async def _delete_diy_scene(event: ServiceCall):
+        device_id = event.data[CONF_DEVICE_ID]
+        configured_device(hass, device_id)
+        await catalog.delete(device_id, event.data["name"])
 
     def _device_discovered(device: dict):
         """Update address of device if it has changed."""
@@ -205,6 +229,12 @@ async def async_setup(hass: HomeAssistant, config: dict):
         SERVICE_UPDATE_DPS,
         _handle_update_dps,
         schema=SERVICE_UPDATE_DPS_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SAVE_DIY_SCENE, _save_diy_scene, schema=SAVED_SCENE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_DELETE_DIY_SCENE, _delete_diy_scene, schema=SAVED_SCENE_SCHEMA
     )
 
     discovery = TuyaDiscovery(_device_discovered)

@@ -2,6 +2,36 @@ reload:
   name: "Reload"
   description: Reload localtuya and reconnect to all devices.
 
+save_diy_scene:
+  name: Save current DIY scene
+  description: Save the currently reported 1-6 color DIY mode under a name on this device.
+  fields:
+    device_id:
+      name: LocalTuya device ID
+      required: true
+      selector:
+        text:
+    name:
+      name: Scene name
+      required: true
+      selector:
+        text:
+
+delete_diy_scene:
+  name: Delete saved DIY scene
+  description: Remove one named DIY scene from this device's picker.
+  fields:
+    device_id:
+      name: LocalTuya device ID
+      required: true
+      selector:
+        text:
+    name:
+      name: Scene name
+      required: true
+      selector:
+        text:
+
 set_dp:
   name: "Set DP Value"
   description: Change the value of a datapoint (DP)
