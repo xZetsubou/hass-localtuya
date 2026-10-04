@@ -1,6 +1,7 @@
 """Init localtuya tests"""
 
 import asyncio
+import inspect
 import homeassistant.util.ulid as ulid_util
 import os, sys
 import pytest
@@ -29,14 +30,17 @@ DEVICE_CONFIG = {
 
 
 async def init(config: dict[str, dict[str, Any]], entity_domain, entity_class):
-    add_entities = AsyncMock()
+    add_entities = Mock()
 
     asyncio.create_task = lambda _: None
     asyncio.get_running_loop = lambda: type(
         "", (), {"_thread_id": threading.get_ident()}
     )
     hass = HomeAssistant("")
-    entry = ConfigEntry(**create_entry(config))
+    entry_data = create_entry(config)
+    if "subentries_data" in inspect.signature(ConfigEntry).parameters:
+        entry_data["subentries_data"] = []
+    entry = ConfigEntry(**entry_data)
     tuya_api = TuyaCloudApi("EU", "test_client_id", "test_secret", "test_user_id")
 
     hass.data.setdefault("localtuya", {entry.entry_id: {}})
