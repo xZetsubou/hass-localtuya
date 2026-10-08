@@ -7,6 +7,10 @@ from custom_components.localtuya.vacuum import (
     VacuumActivity,
     CONF_MODE_DP,
     CONF_PAUSE_DP,
+    DEFAULT_MODES,
+    DEFAULT_RETURN_MODE,
+    DEFAULT_STOP_STATUS,
+    VacuumEntityFeature,
 )
 
 CONFIG = {
@@ -76,3 +80,38 @@ async def test_vacuum():
 
     device.status_updated({entity_1_cfg["id"]: "standby"})
     assert entity_1.state == VacuumActivity.IDLE
+
+
+async def test_vacuum_default_modes():
+    """Return home and stop work with the default (non-cloud) configuration."""
+    config = {
+        DEVICE_NAME: {
+            **DEVICE_CONFIG,
+            "entities": [
+                {
+                    "powergo_dp": "2",
+                    "idle_status_value": "standby,sleep",
+                    "docked_status_value": "charging,chargecompleted,charge_done",
+                    "paused_state": "paused",
+                    "mode_dp": "3",
+                    "modes": DEFAULT_MODES,
+                    "return_mode": DEFAULT_RETURN_MODE,
+                    "stop_status": DEFAULT_STOP_STATUS,
+                    "friendly_name": "",
+                    "id": "5",
+                    "platform": PLATFORM_DOMAIN,
+                }
+            ],
+        }
+    }
+    device = await init(config, PLATFORM_DOMAIN, LocalTuyaVacuum)
+    entity_1, *_ = get_entites(device)
+    entity_1._device.set_dp = AsyncMock()
+
+    assert entity_1.supported_features & VacuumEntityFeature.RETURN_HOME
+
+    await entity_1.async_return_to_base()
+    entity_1._device.set_dp.assert_awaited_with(DEFAULT_RETURN_MODE, "3")
+
+    await entity_1.async_stop()
+    entity_1._device.set_dp.assert_awaited_with(DEFAULT_STOP_STATUS, "3")
