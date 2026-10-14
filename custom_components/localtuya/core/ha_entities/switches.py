@@ -1015,6 +1015,23 @@ SWITCHES: dict[str, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
     ),
+    # Portable Air conditioner
+    # https://developer.tuya.com/en/docs/iot/f?id=K9gf45ld5l0t9
+    # e.g. SILKAIR DUAL CONNECT 9000
+    "ydkt": (
+        LocalTuyaEntity(
+            id=DPCode.ANION,
+            name="Ionizer",
+            icon="mdi:air-purifier",
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SLEEPING_MODE,
+            name="Sleep",
+            icon="mdi:sleep",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
 }
 
 # Scene Switch

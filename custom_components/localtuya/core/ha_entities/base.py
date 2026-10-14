@@ -656,6 +656,7 @@ class DPCode(StrEnum):
     SITUATION_SET = "situation_set"
     SLEEP = "sleep"  # Sleep function
     SLEEPING = "sleeping"
+    SLEEPING_MODE = "Sleeping_mode"  # Portable AC sleep mode
     SLOW_FEED = "slow_feed"
     SMART_WEATHER = "smart_weather"
     SMOKE_SENSOR_STATE = "smoke_sensor_state"
@@ -883,6 +884,8 @@ class DPCode(StrEnum):
     WINDOWDETECT = "windowdetect"
     WINDOW_CHECK = "window_check"
     WINDOW_STATE = "window_state"
+    WINDSHAKE = "windshake"  # Vertical swing flap (portable AC)
+    WINDSHAKE_H = "windshakeH"  # Horizontal swing flap (portable AC)
     WINDSPEED = "windspeed"
     WINDSPEED_UNIT_CONVERT = "windspeed_unit_convert"
     WIRELESS_BATTERYLOCK = "wireless_batterylock"

@@ -216,7 +216,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             hvac_modes = {k.lower(): v for k, v in hvac_modes.copy().items()}
 
         self._preset_dp = self._config.get(CONF_PRESET_DP)
-        preset_set: dict = self._config.get(CONF_PRESET_SET, {})
+        preset_set: dict = self._config.get(CONF_PRESET_SET) or {}
         # Sort Modes If the HVAC isn't supported by HA then we add it as preset.
         if self._preset_dp == self._hvac_mode_dp or not self._preset_dp:
             for k in hvac_modes.copy().keys():
@@ -224,25 +224,25 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
                     self._preset_dp = self._hvac_mode_dp
                     preset_set[k] = hvac_modes.pop(k)
 
-        self._preset_set = DictSelector(preset_set)
-        self._hvac_mode_set = DictSelector(hvac_modes, reverse=True)
+        self._preset_set = DictSelector(preset_set or {})
+        self._hvac_mode_set = DictSelector(hvac_modes or {}, reverse=True)
 
         # HVAC Actions
         self._hvac_action_dp = self._config.get(CONF_HVAC_ACTION_DP)
         if actions_set := self._config.get(CONF_HVAC_ACTION_SET, {}):
             actions_set = {k.lower(): v for k, v in actions_set.copy().items()}
-        self._hvac_action_set = DictSelector(actions_set, reverse=True)
+        self._hvac_action_set = DictSelector(actions_set or {}, reverse=True)
 
         # Fan
         self._fan_speed_dp = self._config.get(CONF_FAN_SPEED_DP)
-        self._fan_speeds = DictSelector(self._config.get(CONF_FAN_SPEED_LIST, {}))
+        self._fan_speeds = DictSelector(self._config.get(CONF_FAN_SPEED_LIST) or {})
 
         # Swing configurations.
         self._swing_v_mode_dp = self._config.get(CONF_SWING_MODE_DP)
-        self._swing_v_modes = DictSelector(self._config.get(CONF_SWING_MODES, {}))
+        self._swing_v_modes = DictSelector(self._config.get(CONF_SWING_MODES) or {})
         self._swing_h_mode_dp = self._config.get(CONF_SWING_HORIZONTAL_DP)
         self._swing_h_modes = DictSelector(
-            self._config.get(CONF_SWING_HORIZONTAL_MODES, {})
+            self._config.get(CONF_SWING_HORIZONTAL_MODES) or {}
         )
 
         # Eco!?
