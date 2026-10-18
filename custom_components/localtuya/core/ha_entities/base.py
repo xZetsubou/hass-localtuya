@@ -597,6 +597,8 @@ class DPCode(StrEnum):
     RELAY_STATUS_8 = "relay_status_8"  # Scene Switch cjkg
     REMAIN_TIME = "remain_time"
     REMOTE_REGISTER = "remote_register"
+    REMOTE_NO_DP_KEY = "remote_no_dp_key"
+    REMOTE_NO_PD_SETKEY = "remote_no_pd_setkey"
     REMOTE_UNLOCK_SWITCH = "remote_unlock_switch"
     REPORT_PERIOD_SET = "report_period_set"
     REPORT_RATE_CONTROL = "report_rate_control"
