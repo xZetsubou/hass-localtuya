@@ -495,7 +495,11 @@ def _run_async_listen(hass: HomeAssistant, entry: ConfigEntry):
     @callback
     def _event_filter(data: dr.EventDeviceRegistryUpdatedData) -> bool:
         device_reg = dr.async_get(hass).async_get(data["device_id"])
-        is_entry = device_reg and entry.entry_id in device_reg.config_entries
+        if hasattr(device_reg, "config_entry_id"):
+            is_entry = device_reg.config_entry_id == entry.entry_id
+        else:
+            # Backwards compatibility with Home Assistant < 2026.8.
+            is_entry = device_reg and entry.entry_id in device_reg.config_entries
         return data["action"] == "update" and is_entry
 
     async def device_state_changed(event: Event[dr.EventDeviceRegistryUpdatedData]):
