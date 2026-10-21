@@ -227,7 +227,6 @@ class DictSelector:
 
     Attributes:
         tuya_ha (dict): A dictionary mapping Tuya values (keys) to HA values (values).
-            `None` is treated as an empty dictionary.
         reverse (bool): Swaps `tuya_ha` keys and values.
     """
 
