@@ -34,6 +34,7 @@ from ...const import (
     CONF_FAN_SPEED_DP,
     CONF_TARGET_TEMPERATURE_DP,
     CONF_PRESET_DP,
+    CONF_SWING_MODES,
 )
 
 
@@ -151,6 +152,37 @@ CLIMATES: dict[str, tuple[LocalTuyaEntity, ...]] = {
                 values_precsion=0.1,
                 target_precision=0.1,
             ),
+        ),
+    ),
+    # Portable Air conditioner
+    # https://developer.tuya.com/en/docs/iot/f?id=K9gf45ld5l0t9
+    # e.g. SILKAIR DUAL CONNECT 9000
+    "ydkt": (
+        LocalTuyaEntity(
+            id=(DPCode.POWER, DPCode.SWITCH),
+            target_temperature_dp=(DPCode.TEMP_SET, DPCode.TEMP_SET_F),
+            current_temperature_dp=(DPCode.TEMP_CURRENT, DPCode.TEMP_CURRENT_F),
+            hvac_mode_dp=DPCode.MODE,
+            fan_speed_dp=(DPCode.WINDSPEED, DPCode.FAN_SPEED_ENUM),
+            swing_mode_dp=DPCode.WINDSHAKE,
+            custom_configs=localtuya_climate(
+                hvac_mode_set={
+                    HVACMode.COOL: "cold",
+                    HVACMode.HEAT: "hot",
+                    HVACMode.DRY: "wet",
+                    HVACMode.FAN_ONLY: "wind",
+                },
+                temp_step=1,
+                fans_speeds="low,med,high",
+                unit=UNIT_C,
+                min_temperature=16,
+                max_temperature=31,
+                values_precsion=1,
+                target_precision=1,
+            )
+            | {
+                CONF_SWING_MODES: {"off": "Off", "on": "On"},
+            },
         ),
     ),
     # Heater

@@ -2,6 +2,7 @@
 
 from . import *
 import copy
+from unittest.mock import AsyncMock
 from custom_components.localtuya.climate import (
     LocalTuyaClimate,
     HVACAction,
@@ -140,3 +141,59 @@ async def test_climate():
     device.status_updated({**DPS_STATUS, **{"11": "up", "12": "both"}})
     assert entity_1.swing_mode == "up-only"
     assert entity_1.swing_horizontal_mode == "left-and-right"
+
+
+# Auto-configure can store entity sets as None when the device has no such DP.
+NONE_ENTITY_CONFIG = {
+    "friendly_name": "None DP sets",
+    "entity_category": "None",
+    "platform": "climate",
+    "icon": "",
+    "id": "1",
+    "target_temperature_dp": "3",
+    "current_temperature_dp": "4",
+    "temperature_step": "1",
+    "min_temperature": 16,
+    "max_temperature": 31,
+    "precision": "1",
+    "target_precision": "1",
+    "hvac_mode_dp": "2",
+    "hvac_mode_set": {HVACMode.COOL: "cold", "sleep": "sleep"},
+    "hvac_action_dp": None,
+    "hvac_action_set": None,
+    "preset_dp": None,
+    "preset_set": None,
+    "fan_speed_dp": "5",
+    "fan_speed_list": None,
+    "swing_mode_dp": "6",
+    "swing_modes": None,
+    "swing_horizontal_dp": "7",
+    "swing_horizontal_modes": None,
+}
+
+NONE_CONFIG = {
+    DEVICE_NAME: {
+        **DEVICE_CONFIG,
+        "entities": [NONE_ENTITY_CONFIG],
+    }
+}
+
+
+async def test_climate_none_config_values():
+    """None config sets must not raise on setup nor when read."""
+    device = await init(NONE_CONFIG, PLATFORM_DOMAIN, LocalTuyaClimate)
+    entity: LocalTuyaClimate = get_entites(device)[0]
+
+    # "sleep" isn't an HA mode, so it's moved to the presets.
+    assert entity._preset_dp == "2"
+    assert entity.preset_modes == ["sleep"]
+    assert set(entity.hvac_modes) == {"cool", "off"}
+
+    # None sets fall back to empty selectors.
+    assert entity.fan_modes == []
+    assert entity.swing_modes == []
+    assert entity.swing_horizontal_modes == []
+
+    entity._device.set_dp = AsyncMock()
+    await entity.async_set_preset_mode("sleep")
+    entity._device.set_dp.assert_awaited_once_with("sleep", "2")

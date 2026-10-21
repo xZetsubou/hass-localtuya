@@ -234,6 +234,8 @@ class DictSelector:
     reverse: bool = False
 
     def __post_init__(self):
+        if self.tuya_ha is None:
+            self.tuya_ha = {}
         if isinstance(self.tuya_ha, str):
             # Convert string into a dict with capitalized values.
             self.tuya_ha = {v: v for v in self.tuya_ha.split(",")}

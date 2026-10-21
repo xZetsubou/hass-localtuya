@@ -216,7 +216,7 @@ class LocalTuyaClimate(LocalTuyaEntity, ClimateEntity):
             hvac_modes = {k.lower(): v for k, v in hvac_modes.copy().items()}
 
         self._preset_dp = self._config.get(CONF_PRESET_DP)
-        preset_set: dict = self._config.get(CONF_PRESET_SET, {})
+        preset_set: dict = self._config.get(CONF_PRESET_SET) or {}
         # Sort Modes If the HVAC isn't supported by HA then we add it as preset.
         if self._preset_dp == self._hvac_mode_dp or not self._preset_dp:
             for k in hvac_modes.copy().keys():
