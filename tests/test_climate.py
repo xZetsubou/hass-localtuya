@@ -1,5 +1,6 @@
 """Test for localtuya."""
 
+from unittest.mock import AsyncMock
 from . import *
 import copy
 from custom_components.localtuya.climate import (
@@ -56,12 +57,30 @@ ENTITY_CONFIG = {
     "icon": "",
     "heuristic_action": False,
 }
+# Entity with Boolean datapoints mapped as swing/preset, as reported in #831.
+# The config-flow ObjectSelector can only ever produce string dict keys, so a
+# mapping entered in the UI as `true: "on"` / `false: "off"` is stored as
+# {"true": "on", "false": "off"} -- while a Boolean datapoint reports real
+# Python True/False values.
+BOOL_ENTITY_CONFIG = {
+    **ENTITY_CONFIG,
+    "id": "3",
+    "preset_dp": "30",
+    "preset_set": {"false": "Normal", "true": "Sleep"},
+    "swing_mode_dp": "31",
+    "swing_modes": {"false": "off", "true": "on"},
+    "swing_horizontal_dp": "32",
+    "swing_horizontal_modes": {"false": "off", "true": "on"},
+    "eco_dp": "999",  # kept out of DPS_STATUS so eco never shadows preset_set.
+}
+
 CONFIG = {
     DEVICE_NAME: {
         **DEVICE_CONFIG,
         "entities": [
             ENTITY_CONFIG,
             {**ENTITY_CONFIG, "id": "2", "fan_speed_list": FAN_SPEED_DICT},
+            BOOL_ENTITY_CONFIG,
         ],
     }
 }
@@ -77,6 +96,9 @@ DPS_STATUS = {
     "24": 24,  # c
     "100": False,
     "101": "ECO_NOT",
+    "30": True,
+    "31": False,
+    "32": True,
 }
 
 
@@ -140,3 +162,45 @@ async def test_climate():
     device.status_updated({**DPS_STATUS, **{"11": "up", "12": "both"}})
     assert entity_1.swing_mode == "up-only"
     assert entity_1.swing_horizontal_mode == "left-and-right"
+
+
+async def test_climate_boolean_swing_and_preset_dps():
+    """Regression test for #831.
+
+    Real Boolean datapoints (device sends actual True/False, not the
+    strings "true"/"false") configured as the swing/preset DP must still
+    update swing_mode/preset_mode, and writing them back must send a real
+    bool to the device rather than the string "true"/"false".
+    """
+    device = await init(CONFIG, PLATFORM_DOMAIN, LocalTuyaClimate)
+    entity_1, entity_2, entity_3, *_ = get_entites(device)
+    assert type(entity_3) is LocalTuyaClimate
+
+    device.status_updated(DPS_STATUS)
+    assert entity_3.preset_mode == "Sleep"  # dp "30" == True
+    assert entity_3.swing_mode == "off"  # dp "31" == False
+    assert entity_3.swing_horizontal_mode == "on"  # dp "32" == True
+
+    # Flip every boolean DP and confirm the entity follows.
+    device.status_updated({**DPS_STATUS, **{"30": False, "31": True, "32": False}})
+    assert entity_3.preset_mode == "Normal"
+    assert entity_3.swing_mode == "on"
+    assert entity_3.swing_horizontal_mode == "off"
+
+    # Writing back must send a real bool, not the string "true"/"false",
+    # since the datapoint itself is Boolean.
+    device.set_dp = AsyncMock()
+
+    await entity_3.async_set_preset_mode("Sleep")
+    device.set_dp.assert_called_once_with(True, "30")
+    assert device.set_dp.call_args.args[0] is True
+
+    device.set_dp.reset_mock()
+    await entity_3.async_set_swing_mode("on")
+    device.set_dp.assert_called_once_with(True, "31")
+    assert device.set_dp.call_args.args[0] is True
+
+    device.set_dp.reset_mock()
+    await entity_3.async_set_swing_horizontal_mode("off")
+    device.set_dp.assert_called_once_with(False, "32")
+    assert device.set_dp.call_args.args[0] is False
