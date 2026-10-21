@@ -45,7 +45,7 @@ FAULT = "fault"
 DEFAULT_IDLE_STATUS = "standby,sleep"
 DEFAULT_RETURNING_STATUS = "docking,to_charge,goto_charge"
 DEFAULT_DOCKED_STATUS = "charging,chargecompleted,charge_done,charging_dock"
-DEFAULT_MODES = "smart,wall_follow,spiral,single"
+DEFAULT_MODES = "smart,wall_follow,spiral,single,chargego,standby"
 DEFAULT_FAN_SPEEDS = "low,normal,high"
 DEFAULT_PAUSED_STATE = "paused"
 DEFAULT_RETURN_MODE = "chargego"
@@ -96,6 +96,19 @@ class LocalTuyaVacuum(LocalTuyaEntity, StateVacuumEntity):
             modes_list = self._config[CONF_MODES].split(",")
             self._modes_list = [mode.lstrip() for mode in modes_list]
             self._attrs[MODES_LIST] = self._modes_list
+
+        if self.has_config(CONF_MODE_DP):
+            missing = {
+                CONF_RETURN_MODE: "Return home is disabled",
+                CONF_STOP_STATUS: "Stop will turn off powergo_dp instead",
+            }
+            for conf, effect in missing.items():
+                if self.has_config(conf) and self._config[conf] not in self._modes_list:
+                    self.warning(
+                        f"{conf} '{self._config[conf]}' is not in modes"
+                        f" {self._modes_list}: {effect}."
+                        " Add it to modes if the mode DP supports it."
+                    )
 
         self._returning_status_list = []
         if self.has_config(CONF_RETURNING_STATUS_VALUE):
