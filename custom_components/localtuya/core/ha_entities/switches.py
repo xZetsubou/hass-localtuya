@@ -1,9 +1,9 @@
 """
-    This a file contains available tuya data
-    https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
+This a file contains available tuya data
+https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
 
-    Credits: official HA Tuya integration.
-    Modified by: xZetsubou
+Credits: official HA Tuya integration.
+Modified by: xZetsubou
 """
 
 from .base import DPCode, LocalTuyaEntity, CONF_DEVICE_CLASS, EntityCategory
@@ -18,6 +18,15 @@ CHILD_LOCK = (
     ),
 )
 SWITCHES: dict[str, tuple[LocalTuyaEntity, ...]] = {
+    # Ceiling fan/light combo settings belong to the physical parent device.
+    "fsd": (
+        LocalTuyaEntity(
+            id=DPCode.FAN_BEEP,
+            name="Voice",
+            icon="mdi:volume-high",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
     # Smart Kettle
     # https://developer.tuya.com/en/docs/iot/fbh?id=K9gf484m21yq7
     "bh": (

@@ -54,6 +54,9 @@
                 "data": {
                     "id": "ID",
                     "friendly_name": "Friendly name",
+                    "device_group": "Connected device (optional)",
+                    "button_press_value": "Button press value (optional integer; defaults to true)",
+                    "button_log_dp_changes": "Log reported DP changes as button activity",
                     "current": "Current",
                     "current_consumption": "Current Consumption",
                     "voltage": "Voltage",

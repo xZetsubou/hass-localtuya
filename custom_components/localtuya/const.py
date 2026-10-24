@@ -15,6 +15,9 @@ from homeassistant.const import (
 
 DOMAIN = "localtuya"
 DATA_DISCOVERY = "discovery"
+CONF_DEVICE_GROUP = "device_group"
+CONF_BUTTON_PRESS_VALUE = "button_press_value"
+CONF_BUTTON_LOG_DP_CHANGES = "button_log_dp_changes"
 
 # Order on priority
 SUPPORTED_PROTOCOL_VERSIONS = ["3.3", "3.1", "3.2", "3.4", "3.5"]
@@ -181,6 +184,7 @@ CONF_STEPSIZE = "step_size"
 # select
 CONF_OPTIONS = "select_options"
 CONF_OPTIONS_FRIENDLY = "select_options_friendly"
+CONF_SELECT_DPS_TYPE = "select_dps_type"
 
 # Remote
 CONF_RECEIVE_DP = "receive_dp"

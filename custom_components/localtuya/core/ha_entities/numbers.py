@@ -1,9 +1,9 @@
 """
-    This a file contains available tuya data
-    https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
+This a file contains available tuya data
+https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
 
-    Credits: official HA Tuya integration.
-    Modified by: xZetsubou
+Credits: official HA Tuya integration.
+Modified by: xZetsubou
 """
 
 from homeassistant.components.number import NumberDeviceClass
@@ -37,6 +37,17 @@ def localtuya_numbers(_min, _max, _step=1, _scale=1, unit=None) -> dict:
 
 
 NUMBERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
+    # Ceiling fan with light. The device reports the remaining fan timer in minutes.
+    "fsd": (
+        LocalTuyaEntity(
+            id=(DPCode.COUNTDOWN_LEFT_FAN, DPCode.FAN_COUNTDOWN_LEFT),
+            name="Fan shutdown timer",
+            icon="mdi:timer-outline",
+            entity_category=EntityCategory.CONFIG,
+            device_group="fan",
+            custom_configs=localtuya_numbers(0, 540, unit=UnitOfTime.MINUTES),
+        ),
+    ),
     # Smart panel with switches and zigbee hub ?
     # Not documented
     "dgnzk": (

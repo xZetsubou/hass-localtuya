@@ -1,9 +1,9 @@
 """
-    This a file contains available tuya data
-    https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
+This a file contains available tuya data
+https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
 
-    Credits: official HA Tuya integration.
-    Modified by: xZetsubou
+Credits: official HA Tuya integration.
+Modified by: xZetsubou
 """
 
 from typing import Any
@@ -110,6 +110,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         LocalTuyaEntity(
             id=DPCode.SWITCH_LED,
             name=None,
+            device_group="light",
             color_mode=DPCode.WORK_MODE,
             brightness=DPCode.BRIGHT_VALUE,
             color_temp=DPCode.TEMP_VALUE,
@@ -121,6 +122,7 @@ LIGHTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         LocalTuyaEntity(
             id=DPCode.LIGHT,
             name=None,
+            device_group="light",
             custom_configs=localtuya_light(29, 1000, 2700, 6500, False, False),
         ),
     ),
