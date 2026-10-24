@@ -5,10 +5,12 @@ from functools import partial
 
 import voluptuous as vol
 from homeassistant.components.select import DOMAIN, SelectEntity
-from homeassistant.const import CONF_DEVICE_CLASS, STATE_UNKNOWN
+from homeassistant.const import CONF_DEVICE_CLASS, CONF_DEVICES, STATE_UNKNOWN
 from homeassistant.helpers import selector
+from homeassistant.exceptions import HomeAssistantError
 
-from .entity import LocalTuyaEntity, async_setup_entry
+from .diy_scenes import DiySceneSelect, configured_device
+from .entity import LocalTuyaEntity, async_setup_entry as setup_localtuya_entities
 from .const import (
     CONF_DEFAULT_VALUE,
     CONF_OPTIONS,
@@ -95,4 +97,19 @@ class LocalTuyaSelect(LocalTuyaEntity, SelectEntity):
         return self._options.names[0]
 
 
-async_setup_entry = partial(async_setup_entry, DOMAIN, LocalTuyaSelect, flow_schema)
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up configured selects and a saved-DIY picker on supported lights."""
+    await _setup_selects(hass, config_entry, async_add_entities)
+    catalog = hass.data["localtuya"]["diy_scenes"]
+    extra = []
+    for dev_id in config_entry.data[CONF_DEVICES]:
+        try:
+            device, _ = configured_device(hass, dev_id)
+        except HomeAssistantError:  # Other Tuya models must not get a DIY picker.
+            continue
+        extra.append(DiySceneSelect(device, catalog))
+    if extra:
+        async_add_entities(extra)
+
+
+_setup_selects = partial(setup_localtuya_entities, DOMAIN, LocalTuyaSelect, flow_schema)
