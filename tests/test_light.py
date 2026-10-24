@@ -82,3 +82,32 @@ async def test_light():
 
     # Bluetooth
     # device.status_updated({"21": "colour", "24": "AHhkZA==", "25": ""})
+
+
+async def test_light_colour_brightness_ignores_white_lower_bound():
+    """Dim colours must not be clipped by the white-mode brightness_lower."""
+    config = {
+        DEVICE_NAME: {
+            **CONFIG[DEVICE_NAME],
+            "entities": [
+                {
+                    **CONFIG[DEVICE_NAME]["entities"][0],
+                    "brightness_lower": 25,
+                    "brightness_upper": 255,
+                }
+            ],
+        }
+    }
+    device = await init(config, PLATFORM_DOMAIN, LocalTuyaLight)
+    entity_1, *_ = get_entites(device)
+
+    # White mode keeps the configured lower bound
+    device.status_updated({"20": True, "21": "white", "22": 25})
+    assert entity_1.brightness == 0
+    device.status_updated({"22": 255})
+    assert entity_1.brightness == 255
+
+    # Colour value (rrggbbhhhhssvv) of 24 is below the white lower bound
+    device.status_updated({"21": "colour", "24": "1800ff00fdff18"})
+    assert entity_1.is_color_mode
+    assert entity_1.brightness == 24
