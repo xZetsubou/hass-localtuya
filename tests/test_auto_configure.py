@@ -213,3 +213,32 @@ async def test_auto_configure():
     category = COVER_DEVICE_DATA["device_cloud_info"]["category"]
     entities = gen_localtuya_entities(COVER_DEVICE_DATA["device_config"], category)
     assert len(entities) > 4
+
+
+# T12-Wifi-II card+PIN keypad (category "mk"). Push-only raw DPs: the device
+# answers a status query with nothing, so these come from the cloud.
+KEYPAD_DPS = [
+    f"{dp} ( code: {code} , value: , cloud pull )"
+    for dp, code in (
+        (1, "unlock_method_create"),
+        (8, "remote_no_pd_setkey"),
+        (9, "remote_no_dp_key"),
+        (11, "unlock_password_kit"),
+        (12, "unlock_card_kit"),
+        (22, "unlock_phone_remote_kit"),
+        (23, "lock_alarm_kit"),
+        (35, "closed_opened_kit"),
+    )
+]
+
+
+async def test_auto_configure_access_control_keypad():
+    entities = gen_localtuya_entities(
+        {"friendly_name": "Keypad", "dps_strings": KEYPAD_DPS}, "mk"
+    )
+    locks = [e for e in entities if e["platform"] == "lock"]
+    assert len(locks) == 1
+    lock = locks[0]
+    assert str(lock["id"]) == "9"
+    assert str(lock["remote_key_dp"]) == "8"
+    assert str(lock["lock_state_dp"]) == "35"
