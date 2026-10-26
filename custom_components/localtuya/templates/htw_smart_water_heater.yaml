@@ -1,0 +1,103 @@
+# HTW Smart Plus Water Heater
+# Models: HTW-TV-030SMPLUS, HTW-TV-050SMPLUS, HTW-TV-080SMPLUS, HTW-TV-100SMPLUS
+# https://htwspain.com/pt/água-quente-pt/frasco-termico-smart-plus/
+- water_heater:
+      current_temperature_dp: "10"
+      entity_category: None
+      friendly_name: Water Heater
+      icon: ""
+      id: "1"
+      max_temperature: 75.0
+      min_temperature: 35.0
+      mode_dp: "2"
+      modes:
+          eco: ECO
+          highwarm: Anti-Bacteria
+          jiheat: Instant Heating
+          manmenu: Smart
+      platform: water_heater
+      precision: "1"
+      target_precision: "1"
+      target_temperature_dp: "9"
+      temperature_unit: celsius
+- switch:
+      device_class: switch
+      entity_category: None
+      friendly_name: Power
+      icon: ""
+      id: "1"
+      is_passive_entity: false
+      platform: switch
+      restore_on_reconnect: false
+- sensor:
+      device_class: energy
+      entity_category: None
+      friendly_name: Energy Today
+      icon: ""
+      id: "12"
+      platform: sensor
+      state_class: total_increasing
+      unit_of_measurement: kWh
+- select:
+      dps_default_value: Instant Heating
+      entity_category: None
+      friendly_name: Mode
+      icon: ""
+      id: "2"
+      is_passive_entity: false
+      platform: select
+      restore_on_reconnect: false
+      select_options:
+          eco: ECO
+          highwarm: Anti-Bacteria
+          jiheat: Instant Heating
+          manmenu: Smart
+- sensor:
+      device_class: temperature
+      entity_category: None
+      friendly_name: Current Temperature
+      icon: ""
+      id: "10"
+      platform: sensor
+      unit_of_measurement: ºC
+- sensor:
+      device_class: temperature
+      entity_category: None
+      friendly_name: Target Temperature
+      icon: ""
+      id: "9"
+      platform: sensor
+      state_class: measurement
+      unit_of_measurement: ºC
+- sensor:
+      device_class: water
+      entity_category: None
+      friendly_name: Surplus Water
+      icon: ""
+      id: "14"
+      platform: sensor
+      state_class: measurement
+      unit_of_measurement: "%"
+- sensor:
+      device_class: enum
+      entity_category: None
+      friendly_name: Status
+      icon: ""
+      id: "13"
+      platform: sensor
+- sensor:
+      entity_category: None
+      friendly_name: Countdown Left
+      icon: ""
+      id: "19"
+      platform: sensor
+      unit_of_measurement: Hours
+- binary_sensor:
+      device_class: problem
+      entity_category: diagnostic
+      friendly_name: Fault
+      icon: ""
+      id: "20"
+      platform: binary_sensor
+      reset_timer: 0.0
+      state_on: true,1,pir,on
