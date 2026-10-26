@@ -424,6 +424,17 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 return ColorMode.COLOR_TEMP
             else:
                 return ColorMode.WHITE
+
+        if self.is_scene_mode or self.is_music_mode:
+            # Frontend compatibility while Tuya is running an effect.
+            supported = self.supported_color_modes
+            if ColorMode.HS in supported:
+                return ColorMode.HS
+            if ColorMode.COLOR_TEMP in supported:
+                return ColorMode.COLOR_TEMP
+            if ColorMode.WHITE in supported:
+                return ColorMode.WHITE
+
         if self._brightness:
             return ColorMode.BRIGHTNESS
 
