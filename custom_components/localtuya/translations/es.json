@@ -104,6 +104,7 @@
                     "protocol_version": "Versión del protocolo",
                     "enable_debug": "Activar depuración (también debe activarse manualmente en `configuration.yaml`)",
                     "scan_interval": "(Opcional) Intervalo de escaneo en segundos, si no se escanea automáticamente",
+                    "refresh_dp_query": "Actualizar con una consulta de estado completa (DP_QUERY) en lugar de UPDATEDPS: solo para dispositivos que ignoran UPDATEDPS, requiere un intervalo de escaneo",
                     "entities": "Entidades configuradas (desmárcalas para eliminar)",
                     "add_entities": "Añadir nueva(s) entidad(es)",
                     "manual_dps_strings": "(Opcional) DPS manuales, si no se detectan automáticamente (separados por comas)",

@@ -104,6 +104,7 @@
           "protocol_version": "Protokol Sürümü",
           "enable_debug": "Hata ayıklamayı etkinleştir (manuel olarak `configuration.yaml` içinde de etkinleştirilmelidir)",
           "scan_interval": "(Opsiyonel) Otomatik tarama yapılmıyorsa, saniye cinsinden tarama aralığı",
+          "refresh_dp_query": "UPDATEDPS yerine tam durum sorgusuyla (DP_QUERY) yenile: yalnızca UPDATEDPS'i yok sayan cihazlar için, tarama aralığı gerektirir",
           "entities": "Yapılandırılmış varlıklar (kaldırmak için işareti kaldırın)",
           "add_entities": "Yeni varlık ekle",
           "manual_dps_strings": "(Opsiyonel) Otomatik algılanamıyorsa, manuel DPS'ler (virgülle ayrılmış)",
