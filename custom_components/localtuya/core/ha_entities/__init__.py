@@ -28,6 +28,7 @@ import json
 from .base import LocalTuyaEntity, CONF_DPS_STRINGS, CLOUD_VALUE, DPType
 from enum import Enum
 from homeassistant.const import Platform, CONF_FRIENDLY_NAME, CONF_PLATFORM, CONF_ID
+from ...const import CONF_ENERGY_POWER_DP
 
 import logging
 
@@ -154,6 +155,11 @@ def gen_localtuya_entities(localtuya_data: dict, tuya_category: str) -> list[dic
                     # Entity most contains ID
                     if not entity.get(CONF_ID):
                         continue
+                    # Energy is integrated from power only if the device doesn't report it locally.
+                    if CONF_ENERGY_POWER_DP in entity and not is_cloud_pull(
+                        entity[CONF_ID], detected_dps
+                    ):
+                        entity.pop(CONF_ENERGY_POWER_DP)
                     # Workaround to Prevent duplicated id.
                     if entity[CONF_ID] in entities:
                         _LOGGER.debug(f"{device_name}: Duplicated ID: {entity}")
@@ -173,6 +179,14 @@ def gen_localtuya_entities(localtuya_data: dict, tuya_category: str) -> list[dic
     _LOGGER.debug(f"{device_name}: Configured entities: {list_entities}")
     # return []
     return list_entities
+
+
+def is_cloud_pull(dp_id: str, detected_dps: list[str]) -> bool:
+    """Return if the DP was only found in the cloud, the device didn't report it."""
+    return any(
+        dp.split(" ")[0] == dp_id and dp.rstrip(" )").endswith("cloud pull")
+        for dp in detected_dps
+    )
 
 
 def parse_enum(dp_code: Enum) -> str:
