@@ -175,6 +175,7 @@
                     "battery_dp": "DP de estado de batería (normalmente 14)",
                     "mode_dp": "DP de modo",
                     "modes": "Lista de modos",
+                    "return_home_dp": "(Optional) Return home DP (boolean, e.g. switch_charge/DP3)",
                     "return_mode": "Modo volver a base",
                     "fan_speed_dp": "(Opcional) DP de velocidades del ventilador",
                     "fan_speeds": "Lista de velocidades del ventilador (separadas por comas)",

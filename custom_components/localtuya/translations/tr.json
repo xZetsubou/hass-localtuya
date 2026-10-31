@@ -175,6 +175,7 @@
           "battery_dp": "Batarya durumu DP'si (genellikle 14)",
           "mode_dp": "Mod DP",
           "modes": "Modlar listesi",
+          "return_home_dp": "(Optional) Return home DP (boolean, e.g. switch_charge/DP3)",
           "return_mode": "Eve dönüş modu",
           "fan_speed_dp": "(Opsiyonel) Fan hızları DP",
           "fan_speeds": "Fan hızları listesi (virgülle ayrılmış)",

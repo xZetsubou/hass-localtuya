@@ -170,6 +170,7 @@ CONF_LOCATE_DP = "locate_dp"
 CONF_FAULT_DP = "fault_dp"
 CONF_PAUSED_STATE = "paused_state"
 CONF_RETURN_MODE = "return_mode"
+CONF_RETURN_HOME_DP = "return_home_dp"
 CONF_STOP_STATUS = "stop_status"
 CONF_PAUSE_DP = "pause_dp"
 
