@@ -23,7 +23,7 @@ set_dp:
           mode: box
     value:
       name: "Value"
-      description: "A new value to set or a list of DP-value pairs. If a list is provided, the target DP will be ignored"
+      description: "The new value for the target DP. If DP is omitted, this must be a mapping of DP-value pairs to set multiple DPs at once. If DP is provided and this is an object, it is sent as a JSON-encoded value for that DP (for Tuya DPs whose native type is JSON)"
       required: true
       example: '{ "1": True, "2": True }'
       selector:
