@@ -19,3 +19,10 @@ async def test_dsicovery():
 
     mock_callback.assert_called()
     assert len(discovery.devices) == 3
+
+
+def test_parse_header_invalid_prefix_raises_decode_error():
+    from custom_components.localtuya.core.pytuya import parser
+
+    with pytest.raises(parser.DecodeError, match="Prefix Does not match!"):
+        parser.parse_header(b"\xde\xad\xbe\xef" + b"\x00" * 16)
