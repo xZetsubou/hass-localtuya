@@ -41,6 +41,7 @@ from .const import (
     DOMAIN,
     DeviceConfig,
     RESTORE_STATES,
+    CONF_ENABLE_MULTI_DP_EVENTS
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -573,10 +574,12 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self._interface and old_status and new_status:
             # A massive number of events that can be triggered when some devices update too quickly such as temp sensors,
             # - We want only to update if status changed except for 1 DP trigger, for scene controls.
-            if len(self._interface.dispatched_dps) == 1:
-                dp, value = next(iter(self._interface.dispatched_dps.items()))
-                data = {"dp": dp, "value": value}
-                fire_event(event_device_dp_triggered, data)
+            # - Except where configured for multi dp event streaming (eg. vibration sensors)
+            dispatched_dps = self._interface.dispatched_dps
+            if len(dispatched_dps) == 1 or self._device_config.enable_multi_dp_events:
+                for dp, value in dispatched_dps.items():
+                    data = {"dp": dp, "value": value}
+                    fire_event(event_device_dp_triggered, data)
             if old_status != new_status:
                 data = {"old_status": old_status, "new_status": new_status}
                 fire_event(event_status_update, data)
