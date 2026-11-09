@@ -78,6 +78,7 @@ CONF_DEFAULT_VALUE = "dps_default_value"
 CONF_RESET_DPIDS = "reset_dpids"
 CONF_PASSIVE_ENTITY = "is_passive_entity"
 CONF_DEVICE_SLEEP_TIME = "device_sleep_time"
+CONF_ENABLE_MULTI_DP_EVENTS = "enable_multi_dp_events"
 
 # ALARM
 CONF_ALARM_SUPPORTED_STATES = "alarm_supported_states"
@@ -293,6 +294,7 @@ class DeviceConfig:
         self.reset_dps: str = self.device_config.get(CONF_RESET_DPIDS, "")
         self.manual_dps: str = self.device_config.get(CONF_MANUAL_DPS, "")
         self.dps_strings: list = self.device_config.get(CONF_DPS_STRINGS, [])
+        self.enable_multi_dp_events: bool = self.device_config.get(CONF_ENABLE_MULTI_DP_EVENTS, False)
 
     def as_dict(self):
         return self.device_config
