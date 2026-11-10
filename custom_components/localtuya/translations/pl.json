@@ -103,6 +103,7 @@
                     "node_id": "(Opcjonalnie) Id Node urządzenia podrzędnego",
                     "protocol_version": "Wersja Protokołu",
                     "enable_debug": "Włącz debugowanie (należy włączyć również ręcznie w pliku `configuration.yaml`)",
+                    "enable_multi_dp_events": "Przesyłaj zdarzenia LocalTuya dla wielu punktów danych (DP)",
                     "scan_interval": "(Opcjonalnie) Interwał skanowania w sekundach, jeśli nie skanuje się automatycznie",
                     "entities": "Skonfigurowane encje (odznacz, aby usunąć)",
                     "add_entities": "Dodaj nowe encje",
