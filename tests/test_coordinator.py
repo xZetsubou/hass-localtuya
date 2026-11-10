@@ -25,7 +25,10 @@ def device():
         "localtuya_status_update": 1,
     }
 
-    device._interface = SimpleNamespace(dispatched_dps={})
+    device._interface = SimpleNamespace(
+        dispatched_dps={},
+        is_connected=False,
+    )    
     device._device_config = SimpleNamespace(
         enable_multi_dp_events=False,
         manual_dps="",
@@ -48,6 +51,7 @@ def device():
     device._unsub_new_entity = None
     device._entities = []
     device.debug = MagicMock()
+    device.is_closing = False
 
     return device
 
