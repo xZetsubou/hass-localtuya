@@ -32,6 +32,7 @@ def device():
     )
     device._status = {}
     device._fake_gateway = False
+    device._enable_debug = False
     device._node_id = "test_node"
     device._last_update_time = 0
     device._subdevice_off_count = 0
