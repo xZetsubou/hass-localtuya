@@ -40,6 +40,14 @@ def device():
     device.subdevice_state = SubdeviceState.ONLINE
     device.gateway = None
     device.sub_devices = {}
+    device._device_config.sleep_time = 0
+    device._task_connect = None
+    device._task_reconnect = None
+    device._task_shutdown_entities = None
+    device._unsub_refresh = None
+    device._unsub_new_entity = None
+    device._entities = []
+    device.debug = MagicMock()
 
     return device
 
@@ -458,4 +466,183 @@ async def test_set_status_handles_command_failure(device):
         cid="test_node",
     )
     assert device._pending_status == {}
+
+
+# -------------------------------------------------------------------
+# Device properties
+# -------------------------------------------------------------------
+
+
+def test_connected(device):
+    """Connected should reflect the interface connection state."""
+    assert device.connected is False
+
+    device._interface.is_connected = True
+
+    assert device.connected is True
+
+
+def test_is_connecting(device):
+    """is_connecting should reflect whether a connection task exists."""
+    assert device.is_connecting is False
+
+    device._task_connect = MagicMock()
+
+    assert device.is_connecting is True
+
+
+def test_is_subdevice(device):
+    """A device with a node ID should be recognized as a subdevice."""
+    assert device.is_subdevice is True
+
+    device._node_id = None
+
+    assert device.is_subdevice is None
+
+    device._node_id = "test_node"
+    device._fake_gateway = True
+
+    assert device.is_subdevice is False
+
+
+def test_is_sleep(device):
+    """A device should be considered asleep within its sleep interval."""
+    device._device_config.sleep_time = 60
+    device._last_update_time = time.monotonic() - 5
+
+    assert device.is_sleep is True
+    assert device.low_power is True
+
+
+def test_is_not_sleep(device):
+    """A device should not be asleep after its sleep interval."""
+    device._device_config.sleep_time = 5
+    device._last_update_time = time.monotonic() - 10
+
+    assert device.is_sleep is False
+
+
+def test_is_write_only(device):
+    """A BLE subdevice marked with DP 0 should be write-only."""
+    device._device_config.manual_dps = "0"
+
+    assert device.is_write_only is True
+
+
+def test_is_not_write_only(device):
+    """A subdevice without DP 0 should not be write-only."""
+    device._device_config.manual_dps = "1,2"
+
+    assert device.is_write_only is False
+
+
+def test_gateway_is_not_write_only(device):
+    """A fake gateway should not be treated as a write-only subdevice."""
+    device._device_config.manual_dps = "0"
+    device._fake_gateway = True
+
+    assert device.is_write_only is False
+
+
+# -------------------------------------------------------------------
+# Entity registration
+# -------------------------------------------------------------------
+
+
+def test_add_entities(device):
+    """New entities should be added without replacing existing ones."""
+    first = MagicMock()
+    second = MagicMock()
+    third = MagicMock()
+
+    device.add_entities([first, second])
+    device.add_entities([third])
+
+    assert device._entities == [first, second, third]
+
+
+# -------------------------------------------------------------------
+# Subdevice connection
+# -------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_connect_subdevices(device):
+    """A connected gateway should connect all its subdevices."""
+    device._interface.is_connected = True
+
+    first = SimpleNamespace(async_connect=AsyncMock())
+    second = SimpleNamespace(async_connect=AsyncMock())
+
+    device.sub_devices = {
+        "first": first,
+        "second": second,
+    }
+
+    await device._connect_subdevices()
+
+    first.async_connect.assert_awaited_once()
+    second.async_connect.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_connect_subdevices_without_subdevices(device):
+    """A gateway without subdevices should do nothing."""
+    device.sub_devices = {}
+
+    await device._connect_subdevices()
+
+
+@pytest.mark.asyncio
+async def test_connect_subdevices_when_disconnected(device):
+    """A disconnected gateway should not connect its subdevices."""
+    first = SimpleNamespace(async_connect=AsyncMock())
+    device.sub_devices = {"first": first}
+
+    device._interface.is_connected = False
+
+    await device._connect_subdevices()
+
+    first.async_connect.assert_not_awaited()
+
+
+# -------------------------------------------------------------------
+# Device refresh
+# -------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_async_refresh_updates_dps(device):
+    """A connected device should refresh its datapoints."""
+    device._interface.is_connected = True
+    device._interface.update_dps = AsyncMock()
+
+    await device._async_refresh(None)
+
+    device._interface.update_dps.assert_awaited_once_with(
+        cid="test_node"
+    )
+
+
+@pytest.mark.asyncio
+async def test_async_refresh_ignores_disconnected_device(device):
+    """A disconnected device should not attempt a datapoint refresh."""
+    device._interface = None
+
+    await device._async_refresh(None)
+
+
+@pytest.mark.asyncio
+async def test_async_refresh_handles_timeout(device):
+    """A refresh timeout should not propagate an exception."""
+    device._interface.is_connected = True
+    device._interface.update_dps = AsyncMock(
+        side_effect=TimeoutError("Refresh timed out")
+    )
+
+    await device._async_refresh(None)
+
+    device._interface.update_dps.assert_awaited_once_with(
+        cid="test_node"
+    )
 
