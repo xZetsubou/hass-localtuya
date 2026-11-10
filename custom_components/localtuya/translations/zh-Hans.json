@@ -103,6 +103,7 @@
                     "node_id": "（非必填）子设备Node ID",
                     "protocol_version": "协议版本",
                     "enable_debug": "启用调试模式（还需在`configuration.yaml`中手动启用）",
+                    "enable_multi_dp_events": "为多个 DP 推送 LocalTuya 事件",
                     "scan_interval": "（非必填）如未自动扫描，扫描间隔时间（秒）",
                     "entities": "已配置实体（取消勾选可删除实体）",
                     "add_entities": "添加新实体",

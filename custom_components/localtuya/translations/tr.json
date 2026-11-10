@@ -103,6 +103,7 @@
           "node_id": "(Opsiyonel) Alt cihazların Düğüm Kimliği",
           "protocol_version": "Protokol Sürümü",
           "enable_debug": "Hata ayıklamayı etkinleştir (manuel olarak `configuration.yaml` içinde de etkinleştirilmelidir)",
+          "enable_multi_dp_events": "Birden fazla DP için LocalTuya olaylarını yayınla",
           "scan_interval": "(Opsiyonel) Otomatik tarama yapılmıyorsa, saniye cinsinden tarama aralığı",
           "entities": "Yapılandırılmış varlıklar (kaldırmak için işareti kaldırın)",
           "add_entities": "Yeni varlık ekle",

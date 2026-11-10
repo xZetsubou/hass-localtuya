@@ -14,7 +14,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["tests"]
+source = ["custom_components/localtuya"]
 
 # pylint config stolen from Home Assistant
 [tool.pylint.MAIN]
