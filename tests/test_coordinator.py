@@ -3,8 +3,10 @@
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
+import time
 
 from custom_components.localtuya.const import DeviceConfig
 from custom_components.localtuya.coordinator import TuyaDevice
@@ -295,3 +297,163 @@ def test_multi_dp_events_can_be_enabled():
     })
 
     assert config.enable_multi_dp_events is True
+
+
+
+# -------------------------------------------------------------------
+# Command dispatch
+# -------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_set_dp_sends_single_dp(device):
+    """set_dp should send a single datapoint to the device."""
+    interface = SimpleNamespace(
+        is_connected=True,
+        set_dps=AsyncMock(),
+    )
+    device._interface = interface
+    device._pending_status = {}
+
+    await device.set_dp(True, "1")
+
+    interface.set_dps.assert_awaited_once_with(
+        {"1": True},
+        cid="test_node",
+    )
+    assert device._pending_status == {}
+
+
+@pytest.mark.asyncio
+async def test_set_dps_sends_multiple_dps(device):
+    """set_dps should send multiple datapoints in one command."""
+    interface = SimpleNamespace(
+        is_connected=True,
+        set_dps=AsyncMock(),
+    )
+    device._interface = interface
+    device._pending_status = {}
+
+    payload = {
+        "1": True,
+        "2": "auto",
+        "3": 25,
+    }
+
+    await device.set_dps(payload)
+
+    interface.set_dps.assert_awaited_once_with(
+        payload,
+        cid="test_node",
+    )
+    assert device._pending_status == {}
+
+
+@pytest.mark.asyncio
+async def test_set_status_sends_pending_commands(device):
+    """set_status should send all queued commands together."""
+    interface = SimpleNamespace(
+        is_connected=True,
+        set_dps=AsyncMock(),
+    )
+    device._interface = interface
+    device._pending_status = {
+        "1": True,
+        "2": "auto",
+    }
+
+    await device.set_status()
+
+    interface.set_dps.assert_awaited_once_with(
+        {
+            "1": True,
+            "2": "auto",
+        },
+        cid="test_node",
+    )
+    assert device._pending_status == {}
+
+
+@pytest.mark.asyncio
+async def test_set_dp_queues_command_while_asleep(device):
+    """set_dp should queue commands instead of sending while asleep."""
+    device._interface = None
+    device._pending_status = {}
+    device._device_config.sleep_time = 60
+    device._last_update_time = time.monotonic() - 1
+
+    await device.set_dp(True, 1)
+
+    assert device._pending_status == {"1": True}
+
+
+@pytest.mark.asyncio
+async def test_set_dps_queues_commands_while_asleep(device):
+    """set_dps should queue multiple commands while asleep."""
+    device._interface = None
+    device._pending_status = {}
+    device._device_config.sleep_time = 60
+    device._last_update_time = time.monotonic() - 1
+
+    payload = {
+        "1": True,
+        "2": "auto",
+    }
+
+    await device.set_dps(payload)
+
+    assert device._pending_status == payload
+
+
+@pytest.mark.asyncio
+async def test_set_status_flushes_commands_after_reconnect(device):
+    """Queued commands should be sent when the device reconnects."""
+    device._device_config.sleep_time = 60
+    device._last_update_time = time.monotonic() - 1
+    device._interface = None
+    device._pending_status = {}
+
+    await device.set_dp(True, 1)
+    await device.set_dps({"2": "auto"})
+
+    assert device._pending_status == {
+        "1": True,
+        "2": "auto",
+    }
+
+    interface = SimpleNamespace(
+        is_connected=True,
+        set_dps=AsyncMock(),
+    )
+    device._interface = interface
+
+    await device.set_status()
+
+    interface.set_dps.assert_awaited_once_with(
+        {
+            "1": True,
+            "2": "auto",
+        },
+        cid="test_node",
+    )
+    assert device._pending_status == {}
+
+
+@pytest.mark.asyncio
+async def test_set_status_handles_command_failure(device):
+    """A failed command should not propagate an exception."""
+    interface = SimpleNamespace(
+        is_connected=True,
+        set_dps=AsyncMock(side_effect=TimeoutError("Command timed out")),
+    )
+    device._interface = interface
+    device._pending_status = {"1": True}
+
+    await device.set_status()
+
+    interface.set_dps.assert_awaited_once_with(
+        {"1": True},
+        cid="test_node",
+    )
+    assert device._pending_status == {}
+
