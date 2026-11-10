@@ -41,7 +41,7 @@ from .const import (
     DOMAIN,
     DeviceConfig,
     RESTORE_STATES,
-    CONF_ENABLE_MULTI_DP_EVENTS
+    CONF_ENABLE_MULTI_DP_EVENTS,
 )
 
 _LOGGER = logging.getLogger(__name__)
