@@ -129,8 +129,7 @@
                     "restore_on_reconnect": "Restore the last set value in HomeAssistant after a lost connection",
                     "min_value": "Minimum Value",
                     "max_value": "Maximum Value",
-                    "step_size": "Minimum increment between numbers",
-					"enable_multi_dp_events": "Stream localtuya events for multi-DPs"
+                    "step_size": "Minimum increment between numbers"
                 }
             },
             "yaml_import": {
