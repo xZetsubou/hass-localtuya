@@ -375,6 +375,13 @@ class MessageDispatcher(ContextualLogger):
         if msg.cmd == CMDType.HEART_BEAT:
             self.debug("Got heartbeat response")
             self._release_listener(self.HEARTBEAT_SEQNO, msg)
+            # Advance the sequence counter on heartbeat replies. Every other branch
+            # below calls callback_status_update() (which bumps self.seqno); the
+            # heartbeat branch did not, leaving the counter one behind after each
+            # heartbeat. The next command was then sent/awaited on a stale seqno and
+            # timed out (~5s), so the command was silently never applied on v3.5
+            # devices. Use the existing ack-only path, which only advances the seqno.
+            self.callback_status_update(msg, ack=True)
         elif msg.cmd == CMDType.UPDATEDPS:
             self.debug("Got normal updatedps response")
             self._release_listener(self.RESET_SEQNO, msg)
