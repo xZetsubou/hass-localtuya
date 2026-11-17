@@ -5,6 +5,7 @@
 | ----------- | ---------------------------------------------------------|-------------------------------------
 | `localtuya.reload`          |                                                 | Reload All `localtuya` entries
 | `localtuya.set_dp`          | `#!json {"data": {"device_id", "dp", "value"}}` | Set new value for one `DP` or multi 
+| `localtuya.get_status`      | `#!json {"data": {"device_id"}}`                | Return the last value the device reported for each `DP`
 | `localtuya.remote_add_code` | `#!json {"data": {"target", "device_name", "command_name", "base64", "head", "key" }}` | Manually add code into remote device. 
 
 
@@ -32,6 +33,19 @@
     2. Set `DP 1` Value to `true`
     3. Set `DP 2` Value to `true`
     4. Set `DP 3` Value to `false`
+
+=== "Get Status Service"
+
+    ```yaml title="Read the DPs of a device"
+    action: localtuya.get_status
+    data:
+      device_id: 11100118278aab4de001
+    response_variable: device
+    ```
+    The response holds the last value of each `DP`, `#!json {"status": {"1": true, "2": 50}}`.
+    The service fails when the device is not connected. Right after the device connects, the status is empty
+    on the first connection and holds the values from before on a reconnection, until the device reports
+    again, so a script that runs at startup may need to call it again.
 
 === "Reload Service"
     Reload all `LocalTuya` Entries
