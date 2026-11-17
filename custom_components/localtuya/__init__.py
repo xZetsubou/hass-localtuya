@@ -25,7 +25,14 @@ from homeassistant.const import (
     EVENT_HOMEASSISTANT_STOP,
     SERVICE_RELOAD,
 )
-from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
+from homeassistant.core import (
+    Event,
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+    callback,
+)
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
 
@@ -41,6 +48,7 @@ from .const import (
     DATA_DISCOVERY,
     DOMAIN,
     PLATFORMS,
+    RESTORE_STATES,
 )
 
 from .discovery import TuyaDiscovery
@@ -67,6 +75,9 @@ SERVICE_UPDATE_DPS_SCHEMA = vol.Schema(
     }
 )
 
+SERVICE_GET_STATUS = "get_status"
+SERVICE_GET_STATUS_SCHEMA = vol.Schema({vol.Required(CONF_DEVICE_ID): cv.string})
+
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the LocalTuya integration component."""
@@ -87,9 +98,8 @@ async def async_setup(hass: HomeAssistant, config: dict):
         ]
         await asyncio.gather(*reload_tasks)
 
-    async def _handle_set_dp(event: ServiceCall):
-        """Handle set_dp service call."""
-        dev_id = event.data[CONF_DEVICE_ID]
+    def _connected_device(dev_id: str) -> TuyaDevice:
+        """Return the connected device with this ID."""
         entry: ConfigEntry = async_config_entry_by_device_id(hass, dev_id)
         if not entry or not entry.entry_id:
             raise HomeAssistantError("unknown device id")
@@ -100,6 +110,11 @@ async def async_setup(hass: HomeAssistant, config: dict):
         device: TuyaDevice = hass.data[DOMAIN][entry.entry_id].devices[host]
         if not device.connected:
             raise HomeAssistantError("not connected to device")
+        return device
+
+    async def _handle_set_dp(event: ServiceCall):
+        """Handle set_dp service call."""
+        device = _connected_device(event.data[CONF_DEVICE_ID])
         value = event.data[CONF_VALUE]
         if isinstance(value, dict):
             await device.set_dps(value)
@@ -108,23 +123,23 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
     async def _handle_update_dps(event: ServiceCall):
         """Handle update_dps service call - sends UPDATEDPS (0x12) command."""
-        dev_id = event.data[CONF_DEVICE_ID]
-        entry: ConfigEntry = async_config_entry_by_device_id(hass, dev_id)
-        if not entry or not entry.entry_id:
-            raise HomeAssistantError("unknown device id")
-
-        host = entry.data[CONF_DEVICES][dev_id].get(CONF_HOST)
-        if node_id := entry.data[CONF_DEVICES][dev_id].get(CONF_NODE_ID):
-            host = f"{host}_{node_id}"
-        device: TuyaDevice = hass.data[DOMAIN][entry.entry_id].devices[host]
-        if not device.connected:
-            raise HomeAssistantError("not connected to device")
+        device = _connected_device(event.data[CONF_DEVICE_ID])
 
         dps = event.data.get("dps")
         try:
             await device._interface.update_dps(dps=dps, cid=device._node_id)
         except TimeoutError:
             pass
+
+    async def _handle_get_status(event: ServiceCall) -> ServiceResponse:
+        """Handle get_status service call."""
+        device = _connected_device(event.data[CONF_DEVICE_ID])
+        status = {
+            dp: value
+            for dp, value in device._status.items()
+            if (dp, value) not in RESTORE_STATES.items()
+        }
+        return {"status": status}
 
     def _device_discovered(device: dict):
         """Update address of device if it has changed."""
@@ -205,6 +220,14 @@ async def async_setup(hass: HomeAssistant, config: dict):
         SERVICE_UPDATE_DPS,
         _handle_update_dps,
         schema=SERVICE_UPDATE_DPS_SCHEMA,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_STATUS,
+        _handle_get_status,
+        schema=SERVICE_GET_STATUS_SCHEMA,
+        supports_response=SupportsResponse.ONLY,
     )
 
     discovery = TuyaDiscovery(_device_discovered)
