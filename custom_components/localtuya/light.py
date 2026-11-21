@@ -311,7 +311,11 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def brightness(self):
         """Return the brightness of the light."""
         brightness = self._brightness
-        if brightness is not None and (self.is_color_mode or self.is_white_mode):
+        if brightness is not None and self.is_color_mode:
+            # Colour value has its own range (Tuya spec: v starts at 1), so the
+            # white-mode lower bound must not clip dim colours to 0.
+            return map_range(brightness, 0, self._upper_brightness)
+        if brightness is not None and self.is_white_mode:
             return map_range(brightness, self._lower_brightness, self._upper_brightness)
         return None
 
@@ -536,6 +540,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         features = self.supported_features
         color_modes = self.supported_color_modes
         brightness = None
+        color_brightness = None
         color_mode = None
         if ATTR_EFFECT in kwargs and (features & LightEntityFeature.EFFECT):
             effect = kwargs[ATTR_EFFECT]
@@ -567,10 +572,16 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
                 self._upper_brightness,
             )
             brightness = max(brightness, self._lower_brightness)
+            color_brightness = max(
+                map_range(
+                    int(kwargs[ATTR_BRIGHTNESS]), 0, 255, 0, self._upper_brightness
+                ),
+                1,
+            )
 
             if self.is_color_mode and self._hs is not None:
                 states[self._config.get(CONF_COLOR)] = self.__to_color(
-                    self._hs, brightness
+                    self._hs, color_brightness
                 )
                 color_mode = self._modes.color
             else:
@@ -580,12 +591,22 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         if ATTR_HS_COLOR in kwargs and ColorMode.HS in color_modes:
             if brightness is None:
                 brightness = self._brightness
+            if color_brightness is None:
+                # Carry the current level over in colour units
+                color_brightness = max(
+                    map_range(
+                        self.brightness or 255, 0, 255, 0, self._upper_brightness
+                    ),
+                    1,
+                )
             hs = kwargs[ATTR_HS_COLOR]
             if hs[1] == 0 and self.has_config(CONF_BRIGHTNESS):
                 states[self._config.get(CONF_BRIGHTNESS)] = brightness
                 color_mode = self._modes.white
             else:
-                states[self._config.get(CONF_COLOR)] = self.__to_color(hs, brightness)
+                states[self._config.get(CONF_COLOR)] = self.__to_color(
+                    hs, color_brightness
+                )
                 color_mode = self._modes.color
 
         if ATTR_COLOR_TEMP_KELVIN in kwargs and ColorMode.COLOR_TEMP in color_modes:
