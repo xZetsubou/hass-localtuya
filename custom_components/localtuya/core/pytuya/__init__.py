@@ -43,6 +43,7 @@ import binascii
 import hmac
 import json
 import logging
+import socket
 import struct
 import time
 import weakref
@@ -482,6 +483,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.cipher = AESCipher(self.local_key)
         self.seqno = 1
         self.transport = None
+        self._closed = False
         self.listener = weakref.ref(listener)
         self.dispatcher = self._setup_dispatcher()
         self.heartbeater: asyncio.Task | None = None
@@ -665,8 +667,15 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         self.clean_up_session()
 
         try:
-            if listener is not None:
-                listener.disconnected(exc or "Connection lost")
+            if listener is None:
+                return
+            # close() yields before it returns. A new session may already be
+            # stored on the device; notifying it here used to drop that session
+            # and leave the device offline until a Core restart.
+            current = getattr(listener, "_interface", None)
+            if current is not None and current is not self:
+                return
+            listener.disconnected(exc or "Connection lost")
         except Exception:  # pylint: disable=broad-except
             self.exception("Failed to call disconnected callback")
 
@@ -692,6 +701,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
     def clean_up_session(self):
         """Clean up session."""
+        if self._closed:
+            return
+        self._closed = True
         self.debug(f"Cleaning up session.")
         self.local_key = self.real_local_key
 
@@ -701,11 +713,33 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         if self._sub_devs_query_task:
             self._sub_devs_query_task.cancel()
 
-        if self.is_connected:
-            self.transport.close()
+        self._reset_transport()
 
         if self.dispatcher:
             self.dispatcher.abort()
+
+    def _reset_transport(self):
+        """Abort the socket so the device frees its only local session.
+
+        A graceful FIN leaves many Tuya modules holding that one TCP slot.
+        The next handshake is then silent (command 10 times out) until this
+        process exits and the kernel resets the old socket.
+        """
+        transport = self.transport
+        if transport is None:
+            return
+        sock = transport.get_extra_info("socket")
+        if sock is not None:
+            try:
+                sock.setsockopt(
+                    socket.SOL_SOCKET,
+                    socket.SO_LINGER,
+                    struct.pack("ii", 1, 0),
+                )
+            except OSError:
+                pass
+        if not transport.is_closing():
+            transport.abort()
 
     async def exchange_quick(self, payload, recv_retries):
         """Similar to exchange() but never retries sending and does not decode the response."""
