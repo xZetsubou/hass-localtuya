@@ -611,7 +611,10 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             color_mode = self._modes.white
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
 
-        if color_mode is not None:
+        # Only write work_mode when it actually has to change. Some devices ACK a
+        # CONTROL frame that carries work_mode alongside brightness/color_temp and
+        # then silently discard the whole payload, so the light never dims (#812).
+        if color_mode is not None and self.__get_color_mode() != color_mode:
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
 
         await self._device.set_dps(states)
