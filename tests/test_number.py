@@ -66,6 +66,41 @@ async def test_lock():
     assert entity_1.native_value == 5
 
 
+@pytest.mark.parametrize(
+    "config, status, expected",
+    [(CONFIG, DPS_STATUS, 5.0), (CONFIG_WITH_OFFSET, DPS_STATUS_WITH_OFFSET, 15.0)],
+)
+async def test_native_value_repeated_reads(config, status, expected):
+    """Reading the displayed value must not rescale the stored raw state."""
+    device = await init(config, PLATFORM_DOMAIN, LocalTuyaNumber)
+    entity_1, *_ = get_entites(device)
+    device.status_updated(status)
+
+    for _ in range(3):
+        assert entity_1.native_value == expected
+
+
+async def test_restore_raw_value_after_native_value_read():
+    """Reconnect must send the raw value even after reading the display value."""
+    config = {
+        DEVICE_NAME: {
+            **CONFIG[DEVICE_NAME],
+            "entities": [
+                {**CONFIG[DEVICE_NAME]["entities"][0], "restore_on_reconnect": True}
+            ],
+        }
+    }
+    device = await init(config, PLATFORM_DOMAIN, LocalTuyaNumber)
+    entity_1, *_ = get_entites(device)
+    device.status_updated(DPS_STATUS)
+    assert entity_1.native_value == 5.0
+
+    device.set_dp = AsyncMock()
+    await entity_1.restore_state_when_connected()
+
+    device.set_dp.assert_awaited_once_with(500, "1")
+
+
 async def test_scaling_and_offset():
     device = await init(CONFIG_WITH_OFFSET, PLATFORM_DOMAIN, LocalTuyaNumber)
     entities: list[LocalTuyaNumber] = get_entites(device)

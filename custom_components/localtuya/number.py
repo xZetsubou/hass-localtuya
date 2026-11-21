@@ -92,8 +92,7 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
     @property
     def native_value(self) -> float:
         """Return sensor state."""
-        self._state = self.scale(self._state)
-        return self._state
+        return self.scale(self._state)
 
     @property
     def native_min_value(self) -> float:
