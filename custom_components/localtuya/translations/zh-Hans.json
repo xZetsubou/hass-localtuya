@@ -175,6 +175,7 @@
                     "battery_dp": "电池状态数据点位（通常为14）",
                     "mode_dp": "模式数据点位",
                     "modes": "模式列表（用英文逗号分隔）",
+                    "return_home_dp": "(Optional) Return home DP (boolean, e.g. switch_charge/DP3)",
                     "return_mode": "返回基座模式",
                     "fan_speed_dp": "（非必填）风速数据点位",
                     "fan_speeds": "风速列表（用英文逗号分隔）",

@@ -176,6 +176,7 @@
                     "battery_dp": "DP pin (thường là 14)",
                     "mode_dp": "DP chế độ",
                     "modes": "Danh sách chế độ",
+                    "return_home_dp": "(Optional) Return home DP (boolean, e.g. switch_charge/DP3)",
                     "return_mode": "Chế độ về nhà",
                     "fan_speed_dp": "(Tùy chọn) DP tốc độ quạt",
                     "fan_speeds": "Danh sách tốc độ quạt (cách nhau bằng dấu phẩy)",

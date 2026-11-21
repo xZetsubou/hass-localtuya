@@ -175,6 +175,7 @@
                     "battery_dp": "Battery status DP (usually 14)",
                     "mode_dp": "Mode DP",
                     "modes": "Modes list",
+                    "return_home_dp": "(Optional) Return home DP (boolean, e.g. switch_charge/DP3)",
                     "return_mode": "Return home mode",
                     "fan_speed_dp": "(Optional) Fan speeds DP",
                     "fan_speeds": "Fan speeds list (comma-separated)",
