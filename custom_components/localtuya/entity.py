@@ -226,7 +226,6 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         if self._device.is_subdevice and self._device.id != self._device.gateway.id:
             gateway_identifier = (DOMAIN, f"local_{self._device.gateway.id}")
             if hasattr(dr, "async_get_device_id_by_identifier"):
-                # The module helper raises if the gateway is not registered yet.
                 gateway = dr.async_get(self.hass).async_get_device_by_identifier(
                     gateway_identifier, self._device._entry.entry_id
                 )
