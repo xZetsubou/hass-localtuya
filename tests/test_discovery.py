@@ -1,5 +1,7 @@
 """Test for localtuya."""
 
+import json
+
 from . import *
 from custom_components.localtuya.discovery import TuyaDiscovery
 
@@ -19,3 +21,23 @@ async def test_dsicovery():
 
     mock_callback.assert_called()
     assert len(discovery.devices) == 3
+
+
+async def test_discovery_empty_ip():
+    mock_callback = Mock()
+    discovery = TuyaDiscovery(mock_callback)
+
+    switch = {
+        "ip": "192.168.1.10",
+        "gwId": "switch",
+        "productKey": "a",
+        "version": "3.3",
+    }
+    vacuum = {"ip": "", "gwId": "vacuum", "productKey": "b", "version": "3.3"}
+
+    discovery.datagram_received(json.dumps(switch).encode(), ("192.168.1.10", 6666))
+    discovery.datagram_received(json.dumps(vacuum).encode(), ("192.168.1.33", 6666))
+    discovery.datagram_received(json.dumps(vacuum).encode(), ("192.168.1.33", 6666))
+
+    assert list(discovery.devices) == ["vacuum", "switch"]
+    mock_callback.assert_called_once_with(switch)
