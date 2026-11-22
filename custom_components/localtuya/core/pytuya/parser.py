@@ -178,7 +178,10 @@ def parse_header(data: bytes, logger=_LOGGER):
     elif data[:4] == Affix.prefix_55aa.bin:
         fmt = MessagesFormat.HEADER_55AA
     else:
-        err = f"Prefix Does not match! {prefix} known {set(p for p in Affix.prefixes)}"
+        err = (
+            f"Prefix Does not match! {data[:4]} "
+            f"known {set(p.bin for p in Affix.prefixes)}"
+        )
         logger.error(err)
         raise DecodeError(err)
 
@@ -200,7 +203,10 @@ def parse_header(data: bytes, logger=_LOGGER):
         # seqno |= unknown << 32
         total_length = payload_len + header_len + len(Affix.suffix_6699.bin)
     else:
-        err = f"Prefix Does not match! {prefix} known {set(p for p in Affix.prefixes)}"
+        err = (
+            f"Prefix Does not match! {data[:4]} "
+            f"known {set(p.bin for p in Affix.prefixes)}"
+        )
         logger.error(err)
         raise DecodeError(err)
 
