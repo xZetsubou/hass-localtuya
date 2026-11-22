@@ -29,6 +29,11 @@ from .core.pytuya import (
     connect as pytuya_connect,
 )
 from .core.pytuya.parser import DecodeError
+from .core.offline_watchdog import (
+    OFFLINE_WATCHDOG_INTERVAL_SECONDS,
+    entity_holds_status,
+    should_force_offline,
+)
 
 from .const import (
     ATTR_UPDATED_AT,
@@ -44,6 +49,9 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+# Dedicated child logger so the (rare) watchdog action can be surfaced on its own
+# without opening the noisy per-device connect warnings.
+_WATCHDOG_LOGGER = logging.getLogger(f"{__name__}.offline_watchdog")
 RECONNECT_INTERVAL = timedelta(seconds=5)
 # Subdevice: Offline events before disconnecting the device, around 5 minutes
 MIN_OFFLINE_EVENTS = 5 * 60 // HEARTBEAT_INTERVAL
@@ -97,6 +105,9 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._task_shutdown_entities: asyncio.Task | None = None
         self._unsub_refresh: CALLBACK_TYPE | None = None
         self._unsub_new_entity: CALLBACK_TYPE | None = None
+        self._unsub_offline_watchdog: CALLBACK_TYPE | None = None
+        self._offline_since: float | None = None
+        self._offline_forced = False
 
         self._entities = []
 
@@ -179,6 +190,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
     async def _make_connection(self):
         """Subscribe localtuya entity events."""
+        self._ensure_offline_watchdog()
         if self.is_sleep and not self._status:
             self.status_updated(RESTORE_STATES)
 
@@ -374,6 +386,10 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         if self._unsub_refresh:
             self._unsub_refresh()
             self._unsub_refresh = None
+
+        if self._unsub_offline_watchdog:
+            self._unsub_offline_watchdog()
+            self._unsub_offline_watchdog = None
 
         await self.abort_connect()
 
@@ -604,6 +620,7 @@ class TuyaDevice(TuyaListener, ContextualLogger):
             return
 
         self._last_update_time = time.monotonic()
+        self._offline_forced = False
         self._handle_event(self._status, status)
         self._status.update(status)
         self._dispatch_status()
@@ -638,6 +655,82 @@ class TuyaDevice(TuyaListener, ContextualLogger):
         self._task_shutdown_entities = asyncio.create_task(
             self._shutdown_entities(exc=exc)
         )
+
+    def _ensure_offline_watchdog(self):
+        """Start the offline watchdog once per device; close() cancels it."""
+        if self._unsub_offline_watchdog is None and not self.is_closing:
+            self._unsub_offline_watchdog = async_track_time_interval(
+                self.hass,
+                self._async_offline_watchdog,
+                timedelta(seconds=OFFLINE_WATCHDOG_INTERVAL_SECONDS),
+            )
+
+    async def _async_offline_watchdog(self, _now):
+        """Invariant: no connection and no status for OFFLINE_GRACE s => entities unavailable.
+
+        disconnected() normally schedules _shutdown_entities(), which dispatches None to
+        the entities. That schedule can be lost: a reconnect attempt succeeds at TCP
+        level, so _shutdown_entities() sees `connected` and returns; the handshake then
+        fails, abort_connect() drops _interface before connection_lost arrives, and the
+        next disconnected() returns early. The entities then keep a stale status for as
+        long as the device stays unreachable (a bulb read `on` for 15 h after its relay
+        cut the power, 2026-09-03). This closes every such path and never touches a
+        connected, sleeping or closing device. The grace runs from the first tick that
+        saw the connection gone, so a quiet-but-healthy device that drops in a network
+        blip is left to the normal path for OFFLINE_GRACE seconds.
+        """
+        now = time.monotonic()
+        if self.connected:
+            self._offline_since = None
+            return
+        if self._offline_since is None:
+            self._offline_since = now
+        seconds = now - self._offline_since
+        entities_available = any(
+            entity_holds_status(
+                getattr(entity, "available", False), self._ha_state_of(entity)
+            )
+            for entity in self._entities
+        )
+        if not should_force_offline(
+            connected=False,
+            is_sleep=self.is_sleep,
+            is_closing=self.is_closing,
+            is_subdevice=bool(self.is_subdevice),
+            entities_available=entities_available,
+            seconds_offline=seconds,
+        ):
+            return
+        if not self._offline_forced:
+            _WATCHDOG_LOGGER.warning(
+                "[%s] No connection for %d s but entities still held a status; "
+                "forcing them unavailable.",
+                self.friendly_name,
+                seconds,
+            )
+        self._offline_forced = True
+        signal = f"localtuya_{self._device_config.id}"
+        dispatcher_send(self.hass, signal, None)
+        # Clearing the status is not enough when the write that should follow
+        # was lost or raced: Home Assistant then keeps showing the last status
+        # (light.201_b5 stayed `on` for 8 h on 2026-09-19 with no socket to the
+        # bulb). Push the state where it is observed; a no-op when it already
+        # reads unavailable.
+        for entity in self._entities:
+            if getattr(entity, "hass", None) is not None and getattr(
+                entity, "entity_id", None
+            ):
+                entity.async_write_ha_state()
+        if self._task_reconnect is None and self._task_connect is None:
+            self._task_reconnect = asyncio.create_task(self._async_reconnect())
+
+    def _ha_state_of(self, entity) -> str | None:
+        """State Home Assistant currently shows for an entity, None if it has none."""
+        entity_id = getattr(entity, "entity_id", None)
+        if not entity_id:
+            return None
+        state = self.hass.states.get(entity_id)
+        return None if state is None else state.state
 
     @callback
     def subdevice_state_updated(self, state: SubdeviceState):
