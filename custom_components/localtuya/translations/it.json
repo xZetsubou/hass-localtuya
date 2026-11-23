@@ -99,6 +99,7 @@
                     "protocol_version": "Versione del protocollo",
                     "enable_debug": "Abilita debug (deve essere abilitato manualmente anche in `configuration.yaml`)",
                     "scan_interval": "(Opzionale) Intervallo di scansione in secondi, se la scansione automatica non è attiva",
+                    "refresh_dp_query": "Aggiorna con una richiesta di stato completa (DP_QUERY) invece di UPDATEDPS: solo per dispositivi che ignorano UPDATEDPS, richiede un intervallo di scansione",
                     "entities": "Entità configurate (deseleziona per eliminare)",
                     "add_entities": "Aggiungi nuove entità",
                     "manual_dps_strings": "(Opzionale) DPS manuali, se non rilevati automaticamente (separati da virgole)",

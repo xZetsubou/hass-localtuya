@@ -420,9 +420,15 @@ class TuyaDevice(TuyaListener, ContextualLogger):
     async def _async_refresh(self, _now):
         if self.connected:
             self.debug("Refreshing dps for device")
-            # This a workaround for >= 3.4 devices, since there is an issue on waiting for the correct seqno
             try:
-                await self._interface.update_dps(cid=self._node_id)
+                if self._device_config.refresh_dp_query:
+                    # Some devices answer UPDATEDPS with an empty payload and never push
+                    # their status, only DP_QUERY (the request used on connect) returns it.
+                    if status := await self._interface.status(cid=self._node_id):
+                        self.status_updated(status)
+                else:
+                    # This a workaround for >= 3.4 devices, since there is an issue on waiting for the correct seqno
+                    await self._interface.update_dps(cid=self._node_id)
             except TimeoutError:
                 pass
 

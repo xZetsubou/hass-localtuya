@@ -104,6 +104,7 @@
                     "protocol_version": "Wersja Protokołu",
                     "enable_debug": "Włącz debugowanie (należy włączyć również ręcznie w pliku `configuration.yaml`)",
                     "scan_interval": "(Opcjonalnie) Interwał skanowania w sekundach, jeśli nie skanuje się automatycznie",
+                    "refresh_dp_query": "Odświeżaj pełnym zapytaniem o stan (DP_QUERY) zamiast UPDATEDPS: tylko dla urządzeń, które ignorują UPDATEDPS, wymaga interwału skanowania",
                     "entities": "Skonfigurowane encje (odznacz, aby usunąć)",
                     "add_entities": "Dodaj nowe encje",
                     "manual_dps_strings": "(Opcjonalnie) Ręczne DPS, jeśli nie zostaną wykryte automatycznie (oddzielone przecinkami)",

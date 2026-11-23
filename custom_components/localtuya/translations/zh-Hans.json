@@ -104,6 +104,7 @@
                     "protocol_version": "协议版本",
                     "enable_debug": "启用调试模式（还需在`configuration.yaml`中手动启用）",
                     "scan_interval": "（非必填）如未自动扫描，扫描间隔时间（秒）",
+                    "refresh_dp_query": "使用完整状态查询（DP_QUERY）代替 UPDATEDPS 刷新：仅适用于忽略 UPDATEDPS 的设备，需要设置扫描间隔",
                     "entities": "已配置实体（取消勾选可删除实体）",
                     "add_entities": "添加新实体",
                     "manual_dps_strings": "（非必填）手动指定未自动检测的数据点位（用英文逗号分隔）",

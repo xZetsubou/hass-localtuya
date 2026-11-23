@@ -55,6 +55,9 @@ Go to hub `Configure` (1) a menu will show up (2) Choose `Add new device`
     ??? info "(optional) Scan Interval"
         Only needed if energy/power values are not updating frequently enough by default. <br>Values less than 10 seconds may cause stability issues
 
+    ??? info "(optional) Refresh with DP_QUERY"
+        Only needed if the device follows commands but its state in Home Assistant stays stale until LocalTuya reconnects. Some devices (e.g. WT-SPIs pixel LED controllers) never push their status and answer the periodic `UPDATEDPS` request with an empty payload. With this option the periodic refresh sends `DP_QUERY` instead, the same full status request used on connect. <br>Has no effect without a `Scan Interval`. Each refresh reads every DP, so keep it to the devices that need it
+
     ??? info "(Optional) Manual DPS"
         Needed if the device doesn't advertise the DPS correctly until the entity has been properly initialized. This setting can often be avoided by first connecting/initializing the device with the Tuya App, then closing the app, and then adding the device to the integration. <br>Note: Any DPS added using this option will have a `-1` value during setup e.g. `20,21,22`
 

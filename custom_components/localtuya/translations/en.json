@@ -104,6 +104,7 @@
                     "protocol_version": "Protocol Version",
                     "enable_debug": "Enable debug (must be manually enabled in `configuration.yaml` too)",
                     "scan_interval": "(Optional) Scan interval in seconds, if not scanning automatically",
+                    "refresh_dp_query": "Refresh with a full status query (DP_QUERY) instead of UPDATEDPS: only for devices that ignore UPDATEDPS, requires a scan interval",
                     "entities": "Configured entities (uncheck to delete)",
                     "add_entities": "Add new entity(s)",
                     "manual_dps_strings": "(Optional) Manual DPS's, if not detected automatically (separated by commas)",

@@ -76,6 +76,7 @@ CONF_NO_CLOUD = "no_cloud"
 CONF_MANUAL_DPS = "manual_dps_strings"
 CONF_DEFAULT_VALUE = "dps_default_value"
 CONF_RESET_DPIDS = "reset_dpids"
+CONF_REFRESH_DP_QUERY = "refresh_dp_query"
 CONF_PASSIVE_ENTITY = "is_passive_entity"
 CONF_DEVICE_SLEEP_TIME = "device_sleep_time"
 
@@ -286,6 +287,9 @@ class DeviceConfig:
         self.protocol_version: str = self.device_config[CONF_PROTOCOL_VERSION]
         self.sleep_time: int = self.device_config.get(CONF_DEVICE_SLEEP_TIME, 0)
         self.scan_interval: int = self.device_config.get(CONF_SCAN_INTERVAL, 0)
+        self.refresh_dp_query: bool = self.device_config.get(
+            CONF_REFRESH_DP_QUERY, False
+        )
         self.enable_debug: bool = self.device_config.get(CONF_ENABLE_DEBUG, False)
         self.name: str = self.device_config.get(CONF_FRIENDLY_NAME)
         self.node_id: str | None = self.device_config.get(CONF_NODE_ID)

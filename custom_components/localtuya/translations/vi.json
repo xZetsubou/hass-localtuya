@@ -105,6 +105,7 @@
                     "protocol_version": "Phiên bản giao thức",
                     "enable_debug": "Bật debug (cần bật thủ công trong `configuration.yaml`)",
                     "scan_interval": "(Tùy chọn) Khoảng thời gian quét (giây), nếu không tự động quét",
+                    "refresh_dp_query": "Làm mới bằng truy vấn trạng thái đầy đủ (DP_QUERY) thay cho UPDATEDPS: chỉ dành cho thiết bị bỏ qua UPDATEDPS, cần đặt khoảng thời gian quét",
                     "entities": "Các thực thể đã cấu hình (bỏ chọn để xóa)",
                     "add_entities": "Thêm thực thể mới",
                     "manual_dps_strings": "(Tùy chọn) DPS thủ công, nếu không tự phát hiện (cách nhau bằng dấu phẩy)",
