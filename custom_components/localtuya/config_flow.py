@@ -54,6 +54,7 @@ from .const import (
     CONF_EDIT_DEVICE,
     CONF_ENABLE_ADD_ENTITIES,
     CONF_ENABLE_DEBUG,
+    CONF_ENABLE_MULTI_DP_EVENTS,
     CONF_GATEWAY_ID,
     CONF_LOCAL_KEY,
     CONF_MANUAL_DPS,
@@ -150,6 +151,7 @@ DEVICE_SCHEMA = vol.Schema(
             ["auto"] + sorted(SUPPORTED_PROTOCOL_VERSIONS)
         ),
         vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
+        vol.Optional(CONF_ENABLE_MULTI_DP_EVENTS, default=False): bool,
         vol.Optional(CONF_SCAN_INTERVAL): int,
         vol.Optional(CONF_MANUAL_DPS): cv.string,
         vol.Optional(CONF_RESET_DPIDS): str,
@@ -1072,6 +1074,7 @@ def options_schema(entities):
                 sorted(SUPPORTED_PROTOCOL_VERSIONS)
             ),
             vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
+            vol.Optional(CONF_ENABLE_MULTI_DP_EVENTS, default=False): bool,
             vol.Optional(CONF_SCAN_INTERVAL): int,
             vol.Optional(CONF_MANUAL_DPS): cv.string,
             vol.Optional(CONF_RESET_DPIDS): cv.string,

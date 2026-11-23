@@ -103,6 +103,7 @@
                     "node_id": "(Opcional) ID do nó de subdispositivos",
                     "protocol_version": "Versão do Protocolo",
                     "enable_debug": "Habilitar depuração (também deve ser habilitada manualmente no `configuration.yaml`)",
+                    "enable_multi_dp_events": "Transmitir eventos do LocalTuya para vários DPs",
                     "scan_interval": "(Opcional) Intervalo de varredura em segundos, caso não haja varredura automática",
                     "entities": "Entidades configuradas (desmarque para excluir)",
                     "add_entities": "Adicionar nova(s) entidade(s)",

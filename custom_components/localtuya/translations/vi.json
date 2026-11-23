@@ -104,6 +104,7 @@
                     "node_id": "(Tùy chọn) Node Id cho sub-device",
                     "protocol_version": "Phiên bản giao thức",
                     "enable_debug": "Bật debug (cần bật thủ công trong `configuration.yaml`)",
+                    "enable_multi_dp_events": "Phát sự kiện LocalTuya cho nhiều DP",
                     "scan_interval": "(Tùy chọn) Khoảng thời gian quét (giây), nếu không tự động quét",
                     "entities": "Các thực thể đã cấu hình (bỏ chọn để xóa)",
                     "add_entities": "Thêm thực thể mới",

@@ -98,6 +98,7 @@
                     "node_id": "(Opzionale) ID nodo sottodispositivi",
                     "protocol_version": "Versione del protocollo",
                     "enable_debug": "Abilita debug (deve essere abilitato manualmente anche in `configuration.yaml`)",
+                    "enable_multi_dp_events": "Trasmetti gli eventi di LocalTuya per più DP",
                     "scan_interval": "(Opzionale) Intervallo di scansione in secondi, se la scansione automatica non è attiva",
                     "entities": "Entità configurate (deseleziona per eliminare)",
                     "add_entities": "Aggiungi nuove entità",
