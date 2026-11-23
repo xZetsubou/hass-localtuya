@@ -48,6 +48,18 @@ update_dps:
       selector:
         object:
 
+get_status:
+  name: "Get Status"
+  description: "Return the last value the device reported for each datapoint (DP)"
+  fields:
+    device_id:
+      name: "Device ID"
+      description: The device ID of the device to read the status from
+      required: true
+      example: 11100118278aab4de001
+      selector:
+        text:
+
 remote_add_code:
   name: "Add Remote Code"
   description: Add the remote code to the device's remote storage.
