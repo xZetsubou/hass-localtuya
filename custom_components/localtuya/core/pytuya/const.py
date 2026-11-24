@@ -5,6 +5,13 @@ from dataclasses import dataclass
 from enum import Enum
 
 
+# Ceiling for the payload length a header may claim. The length field is a
+# 32-bit int, so this is only a heuristic to catch a corrupt/desynced stream.
+# Some devices send valid frames well over 2000 bytes (e.g. robot vacuums
+# reporting room lists and cleaning paths as base64 JSON in raw DPs).
+MAX_PAYLOAD_LENGTH = 16384
+
+
 class MessagesFormat:
     """Formats definitions for Tuya Devices messages."""
 

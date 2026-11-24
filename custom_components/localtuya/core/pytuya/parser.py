@@ -5,7 +5,7 @@ import struct
 import hmac
 import binascii
 from hashlib import md5, sha256
-from .const import Affix, MessagesFormat, TuyaHeader, TuyaMessage
+from .const import Affix, MAX_PAYLOAD_LENGTH, MessagesFormat, TuyaHeader, TuyaMessage
 from .cipher import AESCipher
 
 _LOGGER = logging.getLogger(__name__)
@@ -204,9 +204,9 @@ def parse_header(data: bytes, logger=_LOGGER):
         logger.error(err)
         raise DecodeError(err)
 
-    # sanity check. currently the max payload length is somewhere around 300 bytes
-    if payload_len > 2000:
-        err = f"Header claims the packet size is over 2000 bytes!  It is most likely corrupt. Claimed size: {payload_len} bytes. fmt: {fmt} unpacked: {unpacked}"
+    # sanity check to catch a corrupt/desynced stream (see MAX_PAYLOAD_LENGTH)
+    if payload_len > MAX_PAYLOAD_LENGTH:
+        err = f"Header claims the packet size is over {MAX_PAYLOAD_LENGTH} bytes!  It is most likely corrupt. Claimed size: {payload_len} bytes. fmt: {fmt} unpacked: {unpacked}"
         logger.error(err)
         raise DecodeError(err)
 
