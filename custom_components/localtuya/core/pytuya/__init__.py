@@ -924,6 +924,22 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
         else:
             self.dps_to_request.update({str(index): None for index in dp_indicies})
 
+    @staticmethod
+    def _decode_text(raw):
+        """Decode a decrypted payload, tolerating invalid UTF-8 in DP values.
+
+        Some devices put raw bytes in a string DP. Invalid bytes are replaced only
+        if the result is still a JSON object, so that the garbage produced by a
+        wrong local_key keeps being rejected.
+        """
+        try:
+            return raw.decode("utf-8")
+        except UnicodeDecodeError:
+            text = raw.decode("utf-8", errors="replace")
+            if not isinstance(json.loads(text), dict):
+                raise
+            return text
+
     def _decode_payload(self, payload):
         cipher = AESCipher(self.local_key)
 
@@ -959,7 +975,9 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
             if self.version < 3.4:
                 try:
                     # self.debug("decrypting=%r", payload)
-                    payload = cipher.decrypt(payload, False)
+                    payload = self._decode_text(
+                        cipher.decrypt(payload, False, decode_text=False)
+                    )
                 except Exception as ex:
                     self.debug(
                         "incomplete payload=%r with len:%d (%s)",
@@ -974,7 +992,7 @@ class TuyaProtocol(asyncio.Protocol, ContextualLogger):
 
             if not isinstance(payload, str):
                 try:
-                    payload = payload.decode()
+                    payload = self._decode_text(payload)
                 except Exception as ex:
                     self.debug("payload was not string type and decoding failed")
                     return self.error_json(ERR_JSON, payload)
