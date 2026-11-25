@@ -40,6 +40,14 @@
     Most of the cloud-pulled DPS aren't really useful; they might be encrypted or have empty values. 
     However, it won't change the fact that the device contains these DPS, so using them is up to the user.
 
+<br>
+
+### Smart Plug Energy (kWh)
+!!! abstract ""
+    Many plugs only send the energy DP (`add_ele`) to the cloud, so it shows up as `cloud pull` and the energy sensor stays `unknown`. 
+    Set `Calculate Energy from Power DP` on the energy sensor and pick the power DP (`cur_power`): the sensor becomes a kWh total integrated from power, 
+    using the power sensor's scaling and unit. Auto-configure does this when `add_ele` is a cloud pull DP.
+
 <!-- ### Scenes Controllers
 !!! abstract ""
     If you want to control Home Assistant automations from scene control devices, such as `remotes or switches`, you should consider adding them and relying on [events](/ha_events/) -->

@@ -406,6 +406,7 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
         LocalTuyaEntity(
             id=DPCode.ADD_ELE,
+            energy_power_dp=DPCode.CUR_POWER,
             name="Electricity",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
@@ -581,6 +582,7 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
         LocalTuyaEntity(
             id=DPCode.ADD_ELE,
+            energy_power_dp=DPCode.CUR_POWER,
             name="Electricity",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,
@@ -1584,6 +1586,7 @@ SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
         LocalTuyaEntity(
             id=DPCode.ADD_ELE,
+            energy_power_dp=DPCode.CUR_POWER,
             name="Electricity",
             device_class=SensorDeviceClass.ENERGY,
             state_class=SensorStateClass.TOTAL_INCREASING,

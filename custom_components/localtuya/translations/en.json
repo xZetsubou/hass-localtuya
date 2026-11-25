@@ -165,6 +165,7 @@
                     "state_class": "(Optional) State Class",
                     "scaling": "(Optional) Scaling Factor",
                     "offset": "(Optional) Offset",
+                    "energy_power_dp": "(Optional) Calculate Energy from Power DP",
                     "state_on": "On Values (optionally comma-separated)",
                     "state_off": "Off Value",
                     "powergo_dp": "Power DP (usually 25 or 2)",
@@ -265,7 +266,8 @@
                     "humidifier_available_modes":"Each line represents [ device_value: friendly name ]",
                     "fan_speed_list":"Each line represents [ device_value: friendly name ]",
                     "device_class": "Find out more about [Device Classes]({device_classes_url})",
-                    "state_class": "Find out more about [State Classes]({state_classes_url})"
+                    "state_class": "Find out more about [State Classes]({state_classes_url})",
+                    "energy_power_dp": "For devices that don't report energy locally (e.g. `add_ele`): this sensor becomes a kWh total integrated from the selected power DP, using that DP's sensor scaling and unit (W if it has no sensor)."
                 }
             }
         }

@@ -67,6 +67,7 @@
                     "device_class": "Device Class",
                     "scaling": "Scaling Factor",
                     "offset": "Offset (applied after scaling)",
+                    "energy_power_dp": "Calculate energy from power DP",
                     "state_on": "On Value",
                     "state_off": "Off Value",
                     "powergo_dp": "Power DP (Usually 25 or 2)",

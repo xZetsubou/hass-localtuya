@@ -213,3 +213,27 @@ async def test_auto_configure():
     category = COVER_DEVICE_DATA["device_cloud_info"]["category"]
     entities = gen_localtuya_entities(COVER_DEVICE_DATA["device_config"], category)
     assert len(entities) > 4
+
+
+def plug_dps(add_ele: str) -> dict:
+    return {
+        "friendly_name": "Plug",
+        "dps_strings": [
+            "1 ( code: switch_1 , value: True )",
+            f"17 ( code: add_ele , value: 1{add_ele} )",
+            "18 ( code: cur_current , value: 0 )",
+            "19 ( code: cur_power , value: 0 )",
+            "20 ( code: cur_voltage , value: 2357 )",
+        ],
+    }
+
+
+async def test_auto_configure_energy_from_power():
+    """add_ele integrates cur_power only when the device doesn't report it locally."""
+    entities = gen_localtuya_entities(plug_dps(", cloud pull"), "cz")
+    energy = next(e for e in entities if e["id"] == "17")
+    assert energy["energy_power_dp"] == "19"
+
+    entities = gen_localtuya_entities(plug_dps(""), "cz")
+    energy = next(e for e in entities if e["id"] == "17")
+    assert "energy_power_dp" not in energy
