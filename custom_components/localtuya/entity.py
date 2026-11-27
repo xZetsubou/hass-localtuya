@@ -43,6 +43,7 @@ from .const import (
     DOMAIN,
     RESTORE_STATES,
     DeviceConfig,
+    normalize_entity_category,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -260,20 +261,31 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         return (len(self._status) > 0) or self._device.connected
 
     @property
-    def entity_category(self) -> str:
-        """Return the category of the entity."""
-        if category := self._config.get(CONF_ENTITY_CATEGORY):
-            return EntityCategory(category) if category != "None" else None
-        else:
-            # Set Default values for unconfigured devices.
-            if platform := self._config.get(CONF_PLATFORM):
-                # Call default_category from config_flow  to set default values!
-                # This will be removed after a while, this is only made to convert who came from main integration.
-                # new users will be forced to choose category from config_flow.
-                from .config_flow import default_category
+    def entity_category(self) -> EntityCategory | None:
+        """Return the category of the entity.
 
-                return default_category(platform)
-        return None
+        Home Assistant does not allow read-only platforms to use
+        EntityCategory.CONFIG. Older LocalTuya config entries may still contain
+        that invalid combination, so the configured category and the platform
+        default alike are normalized before they are returned.
+        """
+        platform = self._config.get(CONF_PLATFORM)
+        category = self._config.get(CONF_ENTITY_CATEGORY)
+
+        if not category or category == "None":
+            if not platform:
+                return None
+
+            # Set default values for unconfigured devices.
+            # Call default_category from config_flow to set default values.
+            # This will be removed after a while; it only converts users coming
+            # from the main integration. New users are forced to choose a
+            # category from the config flow.
+            from .config_flow import default_category
+
+            category = default_category(platform)
+
+        return normalize_entity_category(platform, category)
 
     @property
     def device_class(self):
