@@ -1,8 +1,8 @@
 """
-    This a file contains available tuya data
-    https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
-    Credits: official HA Tuya integration.
-    Modified by: xZetsubou
+This a file contains available tuya data
+https://developer.tuya.com/en/docs/iot/standarddescription?id=K9i5ql6waswzq
+Credits: official HA Tuya integration.
+Modified by: xZetsubou
 """
 
 from .base import (
@@ -80,7 +80,20 @@ FANS: dict[str, tuple[LocalTuyaEntity, ...]] = {
     ),
 }
 # Fan with Light
-FANS["fsd"] = FANS["fs"]
+FANS["fsd"] = (
+    LocalTuyaEntity(
+        id=(DPCode.SWITCH_FAN, DPCode.FAN_SWITCH, DPCode.SWITCH),
+        name="Fan",
+        icon="mdi:fan",
+        device_group="fan",
+        fan_speed_control=FAN_SPEED_DP,
+        fan_direction=DPCode.FAN_DIRECTION,
+        fan_oscillating_control=FANS_OSCILLATING,
+        custom_configs=localtuya_fan(
+            DIRECTION_FORWARD, DIRECTION_REVERSE, 1, 100, "disabled", "int"
+        ),
+    ),
+)
 # Fan wall switch
 FANS["fskg"] = FANS["fs"]
 # Air Purifier

@@ -150,6 +150,9 @@
                 "data": {
                     "id": "DP ID",
                     "friendly_name": "Friendly name for Entity",
+                    "device_group": "Connected device (optional)",
+                    "button_press_value": "Button press value (optional integer; defaults to true)",
+                    "button_log_dp_changes": "Log reported DP changes as button activity",
                     "current": "Current",
                     "current_consumption": "Current Consumption",
                     "voltage": "Voltage",
@@ -198,6 +201,7 @@
                     "scene": "Scene",
                     "scene_values": "(Optional) Scene values",
                     "select_options": "Select options values",
+                    "select_dps_type": "Select DP value type (auto uses reported status, string until then)",
                     "fan_speed_control": "Fan Speed Control DP",
                     "fan_oscillating_control": "Fan Oscillating Control DP",
                     "fan_speed_min": "minimum fan speed integer",

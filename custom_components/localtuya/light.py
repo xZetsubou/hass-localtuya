@@ -255,23 +255,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
         super().connection_made()
         is_write_only = self._write_only
 
-        if self.has_config(CONF_SCENE):
-            if (cf_scenes := self._config.get(CONF_SCENE_VALUES)) and len(cf_scenes):
-                scenes = {v: k for k, v in cf_scenes.items()}
-            else:
-                scene_value = self.dp_value(CONF_SCENE)
-                if is_write_only and not scene_value:
-                    scenes = SCENE_LIST_RGBW_BLE
-                elif scene_value and len(scene_value) <= 20:
-                    scenes = SCENE_LIST_RGBW_255
-                elif self._config.get(CONF_BRIGHTNESS) is None:
-                    scenes = SCENE_LIST_RGB_1000
-                else:
-                    scenes = SCENE_LIST_RGBW_1000
-                scenes = {**self._modes.as_dict(), **scenes}
-            self._scenes = DictSelector(scenes, reverse=True)
-
-            self._effect_list = list(scenes.keys()) + self._effect_list
+        self._setup_scenes()
 
         if self.has_config(CONF_COLOR):
             color_data = self.dp_value(CONF_COLOR)
@@ -284,6 +268,29 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
         if is_write_only and self._cached_status:
             self._status.update(self._cached_status)
+
+    def _setup_scenes(self):
+        """Initialize scene options once their value or configuration is available."""
+        if self._scenes.values:
+            return
+
+        if self.has_config(CONF_SCENE):
+            if (cf_scenes := self._config.get(CONF_SCENE_VALUES)) and len(cf_scenes):
+                scenes = {v: k for k, v in cf_scenes.items()}
+            else:
+                scene_value = self.dp_value(CONF_SCENE)
+                if self._write_only and not scene_value:
+                    scenes = SCENE_LIST_RGBW_BLE
+                elif scene_value and len(scene_value) <= 20:
+                    scenes = SCENE_LIST_RGBW_255
+                elif self._config.get(CONF_BRIGHTNESS) is None:
+                    scenes = SCENE_LIST_RGB_1000
+                else:
+                    scenes = SCENE_LIST_RGBW_1000
+                scenes = {**self._modes.as_dict(), **scenes}
+            self._scenes = DictSelector(scenes, reverse=True)
+
+            self._effect_list = list(scenes.keys()) + self._effect_list
 
     @property
     def extra_state_attributes(self):
@@ -383,7 +390,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
     def supported_features(self) -> LightEntityFeature:
         """Flag supported features."""
         supports = LightEntityFeature(0)
-        if self.has_config(CONF_SCENE) or self.has_config(CONF_MUSIC_MODE):
+        if self.has_config(CONF_SCENE) or self._config.get(CONF_MUSIC_MODE):
             supports |= LightEntityFeature.EFFECT
         return supports
 
@@ -602,7 +609,8 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             )
 
             color_mode = self._modes.white
-            states[self._config.get(CONF_BRIGHTNESS)] = brightness
+            if self.has_config(CONF_BRIGHTNESS):
+                states[self._config.get(CONF_BRIGHTNESS)] = brightness
             states[self._config.get(CONF_COLOR_TEMP)] = color_temp
 
         if ATTR_WHITE in kwargs and ColorMode.WHITE in color_modes:
@@ -611,7 +619,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
             color_mode = self._modes.white
             states[self._config.get(CONF_BRIGHTNESS)] = brightness
 
-        if color_mode is not None:
+        if color_mode is not None and self.has_config(CONF_COLOR_MODE):
             states[self._config.get(CONF_COLOR_MODE)] = color_mode
 
         await self._device.set_dps(states)
@@ -622,6 +630,7 @@ class LocalTuyaLight(LocalTuyaEntity, LightEntity):
 
     def status_updated(self):
         """Device status was updated."""
+        self._setup_scenes()
         self._state = self.dp_value(self._dp_id)
         supported = self.supported_features
         self._effect = None

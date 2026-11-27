@@ -51,6 +51,7 @@ from .const import (
     CONF_ADD_DEVICE,
     CONF_CONFIGURE_CLOUD,
     CONF_DPS_STRINGS,
+    CONF_DEVICE_GROUP,
     CONF_EDIT_DEVICE,
     CONF_ENABLE_ADD_ENTITIES,
     CONF_ENABLE_DEBUG,
@@ -1163,6 +1164,7 @@ async def platform_schema(
     if allow_id:
         schema[vol.Required(CONF_ID)] = col_to_select(dps_strings, is_dps=True)
     schema[vol.Optional(CONF_FRIENDLY_NAME, default="")] = vol.Any(None, cv.string)
+    schema[vol.Optional(CONF_DEVICE_GROUP)] = col_to_select(["fan", "light"])
     schema[
         vol.Required(CONF_ENTITY_CATEGORY, default=str(default_category(platform)))
     ] = col_to_select(ENTITY_CATEGORY)

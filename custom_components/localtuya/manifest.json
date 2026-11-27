@@ -1,6 +1,7 @@
 {
   "domain": "localtuya",
   "name": "Local Tuya",
+  "after_dependencies": ["logbook"],
   "codeowners": [],
   "config_flow": true,
   "dependencies": [],

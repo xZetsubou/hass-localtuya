@@ -6,6 +6,94 @@ from custom_components.localtuya.core.ha_entities import (
 from custom_components.localtuya.const import PLATFORMS
 
 
+@pytest.mark.parametrize("timer_code", ["countdown_left_fan", "fan_countdown_left"])
+def test_fan_direction_and_shutdown_timer_auto_configure(timer_code):
+    """Expose the direction and writable minute countdown of an fsd fan."""
+    device_data = {
+        "friendly_name": "Ceiling fan/Light v2",
+        "dps_strings": [
+            "20 ( code: switch_led , value: False )",
+            "23 ( code: temp_value , value: 1000 )",
+            "60 ( code: fan_switch , value: True )",
+            "62 ( code: fan_speed , value: 1 )",
+            "63 ( code: fan_direction , value: reverse )",
+            f"64 ( code: {timer_code} , value: 59 )",
+            "66 ( code: fan_beep , value: True )",
+            "101 ( code: mute , value: False, cloud pull )",
+        ],
+        "device_cloud_data": {
+            "product_name": "ceiling fan/Light v2",
+            "dps_data": {
+                "63": {
+                    "type": "Enum",
+                    "values": '{"range":["forward","reverse"]}',
+                },
+                "64": {
+                    "type": "Integer",
+                    "values": '{"unit":"min","min":0,"max":540,"scale":0,"step":1}',
+                },
+            }
+        },
+    }
+
+    entities = gen_localtuya_entities(device_data, "fsd")
+    color_cycle = next(entity for entity in entities if entity["id"] == "23")
+    direction = next(entity for entity in entities if entity["id"] == "63")
+    timer = next(entity for entity in entities if entity["id"] == "64")
+
+    assert color_cycle["platform"] == "button"
+    assert color_cycle["friendly_name"] == "Cycle light color"
+    assert color_cycle["device_group"] == "light"
+    assert color_cycle["button_press_value"] == 1000
+    assert color_cycle["button_log_dp_changes"] is True
+    assert direction["platform"] == "select"
+    assert direction["device_group"] == "fan"
+    assert direction["select_options"] == {
+        "forward": "Forward",
+        "reverse": "Reverse",
+    }
+    assert timer["platform"] == "number"
+    assert timer["device_group"] == "fan"
+    assert timer["min_value"] == 0
+    assert timer["max_value"] == 540
+    assert timer["unit_of_measurement"] == "min"
+    assert (
+        next(entity for entity in entities if entity["id"] == "20")["device_group"]
+        == "light"
+    )
+    assert (
+        next(entity for entity in entities if entity["id"] == "60")["device_group"]
+        == "fan"
+    )
+    parent_switch = next(entity for entity in entities if entity["id"] == "66")
+    assert parent_switch["platform"] == "switch"
+    assert "device_group" not in parent_switch
+    assert not any(entity["id"] == "101" for entity in entities)
+
+    without_color_dp = {
+        **device_data,
+        "dps_strings": [
+            dp for dp in device_data["dps_strings"] if not dp.startswith("23 ")
+        ],
+    }
+    assert not any(
+        entity["platform"] == "button"
+        for entity in gen_localtuya_entities(without_color_dp, "fsd")
+    )
+
+    other_product = {
+        **device_data,
+        "device_cloud_data": {
+            **device_data["device_cloud_data"],
+            "product_name": "Other ceiling fan light",
+        },
+    }
+    assert not any(
+        entity["platform"] == "button"
+        for entity in gen_localtuya_entities(other_product, "fsd")
+    )
+
+
 COVER_DEVICE_DATA = {
     "device_config": {
         "friendly_name": "Cover",
