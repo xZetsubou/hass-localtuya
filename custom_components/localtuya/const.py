@@ -189,6 +189,7 @@ CONF_KEY_STUDY_DP = "key_study_dp"
 # Lock
 CONF_JAMMED_DP = "jammed_dp"
 CONF_LOCK_STATE_DP = "lock_state_dp"
+CONF_REMOTE_KEY_DP = "remote_key_dp"
 
 # Humidifier
 CONF_HUMIDIFIER_SET_HUMIDITY_DP = "humidifier_set_humidity_dp"

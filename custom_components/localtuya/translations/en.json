@@ -244,6 +244,7 @@
                     "key_study_dp":"(Optional) Key Study DP (usually 7)",
                     "lock_state_dp":"(Optional) Lock state DP",
                     "jammed_dp":"(Optional) Jam DP",
+                    "remote_key_dp":"(Optional) Remote unlock key DP (remote_no_pd_setkey) — enables code-based remote unlock",
                     "target_temperature_high_dp":"(Optional) Target Temperature High DP",
                     "target_temperature_low_dp":"(Optional) Target Temperature Low DP",
                     "color_mode_set":"Supported modes set (Leave as default if you aren't sure)",

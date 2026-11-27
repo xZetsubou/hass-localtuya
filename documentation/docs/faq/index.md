@@ -20,6 +20,17 @@
 
 <br>
 
+#### Access Control Keypads
+!!! abstract ""
+    Card / PIN keypads and door controllers (Tuya category __`mk`__) only *push* their datapoints when something happens, so adding one fails with `no datapoints could be found`.
+    Add __`0`__ in the manual DPS field to skip the handshake; with the cloud configured, `auto configure` then creates the entities. <br>
+    Remote unlock is a code handshake: set the lock's __`Remote unlock key DP`__ to `remote_no_pd_setkey` (usually `8`) and use `remote_no_dp_key` (usually `9`) as the lock DP.
+    Each unlock registers a one-time code that is valid for a few minutes, then unlocks with it. `closed_opened_kit` (usually `35`) as the lock state DP shows the strike opening and relocking.
+    !!! warning ""
+        Remote *lock* is refused for these devices: the keypads tested open the strike for a lock command too, and they relock on their own.
+
+<br>
+
 #### ZigBee Gateway
 !!! abstract ""
     The ZigBee gateway isn't supposed to be added unless it has more features other than just being a hub. <br>
