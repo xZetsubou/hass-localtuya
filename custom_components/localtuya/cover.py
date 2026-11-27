@@ -286,7 +286,8 @@ class LocalTuyaCover(LocalTuyaEntity, CoverEntity):
                 )
                 curr_pos = 0 if stopped and closed else (100 if stopped else 50)
 
-            if self._position_inverted:
+            # The device may not report a position yet, e.g. before a full travel.
+            if self._position_inverted and curr_pos is not None:
                 curr_pos = 100 - curr_pos
 
             self._current_cover_position = curr_pos

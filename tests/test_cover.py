@@ -68,3 +68,18 @@ async def test_cover():
 
     # await entity_1.async_set_cover_position(position=100)
     # assert entity_1._current_state == STATE_SET_CLOSING
+
+
+async def test_cover_inverted_without_position():
+    """An inverted cover that doesn't report its position yet must not crash."""
+    entity_config = {**CONFIG[DEVICE_NAME]["entities"][0], "position_inverted": True}
+    config = {DEVICE_NAME: {**CONFIG[DEVICE_NAME], "entities": [entity_config]}}
+    device = await init(config, PLATFORM_DOMAIN, LocalTuyaCover)
+    entity_1, *_ = get_entites(device)
+    entity_1.schedule_update_ha_state = lambda: None
+
+    device.status_updated({"1": "open"})
+    assert entity_1.current_cover_position is None
+
+    device.status_updated({"1": "close", "3": 100})
+    assert entity_1.current_cover_position == 0
