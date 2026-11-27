@@ -413,7 +413,12 @@ class LocalTuyaOptionsFlowHandler(OptionsFlow):
             self.selected_device = user_input[SELECTED_DEVICE]
             dev_conf = self.config_entry.data[CONF_DEVICES][self.selected_device]
             self.dps_strings = dev_conf.get(CONF_DPS_STRINGS, gen_dps_strings())
-            self.entities = dev_conf[CONF_ENTITIES]
+            # Copy, don't alias. dev_conf is the live config entry data, and
+            # async_step_configure_entity appends to self.entities while the flow
+            # is still in progress - aliasing writes those entities into the
+            # stored config before the user confirms, so abandoning the flow
+            # leaves them behind.
+            self.entities = [dict(entity) for entity in dev_conf[CONF_ENTITIES]]
             return await self.async_step_configure_device()
 
         devices = {}
