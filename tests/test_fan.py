@@ -44,11 +44,30 @@ CONFIG = {
                 "platform": "fan",
                 "icon": "",
             },
+            {
+                "friendly_name": "Fan",
+                "entity_category": "config",
+                "fan_speed_control": "32",
+                "fan_speed_min": 0,
+                "fan_speed_max": 5,
+                "fan_speed_ordered_list": "-1,1,2,3,4,5",
+                "id": "31",
+                "platform": "fan",
+                "icon": "",
+            },
         ],
     }
 }
 
-DPS_STATUS = {"1": True, "2": "mid", "3": 4, "4": "reverse", "6": True}
+DPS_STATUS = {
+    "1": True,
+    "2": "mid",
+    "3": 4,
+    "4": "reverse",
+    "6": True,
+    "31": True,
+    "32": 1,
+}
 
 
 async def test_fan():
@@ -85,3 +104,20 @@ async def test_fan():
     assert entity_2.percentage == speed_percentage
     assert percentage_to_ordered_list_item(speed_range, 0) == speed_range[0]
     assert percentage_to_ordered_list_item(speed_range, 100) == speed_range[-1]
+
+
+async def test_fan_ordered_list_dp_type():
+    """Ordered list items are sent in the speed DP's type (int DP -> int)."""
+    device = await init(CONFIG, PLATFORM_DOMAIN, LocalTuyaFan)
+    _, entity_2, entity_3, *_ = get_entites(device)
+    device.status_updated(DPS_STATUS.copy())
+
+    # Integer speed DP: the status reads back, and writes are ints.
+    assert entity_3.percentage == ordered_list_item_to_percentage(
+        entity_3._ordered_list, "1"
+    )
+    assert entity_3._ordered_list_dp_value("-1") == -1
+    assert entity_3._ordered_list_dp_value("5") == 5
+
+    # String speed DP: unchanged, items are sent as strings.
+    assert entity_2._ordered_list_dp_value("mid") == "mid"
