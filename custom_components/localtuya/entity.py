@@ -215,13 +215,16 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     def device_info(self):
         """Return device information for the device registry."""
         device_config = self._device_config
+        protocol_version = device_config.protocol_version
         device_info = dr.DeviceInfo(
             # Serial numbers are unique identifiers within a specific domain
             identifiers={(DOMAIN, f"local_{device_config.id}")},
             name=device_config.name,
             manufacturer="Tuya",
             model=f"{device_config.model} ({device_config.id})",
-            sw_version=device_config.protocol_version,
+            # The device registry requires a string (non-strings stop working in
+            # HA 2026.12); stored configs can hold the version as a number.
+            sw_version=str(protocol_version) if protocol_version is not None else None,
         )
         if self._device.is_subdevice and self._device.id != self._device.gateway.id:
             gateway_identifier = (DOMAIN, f"local_{self._device.gateway.id}")
