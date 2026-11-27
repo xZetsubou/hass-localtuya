@@ -20,6 +20,7 @@ TUYA_ENDPOINTS = {
     "India Data Center": "in",
     "Western America Data Center": "us",
     "Western Europe Data Center": "we",
+    "Singapore Data Center": "sg",
 }
 
 
@@ -103,6 +104,8 @@ class TuyaCloudApi:
             self._base_url = "https://openapi-ueaz.tuyaus.com"
         elif region_code == "we":
             self._base_url = "https://openapi-weaz.tuyaeu.com"
+        elif region_code == "sg":
+            self._base_url = "https://openapi-sg.iotbing.com"
         else:
             self._base_url = f"https://openapi.tuya{region_code}.com"
 

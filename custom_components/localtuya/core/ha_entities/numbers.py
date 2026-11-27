@@ -823,6 +823,58 @@ NUMBERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
     ),
+    # EV Charcher
+    # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
+    "qccdz": (
+        LocalTuyaEntity(
+            id=DPCode.SETDELAYTIME,
+            name="Set Delay time",
+            custom_configs=localtuya_numbers(0, 15, unit=UnitOfTime.HOURS),
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SETDEFINETIME,
+            name="Set Define time",
+            custom_configs=localtuya_numbers(0, 15, unit=UnitOfTime.HOURS),
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SET16A,
+            name="Set 16A",
+            custom_configs=localtuya_numbers(8, 16, unit=UnitOfElectricCurrent.AMPERE),
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SET32A,
+            name="Set 32A",
+            custom_configs=localtuya_numbers(8, 32, unit=UnitOfElectricCurrent.AMPERE),
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SET40A,
+            name="Set 400A",
+            custom_configs=localtuya_numbers(12, 40, unit=UnitOfElectricCurrent.AMPERE),
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SET50A,
+            name="Set 50A",
+            custom_configs=localtuya_numbers(12, 50, unit=UnitOfElectricCurrent.AMPERE),
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SET60A,
+            name="Set 60A",
+            custom_configs=localtuya_numbers(6, 80, unit=UnitOfElectricCurrent.AMPERE),
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SET80A,
+            name="Set 80A",
+            custom_configs=localtuya_numbers(24, 80, unit=UnitOfElectricCurrent.AMPERE),
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
     # Generic products, EV Charger
     # https://support.tuya.com/en/help/_detail/K9g77zfmlnwal
     "qt": (
@@ -857,14 +909,14 @@ NUMBERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
         ),
         LocalTuyaEntity(
             id=DPCode.ENERGY_B_CALIBRATION_FWD,
-            name="Energy A Calibrations",
+            name="Energy B Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
             icon="mdi:lightning-bolt-outline",
             entity_category=EntityCategory.CONFIG,
         ),
         LocalTuyaEntity(
             id=DPCode.ENERGY_C_CALIBRATION_FWD,
-            name="Energy A Calibrations",
+            name="Energy C Calibrations",
             custom_configs=localtuya_numbers(800, 1200),
             icon="mdi:lightning-bolt-outline",
             entity_category=EntityCategory.CONFIG,
@@ -984,6 +1036,16 @@ NUMBERS: dict[str, tuple[LocalTuyaEntity, ...]] = {
                 200, 2500, _scale=0.001, unit=UnitOfLength.METERS
             ),
             icon="mdi:table-row-height",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Lawn mower
+    "gcj": (
+        LocalTuyaEntity(
+            id=DPCode.MACHINEWORKTIME,
+            name="Running time",
+            custom_configs=localtuya_numbers(1, 99, unit=UnitOfTime.MINUTES),
+            icon="mdi:timer-outline",
             entity_category=EntityCategory.CONFIG,
         ),
     ),

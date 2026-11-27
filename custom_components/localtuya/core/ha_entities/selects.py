@@ -440,6 +440,44 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             ),
         ),
     ),
+    # EV Charcher
+    # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
+    "qccdz": (
+        LocalTuyaEntity(
+            id=DPCode.WORK_MODE,
+            name="Mode",
+            icon="mdi:cog",
+            custom_configs=localtuya_selector(
+                {
+                    "charge_now": "NOW",
+                    "charge_pct": "PCT",
+                    "charge_energy": "Energy",
+                    "charge_schedule": "Schedule",
+                }
+            ),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.ONLINE_STATE,
+            name="Online state",
+            icon="mdi:cog",
+            custom_configs=localtuya_selector(
+                {"online": "online", "offline": "offline"}
+            ),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.CHARGINGOPERATION,
+            name="Charge State",
+            icon="mdi:cog",
+            custom_configs=localtuya_selector(
+                {
+                    "OpenCharging": "Open charging",
+                    "CloseCharging": "Close charging",
+                    "WaitOperation": "Wait for operation",
+                }
+            ),
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
     # Heater
     # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
     "qn": (
@@ -1362,6 +1400,29 @@ SELECTS: dict[str, tuple[LocalTuyaEntity, ...]] = {
                     "above_75_inch": "75 Inches or Above",
                 }
             ),
+        ),
+    ),
+    # Lawn mower
+    "gcj": (
+        LocalTuyaEntity(
+            id=DPCode.MACHINECONTROLCMD,
+            name="Control",
+            custom_configs=localtuya_selector(
+                {
+                    "PauseWork": "PauseWork",
+                    "CancelWork": "CancelWork",
+                    "ContinueWork": "ContinueWork",
+                    "StartMowing": "StartMowing",
+                    "StartFixedMowing": "StartFixedMowing",
+                    "StartReturnStation": "StartReturnStation",
+                }
+            ),
+        ),
+        LocalTuyaEntity(
+            id=DPCode.MACHINEPASSWORD,
+            name="Password",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            icon="mdi:lock-question-outline",
         ),
     ),
 }

@@ -16,7 +16,7 @@ from socket import inet_aton
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-from .entity import pytuya
+from .core.pytuya import parser
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ def decrypt_udp(message):
             return payload
         return decrypt(payload, UDP_KEY)
     if message[:4] == PREFIX_6699_BIN:
-        unpacked = pytuya.unpack_message(message, hmac_key=UDP_KEY, no_retcode=None)
+        unpacked = parser.unpack_message(message, hmac_key=UDP_KEY, no_retcode=None)
         payload = unpacked.payload.decode()
         # app sometimes has extra bytes at the end
         while payload[-1] == chr(0):
@@ -91,13 +91,15 @@ class TuyaDiscovery(asyncio.DatagramProtocol):
         try:
             try:
                 data = decrypt_udp(data)
-            except Exception:  # pylint: disable=broad-except
+            except Exception as ex:  # pylint: disable=broad-except
                 data = data.decode()
             decoded = json.loads(data)
             self.device_found(decoded)
-        except:
+        except (json.JSONDecodeError, Exception) as ex:
             # _LOGGER.debug("Bordcast from app from ip: %s", addr[0])
-            _LOGGER.debug("Failed to decode broadcast from %r: %r", addr[0], data)
+            _LOGGER.debug(
+                "Failed to decode broadcast from %r: %r [%s]", addr[0], data, ex
+            )
 
     def device_found(self, device):
         """Discover a new device."""

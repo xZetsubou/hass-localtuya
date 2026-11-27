@@ -216,6 +216,34 @@ BUTTONS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             entity_category=EntityCategory.CONFIG,
         ),
     ),
+    # EV Charcher
+    # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
+    "qccdz": (
+        LocalTuyaEntity(
+            id=DPCode.CLEAR_ENERGY,
+            name="Clear Energy",
+            icon="mdi:lightning-bolt-circle",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Lawn mower
+    "gcj": (
+        LocalTuyaEntity(
+            id=DPCode.CLEARAPPOINTMENT,
+            name="Clear schedule",
+            icon="mdi:calendar-remove-outline",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.QUERYAPPOINTMENT,
+            name="Query schedule",
+            icon="mdi:calendar-search-outline",
+        ),
+        LocalTuyaEntity(
+            id=DPCode.QUERYPARTITION,
+            name="Query zones",
+            icon="mdi:map-search-outline",
+        ),
+    ),
 }
 
 # Wireless Switch  # also can come as knob switch.

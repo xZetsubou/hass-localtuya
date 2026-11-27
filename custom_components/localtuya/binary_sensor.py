@@ -27,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 def flow_schema(dps):
     """Return schema used in config flow."""
     return {
-        vol.Required(CONF_STATE_ON, default="True"): str,
+        vol.Required(CONF_STATE_ON, default="true,1,pir,on"): str,
         # vol.Required(CONF_STATE_OFF, default="False"): str,
         vol.Optional(CONF_DEVICE_CLASS): DEVICE_CLASSES_SCHEMA,
         vol.Optional(CONF_RESET_TIMER, default=0): NumberSelector(
@@ -64,8 +64,7 @@ class LocalTuyaBinarySensor(LocalTuyaEntity, BinarySensorEntity):
 
         state = str(self.dp_value(self._dp_id)).lower()
         # users may set wrong on states, But we assume that must devices use this on states.
-        possible_on_states = ["true", "1", "pir", "on"]
-        if state == self._config[CONF_STATE_ON].lower() or state in possible_on_states:
+        if state in self._config[CONF_STATE_ON].lower().split(","):
             self._is_on = True
         else:
             self._is_on = False

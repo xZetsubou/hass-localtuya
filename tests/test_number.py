@@ -1,5 +1,11 @@
 """Test for localtuya."""
 
+from unittest.mock import AsyncMock
+from homeassistant.components.number import (
+    SERVICE_SET_VALUE,
+    async_set_value as number_set_value,
+)
+from homeassistant.core import ServiceCall
 from . import *
 from custom_components.localtuya.number import (
     LocalTuyaNumber,
@@ -23,7 +29,29 @@ CONFIG = {
     }
 }
 
+CONFIG_WITH_OFFSET = {
+    DEVICE_NAME: {
+        **DEVICE_CONFIG,
+        "entities": [
+            {
+                "entity_category": "None",
+                "friendly_name": f"{PLATFORM_DOMAIN} 2",
+                "icon": "",
+                "id": "2",
+                "min_value": 0.0,
+                "max_value": 100.0,
+                "step_size": 1.0,
+                "scaling": 0.1,
+                "offset": 10.0,
+                "platform": PLATFORM_DOMAIN,
+                "restore_on_reconnect": False,
+            }
+        ],
+    }
+}
+
 DPS_STATUS = {"1": 500}
+DPS_STATUS_WITH_OFFSET = {"2": 50}
 
 
 async def test_lock():
@@ -36,3 +64,191 @@ async def test_lock():
 
     device.status_updated(DPS_STATUS)
     assert entity_1.native_value == 5
+
+
+@pytest.mark.parametrize(
+    "config, status, expected",
+    [(CONFIG, DPS_STATUS, 5.0), (CONFIG_WITH_OFFSET, DPS_STATUS_WITH_OFFSET, 15.0)],
+)
+async def test_native_value_repeated_reads(config, status, expected):
+    """Reading the displayed value must not rescale the stored raw state."""
+    device = await init(config, PLATFORM_DOMAIN, LocalTuyaNumber)
+    entity_1, *_ = get_entites(device)
+    device.status_updated(status)
+
+    for _ in range(3):
+        assert entity_1.native_value == expected
+
+
+async def test_restore_raw_value_after_native_value_read():
+    """Reconnect must send the raw value even after reading the display value."""
+    config = {
+        DEVICE_NAME: {
+            **CONFIG[DEVICE_NAME],
+            "entities": [
+                {**CONFIG[DEVICE_NAME]["entities"][0], "restore_on_reconnect": True}
+            ],
+        }
+    }
+    device = await init(config, PLATFORM_DOMAIN, LocalTuyaNumber)
+    entity_1, *_ = get_entites(device)
+    device.status_updated(DPS_STATUS)
+    assert entity_1.native_value == 5.0
+
+    device.set_dp = AsyncMock()
+    await entity_1.restore_state_when_connected()
+
+    device.set_dp.assert_awaited_once_with(500, "1")
+
+
+async def test_scaling_and_offset():
+    device = await init(CONFIG_WITH_OFFSET, PLATFORM_DOMAIN, LocalTuyaNumber)
+    entities: list[LocalTuyaNumber] = get_entites(device)
+
+    assert len(entities) > 0
+    entity_1, *_ = entities
+    assert type(entity_1) is LocalTuyaNumber
+
+    # Verify scaled and offset limits
+    # min: 0.0 * 0.1 + 10.0 = 10.0
+    assert entity_1.native_min_value == 10.0
+    # max: 100.0 * 0.1 + 10.0 = 20.0
+    assert entity_1.native_max_value == 20.0
+    # step size: 1.0 * 0.1 = 0.1 (not offset)
+    assert entity_1.native_step == 0.1
+
+    # Verify scaling + offset read
+    # 50 * 0.1 + 10.0 = 15.0
+    device.status_updated(DPS_STATUS_WITH_OFFSET)
+    assert entity_1.native_value == 15.0
+
+    # Verify setting value back: (15.0 - 10.0) / 0.1 = 50
+    device.set_dp = AsyncMock()
+    await entity_1.async_set_native_value(15.0)
+    device.set_dp.assert_called_once_with(50, "2")
+
+    # Verify setting value back: (20.0 - 10.0) / 0.1 = 100
+    device.set_dp.reset_mock()
+    await entity_1.async_set_native_value(20.0)
+    device.set_dp.assert_called_once_with(100, "2")
+
+
+# Entities 19 and 21 are copied from the diagnostics in issue #861 (a tank level
+# sensor with 0.001 scaling). Entities 30 to 32 are generic 0.01 / 0.1 scaled
+# numbers, not taken from the issue.
+CONFIG_FINE_SCALING = {
+    DEVICE_NAME: {
+        **DEVICE_CONFIG,
+        "entities": [
+            {
+                "entity_category": "config",
+                "friendly_name": "Installation Height",
+                "icon": "mdi:table-row-height",
+                "id": "19",
+                "max_value": 3000,
+                "min_value": 100,
+                "platform": PLATFORM_DOMAIN,
+                "scaling": 0.001,
+                "step_size": 1,
+                "unit_of_measurement": "m",
+            },
+            {
+                "entity_category": "config",
+                "friendly_name": "Depth Maximum",
+                "icon": "mdi:arrow-collapse-down",
+                "id": "21",
+                "max_value": 2900,
+                "min_value": 100,
+                "platform": PLATFORM_DOMAIN,
+                "scaling": 0.001,
+                "step_size": 1,
+                "unit_of_measurement": "m",
+            },
+            {
+                "entity_category": "None",
+                "friendly_name": f"{PLATFORM_DOMAIN} 30",
+                "icon": "",
+                "id": "30",
+                "max_value": 1000,
+                "min_value": 0,
+                "platform": PLATFORM_DOMAIN,
+                "scaling": 0.01,
+                "step_size": 1,
+            },
+            {
+                "entity_category": "None",
+                "friendly_name": f"{PLATFORM_DOMAIN} 31",
+                "icon": "",
+                "id": "31",
+                "max_value": 1000,
+                "min_value": 0,
+                "platform": PLATFORM_DOMAIN,
+                "scaling": 0.1,
+                "step_size": 3,
+            },
+            {
+                "entity_category": "None",
+                "friendly_name": f"{PLATFORM_DOMAIN} 32",
+                "icon": "",
+                "id": "32",
+                "max_value": 1000,
+                "min_value": 0,
+                "platform": PLATFORM_DOMAIN,
+                "scaling": 0.1,
+                "step_size": 0.5,
+            },
+            {
+                "entity_category": "None",
+                "friendly_name": f"{PLATFORM_DOMAIN} 33",
+                "icon": "",
+                "id": "33",
+                "max_value": 1000,
+                "min_value": 0,
+                "platform": PLATFORM_DOMAIN,
+                "offset": 0.5,
+                "step_size": 1,
+            },
+        ],
+    }
+}
+
+
+async def test_step_with_fine_scaling():
+    """The step must be step_size * scaling, not rounded down to 0 (#861)."""
+    device = await init(CONFIG_FINE_SCALING, PLATFORM_DOMAIN, LocalTuyaNumber)
+    entities = {e._dp_id: e for e in get_entites(device)}
+
+    for dp_id in ("19", "21"):
+        assert entities[dp_id].native_step == 0.001
+        assert entities[dp_id].step == 0.001
+    assert entities["30"].native_step == 0.01
+    # 3 * 0.1 is 0.30000000000000004 in float arithmetic.
+    assert entities["31"].native_step == 0.3
+    # A fractional step_size needs more decimals than the scaling alone.
+    assert entities["32"].native_step == 0.05
+
+
+async def test_set_value_with_fine_scaling():
+    """Writing a scaled value must round to the nearest raw value, not truncate."""
+    device = await init(CONFIG_FINE_SCALING, PLATFORM_DOMAIN, LocalTuyaNumber)
+    entities = {e._dp_id: e for e in get_entites(device)}
+    device.set_dp = AsyncMock()
+
+    for dp_id, value, raw in (
+        ("19", 0.102, 102),
+        ("19", 1.42, 1420),
+        ("21", 0.142, 142),
+        ("30", 0.57, 57),
+        ("30", 0.29, 29),
+        ("31", 0.3, 3),
+        ("31", 0.7, 7),
+        # Offset 0.5, no scaling: halves must not round to even, or 20 and 21
+        # would both send 20.
+        ("33", 20, 20),
+        ("33", 21, 21),
+    ):
+        device.set_dp.reset_mock()
+        call = ServiceCall(None, PLATFORM_DOMAIN, SERVICE_SET_VALUE, {"value": value})
+        await number_set_value(entities[dp_id], call)
+        device.set_dp.assert_called_once_with(raw, dp_id)
+        assert type(device.set_dp.call_args.args[0]) is int

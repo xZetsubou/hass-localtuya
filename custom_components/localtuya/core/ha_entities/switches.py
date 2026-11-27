@@ -494,6 +494,20 @@ SWITCHES: dict[str, tuple[LocalTuyaEntity, ...]] = {
             icon="mdi:human-greeting",
         ),
     ),
+    # EV Charcher
+    # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
+    "qccdz": (
+        LocalTuyaEntity(
+            id=DPCode.SWITCH,
+        ),
+    ),
+    "gcj": (
+        LocalTuyaEntity(
+            id=DPCode.MACHINERAINMODE,
+            name="Rain Mode",
+            icon="mdi:weather-rainy",
+        ),
+    ),
     # Unknown product with switch capabilities
     # Fond in some diffusers, plugs and PIR flood lights
     # Not documented
@@ -998,6 +1012,23 @@ SWITCHES: dict[str, tuple[LocalTuyaEntity, ...]] = {
             id=DPCode.ECO,
             name="ECO",
             icon="mdi:sprout",
+            entity_category=EntityCategory.CONFIG,
+        ),
+    ),
+    # Portable Air conditioner
+    # https://developer.tuya.com/en/docs/iot/f?id=K9gf45ld5l0t9
+    # e.g. SILKAIR DUAL CONNECT 9000
+    "ydkt": (
+        LocalTuyaEntity(
+            id=DPCode.ANION,
+            name="Ionizer",
+            icon="mdi:air-purifier",
+            entity_category=EntityCategory.CONFIG,
+        ),
+        LocalTuyaEntity(
+            id=DPCode.SLEEPING_MODE,
+            name="Sleep",
+            icon="mdi:sleep",
             entity_category=EntityCategory.CONFIG,
         ),
     ),

@@ -22,7 +22,6 @@ CONFIG = {
                 "paused_state": "paused",
                 "stop_status": "standby",
                 "pause_dp": "101",
-                "battery_dp": "6",
                 "mode_dp": "3",
                 "modes": "smart,zone,pose,part,chargego,wallfollow,selectroom",
                 "return_mode": "chargego",
@@ -46,7 +45,6 @@ DPS_STATUS = {
     "2": True,  # powergo_dp
     "3": "smart",  # mode_dp
     "5": "cleaning",  # id - state
-    "6": 45,  # battery_dp
     "13": False,  # locate_dp
     "14": "quiet",  # fan_speed_dp
     "16": 0,  # clean_area_dp
@@ -70,7 +68,6 @@ async def test_vacuum():
     status = DPS_STATUS.copy()
     device.status_updated(status)
     assert entity_1.state == VacuumActivity.CLEANING
-    assert entity_1.battery_level == 45
     assert entity_1.fan_speed == "quiet"
     assert status[entity_1_cfg[CONF_MODE_DP]] in entity_1._modes_list
 

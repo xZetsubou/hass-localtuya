@@ -19,9 +19,8 @@ from homeassistant.const import (
     EntityCategory,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
-    ATTR_VIA_DEVICE,
 )
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.dispatcher import (
     async_dispatcher_connect,
     async_dispatcher_send,
@@ -40,6 +39,7 @@ from .const import (
     CONF_PASSIVE_ENTITY,
     CONF_RESTORE_ON_RECONNECT,
     CONF_SCALING,
+    CONF_OFFSET,
     DOMAIN,
     RESTORE_STATES,
     DeviceConfig,
@@ -215,7 +215,7 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
     def device_info(self):
         """Return device information for the device registry."""
         device_config = self._device_config
-        device_info = DeviceInfo(
+        device_info = dr.DeviceInfo(
             # Serial numbers are unique identifiers within a specific domain
             identifiers={(DOMAIN, f"local_{device_config.id}")},
             name=device_config.name,
@@ -224,7 +224,16 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
             sw_version=device_config.protocol_version,
         )
         if self._device.is_subdevice and self._device.id != self._device.gateway.id:
-            device_info[ATTR_VIA_DEVICE] = (DOMAIN, f"local_{self._device.gateway.id}")
+            gateway_identifier = (DOMAIN, f"local_{self._device.gateway.id}")
+            if hasattr(dr, "async_get_device_id_by_identifier"):
+                gateway = dr.async_get(self.hass).async_get_device_by_identifier(
+                    gateway_identifier, self._device._entry.entry_id
+                )
+                if gateway is not None:
+                    device_info["via_device_id"] = gateway.id
+            else:
+                # Backwards compatibility with Home Assistant < 2026.8.
+                device_info["via_device"] = gateway_identifier
         return device_info
 
     @property
@@ -352,11 +361,16 @@ class LocalTuyaEntity(RestoreEntity, pytuya.ContextualLogger):
         """
         return 0
 
-    def scale(self, value):
+    def scale(self, value, scale_only=False):
         """Return the scaled factor of the value, else same value."""
         scale_factor = self._config.get(CONF_SCALING)
-        if scale_factor is not None and isinstance(value, (int, float)):
-            value = round(value * scale_factor, 2)
+        offset = self._config.get(CONF_OFFSET)
+        if isinstance(value, (int, float)):
+            if scale_factor is not None:
+                value = value * scale_factor
+            if not scale_only and offset is not None:
+                value = value + offset
+            value = round(value, 2)
 
         return value
 

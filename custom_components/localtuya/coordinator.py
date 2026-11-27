@@ -21,7 +21,6 @@ from homeassistant.helpers.dispatcher import (
 from .core.cloud_api import TuyaCloudApi
 from .core.pytuya import (
     ContextualLogger,
-    DecodeError,
     HEARTBEAT_INTERVAL,
     TIMEOUT_CONNECT,
     SubdeviceState,
@@ -29,6 +28,8 @@ from .core.pytuya import (
     TuyaProtocol,
     connect as pytuya_connect,
 )
+from .core.pytuya.parser import DecodeError
+
 from .const import (
     ATTR_UPDATED_AT,
     CONF_GATEWAY_ID,
@@ -252,7 +253,6 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                     await self._interface.reset(reset_dpids, cid=self._node_id)
 
                 self.debug("Retrieving initial state")
-                # Usually we use status instead of detect_available_dps, but some device doesn't reports all dps when ask for status.
                 status = await self._interface.status(cid=self._node_id)
                 if status is None:
                     raise Exception("Failed to retrieve status")
@@ -262,16 +262,16 @@ class TuyaDevice(TuyaListener, ContextualLogger):
                 self.exception(f"Handshake with {host} failed: due to {type(e)}: {e}")
                 await self.abort_connect()
                 update_localkey = True
-            except asyncio.CancelledError:
+            except asyncio.CancelledError as e:
                 await self.abort_connect()
                 self._task_connect = None
-                return
             except Exception as e:
                 if not (self._fake_gateway and "Not found" in str(e)):
                     e = "Sub device is not connected" if self.is_subdevice else e
-                    self.warning(f"Handshake with {host} failed: {e}")
+                    self.warning(f"Handshake with {host} failed due to: {e}")
                     await self.abort_connect()
-                    if self.is_subdevice:
+                    if self.is_subdevice or "key" in str(e):
+                        # TODO: Add exceptions for pytuya.
                         update_localkey = True
             except:
                 if self._fake_gateway:
@@ -561,6 +561,8 @@ class TuyaDevice(TuyaListener, ContextualLogger):
 
         def fire_event(event, data: dict):
             """Fire events."""
+            if f"localtuya_{event}" not in self.hass.bus.async_listeners():
+                return
             event_data = {CONF_DEVICE_ID: self.id, **data}
             if len(event_data) > 1:
                 self.hass.bus.async_fire(f"localtuya_{event}", event_data)

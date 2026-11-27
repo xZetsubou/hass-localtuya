@@ -1,6 +1,8 @@
 """Test for localtuya."""
 
 from . import *
+import copy
+from unittest.mock import AsyncMock
 from custom_components.localtuya.climate import (
     LocalTuyaClimate,
     HVACAction,
@@ -9,55 +11,58 @@ from custom_components.localtuya.climate import (
 )
 
 FAN_SPEED_LIST = ["auto", "low", "middle", "high"]
+FAN_SPEED_DICT = {"1": "Silent", "2": "Low", "3": "Middle", "4": "High"}
+ENTITY_CONFIG = {
+    "friendly_name": "Terrace Floor",
+    "entity_category": "None",
+    "target_temperature_dp": "16",
+    "current_temperature_dp": "24",
+    "temperature_step": "1",
+    "min_temperature": 7.0,
+    "max_temperature": 35.0,
+    "precision": "1",
+    "target_precision": "1",
+    "hvac_mode_dp": "2",
+    "hvac_mode_set": {
+        "auto": "program",
+        "heat": "manual",
+        "cool": "COLD",
+    },
+    "hvac_action_dp": "100",
+    "hvac_action_set": {
+        "heating": True,
+        "idle": False,
+    },
+    "preset_dp": "5",
+    "preset_set": {"holiday": "Holiday Friendly Name"},
+    "fan_speed_dp": "6",
+    "fan_speed_list": ",".join(FAN_SPEED_LIST),
+    "swing_mode_dp": "11",
+    "swing_modes": {
+        "both": "up-and-down",
+        "up": "up-only",
+        "down": "down-only",
+    },
+    "swing_horizontal_dp": "12",
+    "swing_horizontal_modes": {
+        "both": "left-and-right",
+        "left": "left-only",
+        "right": "right-only",
+    },
+    "temperature_unit": "fahrenheit/celsius",
+    "id": "1",
+    "eco_dp": "101",
+    "eco_value": "eco_on",
+    "platform": "climate",
+    "icon": "",
+    "heuristic_action": False,
+}
 CONFIG = {
     DEVICE_NAME: {
         **DEVICE_CONFIG,
         "entities": [
-            {
-                "friendly_name": "Terrace Floor",
-                "entity_category": "None",
-                "target_temperature_dp": "16",
-                "current_temperature_dp": "24",
-                "temperature_step": "1",
-                "min_temperature": 7.0,
-                "max_temperature": 35.0,
-                "precision": "1",
-                "target_precision": "1",
-                "hvac_mode_dp": "2",
-                "hvac_mode_set": {
-                    "auto": "program",
-                    "heat": "manual",
-                    "cool": "COLD",
-                },
-                "hvac_action_dp": "100",
-                "hvac_action_set": {
-                    "heating": True,
-                    "idle": False,
-                },
-                "preset_dp": "5",
-                "preset_set": {"holiday": "Holiday Friendly Name"},
-                "fan_speed_dp": "6",
-                "fan_speed_list": ",".join(FAN_SPEED_LIST),
-                "swing_mode_dp": "11",
-                "swing_modes": {
-                    "both": "up-and-down",
-                    "up": "up-only",
-                    "down": "down-only",
-                },
-                "swing_horizontal_dp": "12",
-                "swing_horizontal_modes": {
-                    "both": "left-and-right",
-                    "left": "left-only",
-                    "right": "right-only",
-                },
-                "temperature_unit": "fahrenheit/celsius",
-                "id": "1",
-                "eco_dp": "101",
-                "eco_value": "eco_on",
-                "platform": "climate",
-                "icon": "",
-                "heuristic_action": False,
-            }
+            ENTITY_CONFIG,
+            {**ENTITY_CONFIG, "id": "2", "fan_speed_list": FAN_SPEED_DICT},
         ],
     }
 }
@@ -81,7 +86,7 @@ async def test_climate():
     entities: list[LocalTuyaClimate] = get_entites(device)
 
     assert len(entities) > 0
-    entity_1, *_ = entities
+    entity_1, entity_2, *_ = entities
     assert type(entity_1) is LocalTuyaClimate
 
     assert entity_1._is_on == None
@@ -99,6 +104,7 @@ async def test_climate():
     assert entity_1.hvac_action == HVACAction.IDLE
     assert entity_1.hvac_mode == HVACMode.COOL
     assert entity_1.fan_modes == FAN_SPEED_LIST
+    assert entity_2.fan_modes == list(FAN_SPEED_DICT.values())
     assert entity_1.preset_mode == "Holiday Friendly Name"
     assert entity_1.current_temperature == 24
     assert entity_1.target_temperature == 20  # f to c
@@ -135,3 +141,59 @@ async def test_climate():
     device.status_updated({**DPS_STATUS, **{"11": "up", "12": "both"}})
     assert entity_1.swing_mode == "up-only"
     assert entity_1.swing_horizontal_mode == "left-and-right"
+
+
+# Auto-configure can store entity sets as None when the device has no such DP.
+NONE_ENTITY_CONFIG = {
+    "friendly_name": "None DP sets",
+    "entity_category": "None",
+    "platform": "climate",
+    "icon": "",
+    "id": "1",
+    "target_temperature_dp": "3",
+    "current_temperature_dp": "4",
+    "temperature_step": "1",
+    "min_temperature": 16,
+    "max_temperature": 31,
+    "precision": "1",
+    "target_precision": "1",
+    "hvac_mode_dp": "2",
+    "hvac_mode_set": {HVACMode.COOL: "cold", "sleep": "sleep"},
+    "hvac_action_dp": None,
+    "hvac_action_set": None,
+    "preset_dp": None,
+    "preset_set": None,
+    "fan_speed_dp": "5",
+    "fan_speed_list": None,
+    "swing_mode_dp": "6",
+    "swing_modes": None,
+    "swing_horizontal_dp": "7",
+    "swing_horizontal_modes": None,
+}
+
+NONE_CONFIG = {
+    DEVICE_NAME: {
+        **DEVICE_CONFIG,
+        "entities": [NONE_ENTITY_CONFIG],
+    }
+}
+
+
+async def test_climate_none_config_values():
+    """None config sets must not raise on setup nor when read."""
+    device = await init(NONE_CONFIG, PLATFORM_DOMAIN, LocalTuyaClimate)
+    entity: LocalTuyaClimate = get_entites(device)[0]
+
+    # "sleep" isn't an HA mode, so it's moved to the presets.
+    assert entity._preset_dp == "2"
+    assert entity.preset_modes == ["sleep"]
+    assert set(entity.hvac_modes) == {"cool", "off"}
+
+    # None sets fall back to empty selectors.
+    assert entity.fan_modes == []
+    assert entity.swing_modes == []
+    assert entity.swing_horizontal_modes == []
+
+    entity._device.set_dp = AsyncMock()
+    await entity.async_set_preset_mode("sleep")
+    entity._device.set_dp.assert_awaited_once_with("sleep", "2")

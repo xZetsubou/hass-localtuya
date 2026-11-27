@@ -48,6 +48,13 @@ FAULT_SENSOR = (
         custom_configs=ON_1,
     ),
     LocalTuyaEntity(
+        id=DPCode.MACHINEERROR,
+        name="Fault",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        custom_configs=ON_1,
+    ),
+    LocalTuyaEntity(
         id=DPCode.IDU_ERROR,
         name="IDU Error",
         device_class=BinarySensorDeviceClass.PROBLEM,
@@ -467,8 +474,12 @@ BINARY_SENSORS: dict[str, tuple[LocalTuyaEntity, ...]] = {
             condition_contains_any=["tilt", "true"],
         ),
     ),
+    # EV Charcher
+    # https://developer.tuya.com/en/docs/iot/categoryqn?id=Kaiuz18kih0sm
+    "qccdz": (*FAULT_SENSOR,),
 }
 
+BINARY_SENSORS["gcj"] = FAULT_SENSOR
 BINARY_SENSORS["cl"] = FAULT_SENSOR
 BINARY_SENSORS["wk"] = FAULT_SENSOR
 BINARY_SENSORS["kg"] = FAULT_SENSOR

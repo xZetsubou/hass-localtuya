@@ -1,6 +1,7 @@
 """Platform to present any Tuya DP as a number."""
 
 import logging
+from decimal import ROUND_HALF_UP, Decimal
 from functools import partial
 
 import voluptuous as vol
@@ -16,6 +17,7 @@ from .const import (
     CONF_DEFAULT_VALUE,
     CONF_MAX_VALUE,
     CONF_MIN_VALUE,
+    CONF_OFFSET,
     CONF_PASSIVE_ENTITY,
     CONF_RESTORE_ON_RECONNECT,
     CONF_SCALING,
@@ -51,6 +53,9 @@ def flow_schema(dps):
         vol.Optional(CONF_SCALING): vol.All(
             vol.Coerce(float), vol.Range(min=-1000000.0, max=1000000.0)
         ),
+        vol.Optional(CONF_OFFSET): vol.All(
+            vol.Coerce(float), vol.Range(min=-1000000.0, max=1000000.0)
+        ),
     }
 
 
@@ -70,7 +75,14 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
 
         self._min_value = self.scale(self._config.get(CONF_MIN_VALUE, DEFAULT_MIN))
         self._max_value = self.scale(self._config.get(CONF_MAX_VALUE, DEFAULT_MAX))
-        self._step_size = self.scale(self._config.get(CONF_STEPSIZE, DEFAULT_STEP))
+        # Not self.scale(): it rounds to 2 decimals, which turns e.g. a step of
+        # 1 with scaling 0.001 into 0. Multiply as decimals instead, so the
+        # step keeps exactly the precision of step_size and scaling.
+        step_size = self._config.get(CONF_STEPSIZE, DEFAULT_STEP)
+        scale_factor = self._config.get(CONF_SCALING)
+        if scale_factor is not None and isinstance(step_size, (int, float)):
+            step_size = float(Decimal(str(step_size)) * Decimal(str(scale_factor)))
+        self._step_size = step_size
 
         # Override standard default value handling to cast to a float
         default_value = self._config.get(CONF_DEFAULT_VALUE)
@@ -80,8 +92,7 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
     @property
     def native_value(self) -> float:
         """Return sensor state."""
-        self._state = self.scale(self._state)
-        return self._state
+        return self.scale(self._state)
 
     @property
     def native_min_value(self) -> float:
@@ -110,10 +121,17 @@ class LocalTuyaNumber(LocalTuyaEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
+        offset = self._config.get(CONF_OFFSET)
+        if offset is not None:
+            value = value - offset
         if scale_factor := self._config.get(CONF_SCALING):
             value = value / float(scale_factor)
 
-        await self._device.set_dp(int(value), self._dp_id)
+        # Round to the nearest raw value, not int(): 0.57 / 0.01 is
+        # 56.99999999999999. Halves go away from zero, not to even as with
+        # round(), so an offset of 0.5 still maps each input to its own value.
+        raw = Decimal(str(value)).quantize(Decimal(1), rounding=ROUND_HALF_UP)
+        await self._device.set_dp(int(raw), self._dp_id)
 
     # Default value is the minimum value
     def entity_default_value(self):
