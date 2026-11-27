@@ -122,6 +122,20 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
         await self._device.set_dp(False, self._dp_id)
         self.schedule_update_ha_state()
 
+    def _ordered_list_dp_value(self, item: str):
+        """Return the ordered list item in the speed DP's type.
+
+        Items are strings, but some fans use an integer speed DP (e.g. "-1,1,2,3,4,5")
+        and silently ignore strings. Send an int when the DP currently holds one.
+        """
+        current = self.dp_value(CONF_FAN_SPEED_CONTROL)
+        if isinstance(current, int) and not isinstance(current, bool):
+            try:
+                return int(item)
+            except ValueError:
+                pass
+        return item
+
     async def async_set_percentage(self, percentage):
         """Set the speed of the fan."""
         _LOGGER.debug("Fan async_set_percentage: %s", percentage)
@@ -133,10 +147,9 @@ class LocalTuyaFan(LocalTuyaEntity, FanEntity):
                 await self.async_turn_on()
 
             if self._use_ordered_list:
+                item = percentage_to_ordered_list_item(self._ordered_list, percentage)
                 await self._device.set_dp(
-                    str(
-                        percentage_to_ordered_list_item(self._ordered_list, percentage)
-                    ),
+                    self._ordered_list_dp_value(item),
                     self._config.get(CONF_FAN_SPEED_CONTROL),
                 )
                 _LOGGER.debug(
