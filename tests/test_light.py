@@ -82,3 +82,25 @@ async def test_light():
 
     # Bluetooth
     # device.status_updated({"21": "colour", "24": "AHhkZA==", "25": ""})
+
+
+async def test_light_color_mode_set_color():
+    entity_config = {
+        k: v
+        for k, v in CONFIG[DEVICE_NAME]["entities"][0].items()
+        if k not in ("brightness", "color_temp", "scene")
+    }
+    config = {
+        DEVICE_NAME: {
+            **DEVICE_CONFIG,
+            "entities": [{**entity_config, "color_mode_set": "2"}],
+        }
+    }
+    device = await init(config, PLATFORM_DOMAIN, LocalTuyaLight)
+    entity_1, *_ = get_entites(device)
+
+    device.status_updated({"20": True, "21": "color", "24": "009c03e803e8"})
+
+    assert entity_1.is_color_mode
+    assert entity_1.brightness == 255
+    assert entity_1.hs_color == [156, 100]
