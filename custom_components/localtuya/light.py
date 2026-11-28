@@ -50,13 +50,18 @@ DEFAULT_UPPER_BRIGHTNESS = 1000
 
 MODE_MANUAL = "manual"
 MODE_COLOR = "colour"
+MODE_COLOR_ALT = "color"
 MODE_MUSIC = "music"
 MODE_SCENE = "scene"
 MODE_WHITE = "white"
 
 SCENE_MUSIC = "Music"
 
-MODES_SET = {"Colour, Music, Scene and White": 0, "Manual, Music, Scene and White": 1}
+MODES_SET = {
+    "Colour, Music, Scene and White": 0,
+    "Manual, Music, Scene and White": 1,
+    "Color, Music, Scene and White": 2,
+}
 
 # https://developer.tuya.com/en/docs/iot/dj?id=K9i5ql3v98hn3#title-10-scene_data
 SCENE_LIST_RGBW_255 = {
@@ -158,7 +163,7 @@ class Mode:
         return {**default, "Mode Color": self.color, "Mode Scene": self.scene}
 
 
-MAP_MODE_SET = {0: Mode(), 1: Mode(color=MODE_MANUAL)}
+MAP_MODE_SET = {0: Mode(), 1: Mode(color=MODE_MANUAL), 2: Mode(color=MODE_COLOR_ALT)}
 
 
 def map_range(
